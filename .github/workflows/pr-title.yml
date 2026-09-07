@@ -5,6 +5,8 @@ name: PR 标题规范检查
 on:
   pull_request:
     types: [opened, edited, reopened, synchronize]
+  # 允许手动触发，便于排查规则是否生效
+  workflow_dispatch:
 
 permissions:
   pull-requests: read
