@@ -1,6 +1,6 @@
 {
   "name": "map-army",
-  "version": "6.1.1",
+  "version": "6.1.2",
   "private": true,
   "type": "module",
   "description": "map.army —— 军事标图 Web 应用开源复刻版：基于 MIL-STD-2525 / STANAG APP-6 军标符号，支持 MGRS / UTM / BNG 军网，可绘制、保存、导出与交换战术态势图（MilX）。",
