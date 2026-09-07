@@ -5,9 +5,9 @@
  *
  * - **符号工具**：单击即在该处放置一个点符号，随后自动回到选择模式；
  * - **线/面工具**：连续单击采集顶点，双击或按 Enter 结束，按 Esc 放弃；
- * - **量距工具**：与线工具相同的交互，但不落库，只显示实时距离。
+ * - **量距/量面积工具**：与线/面工具相同的交互，但不落库，只显示实时量测结果。
  *
- * 之所以把交互集中在单个组件内，是因为三种工具共享同一套
+ * 之所以把交互集中在单个组件内，是因为各工具共享同一套
  * "草稿点集合" 状态机，拆开反而要在多个组件间同步状态。
  *
  * 实现要点：草稿点同时保存在 state（驱动渲染）与 ref（供事件回调读取）。
@@ -16,16 +16,21 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CircleMarker, Polyline, Tooltip, useMapEvent } from 'react-leaflet';
+import { CircleMarker, Polygon, Polyline, Tooltip, useMapEvent } from 'react-leaflet';
 
 import type { LonLat } from '@/core/geo';
 import {
+  centroidOf,
   createAreaGeometry,
   createFeature,
   createLineGeometry,
   createPointGeometry,
+  formatArea,
+  formatBearing,
   formatDistance,
   measurePath,
+  measureSegments,
+  polygonArea,
   Tool,
 } from '@/core/model';
 import { useDocumentStore } from '@/stores/useDocumentStore';
@@ -36,6 +41,20 @@ const DRAFT_STYLE = { color: '#076391', weight: 2, dashArray: '6 4' };
 
 /** 顶点控制点半径 */
 const VERTEX_RADIUS = 5;
+
+/** 标注锚点样式：圆点不显示，仅用于承载 Tooltip */
+const ANCHOR_STYLE = { opacity: 0, fillOpacity: 0 };
+
+/**
+ * 判断工具是否处于"连续采点"模式。
+ *
+ * 线/面会落库为要素，量距/量面积只显示结果，但四者共享同一套采点交互。
+ */
+function isPolylineTool(tool: Tool): boolean {
+  return (
+    tool === Tool.Line || tool === Tool.Area || tool === Tool.Measure || tool === Tool.MeasureArea
+  );
+}
 
 /**
  * 绘制处理器组件。
@@ -56,8 +75,7 @@ export function DrawHandler() {
   const toolRef = useRef(activeTool);
   toolRef.current = activeTool;
 
-  const isDrawing =
-    activeTool === Tool.Line || activeTool === Tool.Area || activeTool === Tool.Measure;
+  const isDrawing = isPolylineTool(activeTool);
 
   /** 更新草稿，保持 state 与 ref 同步 */
   const updateDraft = useCallback((points: LonLat[]) => {
@@ -70,7 +88,7 @@ export function DrawHandler() {
   /**
    * 结束当前绘制并提交要素。
    *
-   * 量距工具不产生要素，仅清空草稿。
+   * 量距/量面积工具不产生要素，仅清空草稿。
    *
    * @param dropLast 是否丢弃最后一个顶点——双击结束时会多采一个点
    */
@@ -140,11 +158,7 @@ export function DrawHandler() {
       return;
     }
 
-    if (
-      toolRef.current === Tool.Line ||
-      toolRef.current === Tool.Area ||
-      toolRef.current === Tool.Measure
-    ) {
+    if (isPolylineTool(toolRef.current)) {
       updateDraft([...draftRef.current, point]);
     }
   });
@@ -152,8 +166,7 @@ export function DrawHandler() {
   // 双击结束绘制。Leaflet 会先派发两次 click 再派发 dblclick，
   // 因此此处丢弃最后采集到的那个多余顶点。
   useMapEvent('dblclick', () => {
-    const tool = toolRef.current;
-    if (tool === Tool.Line || tool === Tool.Area || tool === Tool.Measure) {
+    if (isPolylineTool(toolRef.current)) {
       commitDraft(true);
     }
   });
@@ -161,11 +174,18 @@ export function DrawHandler() {
   if (!isDrawing || draft.length === 0) return null;
 
   const positions = draft.map((point) => [point.lat, point.lon] as [number, number]);
-  const isMeasure = activeTool === Tool.Measure;
+  const isMeasureDistance = activeTool === Tool.Measure;
+  const isMeasureArea = activeTool === Tool.MeasureArea;
+  const hasPath = draft.length >= 2;
+  const hasPolygon = draft.length >= 3;
 
   return (
     <>
-      <Polyline positions={positions} pathOptions={DRAFT_STYLE} />
+      {isMeasureArea ? (
+        <Polygon positions={positions} pathOptions={DRAFT_STYLE} />
+      ) : (
+        <Polyline positions={positions} pathOptions={DRAFT_STYLE} />
+      )}
 
       {draft.map((point, index) => (
         <CircleMarker
@@ -176,12 +196,53 @@ export function DrawHandler() {
         />
       ))}
 
-      {isMeasure && draft.length >= 2 ? (
-        <Polyline positions={positions} pathOptions={{ opacity: 0 }}>
+      {/* 量距：每一段的中点标注该段长度与方位角 */}
+      {isMeasureDistance && hasPath
+        ? measureSegments(draft).map((segment) => (
+            <Polyline
+              key={`seg-${segment.index}`}
+              positions={[
+                [segment.from.lat, segment.from.lon],
+                [segment.to.lat, segment.to.lon],
+              ]}
+              pathOptions={ANCHOR_STYLE}
+            >
+              <Tooltip permanent direction="top" className="measure-badge" opacity={0.9}>
+                {formatDistance(segment.distance)} · {formatBearing(segment.bearing)}
+              </Tooltip>
+            </Polyline>
+          ))
+        : null}
+
+      {/*
+        量距：总长标注在最后一个顶点上。
+        若沿用整条路径的中心作为锚点，两点量测时会与唯一分段标注完全重合。
+      */}
+      {isMeasureDistance && hasPath ? (
+        <CircleMarker
+          center={[draft[draft.length - 1].lat, draft[draft.length - 1].lon]}
+          radius={0}
+          interactive={false}
+          pathOptions={ANCHOR_STYLE}
+        >
           <Tooltip permanent direction="top" className="measure-badge" opacity={0.9}>
             总长 {formatDistance(measurePath(draft).length)}
           </Tooltip>
-        </Polyline>
+        </CircleMarker>
+      ) : null}
+
+      {/* 量面积：几何中心标注闭合区域面积 */}
+      {isMeasureArea && hasPolygon ? (
+        <CircleMarker
+          center={[centroidOf(draft).lat, centroidOf(draft).lon]}
+          radius={0}
+          interactive={false}
+          pathOptions={ANCHOR_STYLE}
+        >
+          <Tooltip permanent direction="top" className="measure-badge" opacity={0.9}>
+            面积 {formatArea(polygonArea(draft))}
+          </Tooltip>
+        </CircleMarker>
       ) : null}
     </>
   );

@@ -16,7 +16,8 @@ const TOOLS: { tool: Tool; label: string; title: string }[] = [
   { tool: Tool.Symbol, label: '符号', title: '在地图上放置军标符号' },
   { tool: Tool.Line, label: '线', title: '绘制折线（双击或回车结束）' },
   { tool: Tool.Area, label: '面', title: '绘制多边形（双击或回车结束）' },
-  { tool: Tool.Measure, label: '量距', title: '测量路径长度（不生成要素）' },
+  { tool: Tool.Measure, label: '量距', title: '测量路径长度、方位角（不生成要素）' },
+  { tool: Tool.MeasureArea, label: '量面积', title: '测量闭合区域面积（不生成要素）' },
 ];
 
 /** 底图选项 */

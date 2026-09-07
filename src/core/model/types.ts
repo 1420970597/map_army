@@ -154,6 +154,8 @@ export const Tool = {
   Area: 'area',
   /** 量距 */
   Measure: 'measure',
+  /** 量面积 */
+  MeasureArea: 'measure-area',
   /** 删除要素 */
   Delete: 'delete',
 } as const;

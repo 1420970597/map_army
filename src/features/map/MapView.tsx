@@ -133,7 +133,7 @@ export function MapView() {
       zoom={zoom}
       zoomControl={false}
       // 绘制工具激活时禁用惯性拖动，避免采点过程中地图漂移
-      dragging={activeTool !== Tool.Measure}
+      dragging={activeTool !== Tool.Measure && activeTool !== Tool.MeasureArea}
       className="map-container"
     >
       <TileLayer url={tile.url} attribution={tile.attribution} maxZoom={tile.maxZoom} />

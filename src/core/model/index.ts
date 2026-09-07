@@ -29,6 +29,12 @@ export {
 export type { CreateFeatureParams, CreateLayerParams } from './factory';
 
 export {
+  formatBearing,
+  measureSegments,
+} from './measure';
+export type { SegmentMeasure } from './measure';
+
+export {
   anchorOf,
   bearingOf,
   boundsOf,
