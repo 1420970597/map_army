@@ -6,6 +6,8 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  # 允许在 Actions 页面手动触发，便于排查与重跑
+  workflow_dispatch:
 
 # 同一分支上的新提交会自动取消旧任务，节省 CI 资源
 concurrency:
