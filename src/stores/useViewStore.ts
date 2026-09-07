@@ -65,6 +65,21 @@ export interface ViewState {
  */
 const DEFAULT_CENTER: LonLat = { lon: 8.5, lat: 47.4 };
 
+/**
+ * 判定两个坐标点是否等值。
+ *
+ * 经纬度是值类型，但以对象承载；若每次写入都产生新对象，
+ * zustand 的引用比较会认为状态已变并触发重渲染。地图与视图是双向同步的，
+ * 一旦"同步回来"的动作又产生新对象，就会形成
+ * 写入 → 重渲染 → 再写入 的死循环（React 会报 Maximum update depth exceeded）。
+ * 因此所有坐标写入都必须先做值比较。
+ */
+function samePoint(a: LonLat | null, b: LonLat | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.lon === b.lon && a.lat === b.lat;
+}
+
 export const useViewStore = create<ViewState>((set) => ({
   center: DEFAULT_CENTER,
   zoom: 6,
@@ -78,10 +93,15 @@ export const useViewStore = create<ViewState>((set) => ({
   inspectorOpen: false,
   cursor: null,
 
-  setCursor: (cursor) => set({ cursor }),
-  setCenter: (center) => set({ center }),
-  setZoom: (zoom) => set({ zoom }),
-  setView: (center, zoom) => set({ center, zoom }),
+  // 以下四个写入均带同值守卫：返回原状态即表示"无变化"，
+  // zustand 不会通知订阅者，从而切断双向同步可能形成的更新环
+  setCursor: (cursor) => set((state) => (samePoint(state.cursor, cursor) ? state : { cursor })),
+  setCenter: (center) => set((state) => (samePoint(state.center, center) ? state : { center })),
+  setZoom: (zoom) => set((state) => (state.zoom === zoom ? state : { zoom })),
+  setView: (center, zoom) =>
+    set((state) =>
+      samePoint(state.center, center) && state.zoom === zoom ? state : { center, zoom },
+    ),
   setBaseMap: (baseMap) => set({ baseMap }),
   setGrid: (grid) => set({ grid }),
   toggleGridLabels: () => set((state) => ({ gridLabels: !state.gridLabels })),

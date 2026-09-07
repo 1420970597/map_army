@@ -6,8 +6,9 @@
  * 文档数据（要素、图层）来自 document store，二者在此汇合。
  */
 
-import { useMemo } from 'react';
-import { MapContainer, TileLayer, ZoomControl } from 'react-leaflet';
+import { useEffect, useMemo } from 'react';
+import { latLng } from 'leaflet';
+import { MapContainer, TileLayer, ZoomControl, useMap } from 'react-leaflet';
 
 import { BaseMapType, Tool } from '@/core/model';
 import { useDocumentStore } from '@/stores/useDocumentStore';
@@ -41,6 +42,61 @@ const TILE_SOURCES: Record<BaseMapType, { url: string; attribution: string; maxZ
 };
 
 /**
+ * 视图双向同步器。
+ *
+ * 职责是把地图实例的真实状态与 view store 对齐：
+ * - **地图 → store**：拖动、缩放结束后写回中心点与缩放级别，
+ *   使状态栏等外部组件能反映当前视野；
+ * - **store → 地图**：当外部（如工具栏定位、跳转按钮）修改 store 时，
+ *   驱动地图跳转。
+ *
+ * 双向同步的收敛条件是两条：
+ * 1. store 的 setCenter / setZoom 带**同值守卫**（见 useViewStore），
+ *    写回相同数值不会产生新状态，也就不会触发新的渲染；
+ * 2. 跳转前先比较目标与地图当前状态，超过 1 米容差才真正调用 setView，
+ *    避免"同步 → 触发事件 → 再同步"的抖动。
+ *
+ * 历史上这里曾用内联 `ref` 回调同步，而 React 每次渲染都会重新调用
+ * 内联 ref 回调，配合无守卫的 setter 会形成
+ * 写入 → 重渲染 → 再写入 的死循环，最终被 React 以
+ * "Maximum update depth exceeded" 中断，页面整棵组件树被卸载——
+ * 表现即为**白屏**。故一律使用事件订阅而非 ref 回调。
+ */
+function ViewSync() {
+  const map = useMap();
+  const center = useViewStore((state) => state.center);
+  const zoom = useViewStore((state) => state.zoom);
+
+  // 地图 → store
+  useEffect(() => {
+    const sync = () => {
+      const current = map.getCenter();
+      useViewStore.getState().setCenter({ lon: current.lng, lat: current.lat });
+      useViewStore.getState().setZoom(map.getZoom());
+    };
+    // 挂载时先对齐一次，随后只在交互结束时同步
+    sync();
+    map.on('moveend', sync);
+    map.on('zoomend', sync);
+    return () => {
+      map.off('moveend', sync);
+      map.off('zoomend', sync);
+    };
+  }, [map]);
+
+  // store → 地图
+  useEffect(() => {
+    const target = latLng(center.lat, center.lon);
+    const moved = map.getCenter().distanceTo(target) > 1;
+    if (moved || map.getZoom() !== zoom) {
+      map.setView(target, zoom);
+    }
+  }, [map, center, zoom]);
+
+  return null;
+}
+
+/**
  * 地图主视图组件。
  */
 export function MapView() {
@@ -49,8 +105,6 @@ export function MapView() {
   const baseMap = useViewStore((state) => state.baseMap);
   const grid = useViewStore((state) => state.grid);
   const gridLabels = useViewStore((state) => state.gridLabels);
-  const setCenter = useViewStore((state) => state.setCenter);
-  const setZoom = useViewStore((state) => state.setZoom);
   const activeTool = useViewStore((state) => state.activeTool);
 
   const features = useDocumentStore((state) => state.document.features);
@@ -81,15 +135,12 @@ export function MapView() {
       // 绘制工具激活时禁用惯性拖动，避免采点过程中地图漂移
       dragging={activeTool !== Tool.Measure}
       className="map-container"
-      // 以受控方式同步视图状态，便于外部按钮触发定位
-      ref={(instance) => {
-        if (!instance) return;
-        setCenter({ lon: instance.getCenter().lng, lat: instance.getCenter().lat });
-        setZoom(instance.getZoom());
-      }}
     >
       <TileLayer url={tile.url} attribution={tile.attribution} maxZoom={tile.maxZoom} />
       <ZoomControl position="bottomright" />
+
+      {/* 视图双向同步：替代会引发更新死循环的内联 ref 回调 */}
+      <ViewSync />
 
       <GridOverlay type={grid} showLabels={gridLabels} />
 

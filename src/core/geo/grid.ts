@@ -8,7 +8,7 @@ import {
   utmZoneNumber,
 } from './utm';
 import { tmForward, tmInverse } from './transverse-mercator';
-import { isSouthernBand, mgrsLatBand } from './mgrs';
+import { isSouthernBand, lonLatToMgrs, mgrsLatBand } from './mgrs';
 import { bngToLonLat, lonLatToBng } from './bng';
 
 /**
@@ -185,6 +185,9 @@ function generateUtmBasedGrid(request: GridRequest, label: 'utm' | 'mgrs'): Grid
 
     if ((endX - startX) / spacing + (endY - startY) / spacing > MAX_LINES) continue;
 
+    const midY = (minY + maxY) / 2;
+    const midX = (minX + maxX) / 2;
+
     // 纵向线（东向坐标恒定）
     for (let x = startX; x <= endX; x += spacing) {
       const path: LonLat[] = [];
@@ -192,7 +195,11 @@ function generateUtmBasedGrid(request: GridRequest, label: 'utm' | 'mgrs'): Grid
         const y = minY + ((maxY - minY) * i) / SAMPLES_PER_LINE;
         path.push(unproject(x, y));
       }
-      lines.push({ path, label: gridLabel(label, 'x', x, spacing, southern), level: 0 });
+      const text =
+        label === 'utm'
+          ? gridLabel('x', x, southern)
+          : mgrsLineLabel(unproject(x, midY), 'x', x, spacing);
+      lines.push({ path, label: text, level: 0 });
       if (lines.length > MAX_LINES) return lines;
     }
 
@@ -203,7 +210,11 @@ function generateUtmBasedGrid(request: GridRequest, label: 'utm' | 'mgrs'): Grid
         const x = minX + ((maxX - minX) * i) / SAMPLES_PER_LINE;
         path.push(unproject(x, y));
       }
-      lines.push({ path, label: gridLabel(label, 'y', y, spacing, southern), level: 0 });
+      const text =
+        label === 'utm'
+          ? gridLabel('y', y, southern)
+          : mgrsLineLabel(unproject(midX, y), 'y', y, spacing);
+      lines.push({ path, label: text, level: 0 });
       if (lines.length > MAX_LINES) return lines;
     }
   }
@@ -212,29 +223,35 @@ function generateUtmBasedGrid(request: GridRequest, label: 'utm' | 'mgrs'): Grid
 }
 
 /**
- * 生成网格线的标注文本。
+ * 生成 UTM 网格线的标注文本。
  *
- * - UTM：直接标注带内米数，例如 "450000"；
- * - MGRS：按军用习惯标注"百公里方格内的两位数字"，例如 1000 米间距下 45 km 处标注 "45"。
+ * 直接标注带内米数，例如 "450000"；南半球的北坐标含
+ * 10 000 000 m 偏移，标注时去掉以便阅读。
  */
-function gridLabel(
-  style: 'utm' | 'mgrs',
-  axis: 'x' | 'y',
-  value: number,
-  spacing: number,
-  southern: boolean,
-): string {
-  if (style === 'utm') {
-    // 南半球的北坐标含 10 000 000 m 偏移，标注时去掉以便阅读
-    const display = axis === 'y' && southern ? value - UTM_FALSE_NORTHING_SOUTH : value;
-    return String(Math.round(display));
-  }
+function gridLabel(axis: 'x' | 'y', value: number, southern: boolean): string {
+  const display = axis === 'y' && southern ? value - UTM_FALSE_NORTHING_SOUTH : value;
+  return String(Math.round(display));
+}
 
-  // MGRS：换算到 100 km 方格内的局部坐标，再按间距折算成序号
+/**
+ * 生成 MGRS 网格线的标注文本，遵循军用地图的标注习惯：
+ *
+ * - **100 km 方格线**：标注方格识别字母（纵线为列字母、横线为行字母），
+ *   例如 "4U"、"XJ" 中的单个字母——这才是方格线的"名字"；
+ * - **次级网格线**（10 km / 1 km 等）：标注方格内的两位公里数，
+ *   例如 1 km 间距下 45 km 处标注 "45"、10 km 间距下标注 "10""20"…。
+ *
+ * 此前的实现把标注算成"方格内序号"，当间距为 100 km 时所有线都落在
+ * 方格原点，序号恒为 0，导致满屏 "0"。
+ */
+function mgrsLineLabel(mid: LonLat, axis: 'x' | 'y', value: number, spacing: number): string {
+  if (spacing >= 100000) {
+    // 100 km 方格线：用线的中点坐标反查方格识别字母
+    const coord = lonLatToMgrs(mid, 100000);
+    return axis === 'x' ? coord.col : coord.row;
+  }
   const local = ((value % 100000) + 100000) % 100000;
-  const index = Math.round(local / spacing);
-  const digits = spacing >= 10000 ? 1 : 2;
-  return String(index).padStart(digits, '0');
+  return String(Math.round(local / 1000) % 100).padStart(2, '0');
 }
 
 /** 生成 BNG 网格线 */
