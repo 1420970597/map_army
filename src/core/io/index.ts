@@ -12,6 +12,14 @@ export {
 } from './milxly';
 export type { MilxlyFile } from './milxly';
 
+export {
+  documentToMilxXml,
+  milxXmlToDocument,
+  MILX_XML_NAMESPACE,
+  MILX_XML_VERSION,
+  sidlPad,
+} from './milxXml';
+
 export { documentToGeoJson, geoJsonToDocument } from './geojson';
 export type { GeoJsonFeature, GeoJsonFeatureCollection, GeoJsonGeometry } from './geojson';
 

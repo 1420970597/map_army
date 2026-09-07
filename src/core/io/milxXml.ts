@@ -665,10 +665,12 @@ function formatNumber(value: number): string {
 
 // ─────────────────────────── 转义工具 ───────────────────────────
 
-/** 转义 XML 属性值：换行、双引号、与号 */
+/** 转义 XML 属性值：换行、双引号、与号、尖括号（属性值中同样需要） */
 function escapeAttribute(value: string): string {
   return value
     .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/\r?\n/g, '&#10;')
     .replace(/\t/g, '&#9;');
