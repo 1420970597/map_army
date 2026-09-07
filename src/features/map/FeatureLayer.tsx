@@ -10,7 +10,12 @@ import { Marker, Polygon, Polyline, Tooltip, useMapEvent } from 'react-leaflet';
 
 import type { LonLat } from '@/core/geo';
 import { GeometryKind, type MapFeature } from '@/core/model';
-import { featureHighlightStyleOf, featureStyleOf } from './featureStyle';
+import {
+  applyLayerOpacity,
+  featureHighlightStyleOf,
+  featureStyleOf,
+  type RenderStyle,
+} from './featureStyle';
 import { iconPartsOf, symbolIcon } from './symbolIcon';
 
 /** 组件属性 */
@@ -21,12 +26,20 @@ export interface FeatureLayerProps {
   onSelect?: (id: string) => void;
   /** 当前选中的要素标识 */
   selectedId?: string | null;
+  /**
+   * 图层标识到不透明度的映射，缺省的图层视为完全不透明。
+   * 在渲染时被叠加到要素自身样式上，使调整面板滑块时地图立即变化。
+   */
+  layerOpacity?: Record<string, number>;
 }
+
+/** 缺省图层不透明度，避免热路径每次创建对象字面量 */
+const DEFAULT_LAYER_OPACITY = 1;
 
 /**
  * 要素渲染层组件。
  */
-export function FeatureLayer({ features, onSelect, selectedId }: FeatureLayerProps) {
+export function FeatureLayer({ features, onSelect, selectedId, layerOpacity }: FeatureLayerProps) {
   return (
     <>
       {features.map((feature) => (
@@ -35,6 +48,7 @@ export function FeatureLayer({ features, onSelect, selectedId }: FeatureLayerPro
           feature={feature}
           selected={feature.id === selectedId}
           onSelect={onSelect}
+          opacity={layerOpacity?.[feature.layerId] ?? DEFAULT_LAYER_OPACITY}
         />
       ))}
     </>
@@ -46,10 +60,13 @@ function FeatureShape({
   feature,
   selected,
   onSelect,
+  opacity,
 }: {
   feature: MapFeature;
   selected: boolean;
   onSelect?: (id: string) => void;
+  /** 图层级不透明度 */
+  opacity: number;
 }) {
   const geometry = feature.geometry;
 
@@ -60,12 +77,18 @@ function FeatureShape({
         position={geometry.position}
         selected={selected}
         onSelect={onSelect}
+        opacity={opacity}
       />
     );
   }
 
   const positions = toLatLngs(geometry.points);
-  const style = selected ? featureHighlightStyleOf(feature) : featureStyleOf(feature);
+  // 把图层级不透明度叠加到要素样式上：选中态与常态都受影响，
+  // 这样拉滑块时高亮也会同步半透明，符合直觉。
+  const style: RenderStyle = applyLayerOpacity(
+    selected ? featureHighlightStyleOf(feature) : featureStyleOf(feature),
+    opacity,
+  );
 
   const shared = {
     positions,
@@ -74,7 +97,7 @@ function FeatureShape({
       weight: style.weight,
       opacity: style.opacity,
       dashArray: style.dashArray,
-      fillOpacity: selected ? 0.35 : 0.2,
+      fillOpacity: style.fillOpacity,
     },
     eventHandlers: onSelect ? { click: () => onSelect(feature.id) } : undefined,
   };
@@ -96,11 +119,14 @@ function PointFeature({
   position,
   selected,
   onSelect,
+  opacity,
 }: {
   feature: MapFeature;
   position: LonLat;
   selected: boolean;
   onSelect?: (id: string) => void;
+  /** 图层级不透明度，传递给 Leaflet Marker 的 opacity 选项 */
+  opacity: number;
 }) {
   // 图标构造成本较高，按要素内容缓存；选中态通过 CSS 类切换而非重建图标
   const icon = useMemo(
@@ -115,6 +141,7 @@ function PointFeature({
     <Marker
       position={[position.lat, position.lon]}
       icon={icon}
+      opacity={opacity}
       zIndexOffset={selected ? 1000 : 0}
       eventHandlers={onSelect ? { click: () => onSelect(feature.id) } : undefined}
     >

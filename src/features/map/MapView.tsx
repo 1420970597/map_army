@@ -125,6 +125,18 @@ export function MapView() {
       .sort((a, b) => (byId.get(a.layerId)?.order ?? 0) - (byId.get(b.layerId)?.order ?? 0));
   }, [features, layers]);
 
+  /**
+   * 图层标识到不透明度的映射。
+   *
+   * 传给要素渲染层后，会被叠加到要素自身的描边/填充透明度上，
+   * 使面板上的不透明度滑块能直接驱动地图表现。
+   */
+  const layerOpacity = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const layer of layers) map[layer.id] = layer.opacity;
+    return map;
+  }, [layers]);
+
   const tile = TILE_SOURCES[baseMap];
 
   return (
@@ -147,6 +159,7 @@ export function MapView() {
       <FeatureLayer
         features={orderedFeatures}
         selectedId={selectedIds[0] ?? null}
+        layerOpacity={layerOpacity}
         onSelect={(id) => {
           select([id]);
           useViewStore.getState().setInspectorOpen(true);
