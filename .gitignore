@@ -19,6 +19,9 @@ public/example/
 public/doc/
 public/icons/
 
+# 本地工具数据（记忆与会话记录，不属交付物）
+.workbuddy/
+
 # 测试与覆盖率
 coverage/
 .vitest/
