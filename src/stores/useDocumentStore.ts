@@ -8,7 +8,7 @@
 
 import { create } from 'zustand';
 
-import { createDocument, createLayer } from '@/core/model';
+import { createDocument, createLayer, reorderLayers } from '@/core/model';
 import type { FeatureStyle, FeatureTextFields, Layer, MapDocument, MapFeature } from '@/core/model';
 
 /** 撤销栈的最大深度，防止长时间编辑后内存无界增长 */
@@ -38,6 +38,14 @@ export interface DocumentState {
   updateLayer: (id: string, patch: Partial<Layer>) => void;
   removeLayer: (id: string) => void;
   setActiveLayer: (id: string) => void;
+  /**
+   * 把 sourceId 图层移动到 targetId 图层所在的展示位置。
+   *
+   * 与逐层 `updateLayer` 相比，此方法只提交一次历史记录，
+   * 避免一次拖拽在撤销栈里留下 N 个快照。位置计算委托给
+   * {@link reorderLayers}，使其可在单测中独立验证。
+   */
+  moveLayer: (sourceId: string, targetId: string) => void;
 
   // ── 选择与文档级操作 ──────────────────────────────────────
   select: (ids: string[]) => void;
@@ -174,6 +182,14 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     }),
 
   setActiveLayer: (id) => set({ activeLayerId: id }),
+
+  moveLayer: (sourceId, targetId) =>
+    set((state) => {
+      // reorderLayers 在没有变化时返回原引用，便于直接判等跳过提交
+      const next = reorderLayers(state.document.layers, sourceId, targetId);
+      if (next === state.document.layers) return state;
+      return commit(state, { ...state.document, layers: next });
+    }),
 
   select: (ids) => set({ selectedIds: ids }),
 
