@@ -6,6 +6,7 @@
  */
 
 import { BaseMapType, Tool } from '@/core/model';
+import { ImportExportBar } from '@/features/io/ImportExportBar';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useViewStore } from '@/stores/useViewStore';
 
@@ -140,6 +141,8 @@ export function Toolbar() {
       </div>
 
       <span className="toolbar-spacer" />
+
+      <ImportExportBar />
 
       <div className="toolbar-group">
         <button
