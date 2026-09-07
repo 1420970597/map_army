@@ -155,6 +155,24 @@ button {
   background: #fff;
 }
 
+/* 工具栏中的站点导航链接（关于 / 示例 / 文档），外观与 tb-button 保持一致 */
+.tb-link {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  height: 30px;
+  padding: 0 10px;
+  color: #fff;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  transition: background var(--transition);
+}
+
+.tb-link:hover {
+  background: rgb(255 255 255 / 15%);
+  color: #fff;
+}
+
 .io-message {
   padding: 2px 8px;
   font-size: 12px;

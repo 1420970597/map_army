@@ -144,6 +144,19 @@ export function Toolbar() {
 
       <ImportExportBar />
 
+      {/** 站点导航：指向生成器产出的静态介绍页，复刻原站的 关于/示例/文档 入口 */}
+      <div className="toolbar-group">
+        <a className="tb-link" href="/about/zh.html" target="_blank" rel="noreferrer">
+          关于
+        </a>
+        <a className="tb-link" href="/example/zh.html" target="_blank" rel="noreferrer">
+          示例
+        </a>
+        <a className="tb-link" href="/doc/zh/" target="_blank" rel="noreferrer">
+          文档
+        </a>
+      </div>
+
       <div className="toolbar-group">
         <button
           type="button"
