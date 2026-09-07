@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  站点地图。
+
+  列出应用入口与全部本地化静态页面，便于搜索引擎与 AI 爬虫发现内容。
+  多语言页面通过 hreflang 互相标注，避免被判定为重复内容。
+-->
+<urlset xmlns="http://www.sitemap.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://example.github.io/map-army/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://example.github.io/map-army/about/en.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://example.github.io/map-army/about/en.html" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://example.github.io/map-army/about/de.html" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://example.github.io/map-army/about/fr.html" />
+    <xhtml:link rel="alternate" hreflang="it" href="https://example.github.io/map-army/about/it.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://example.github.io/map-army/about/zh.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://example.github.io/map-army/example/en.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://example.github.io/map-army/example/en.html" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://example.github.io/map-army/example/de.html" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://example.github.io/map-army/example/fr.html" />
+    <xhtml:link rel="alternate" hreflang="it" href="https://example.github.io/map-army/example/it.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://example.github.io/map-army/example/zh.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://example.github.io/map-army/doc/en/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://example.github.io/map-army/doc/en/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://example.github.io/map-army/doc/de/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://example.github.io/map-army/doc/fr/" />
+    <xhtml:link rel="alternate" hreflang="it" href="https://example.github.io/map-army/doc/it/" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://example.github.io/map-army/doc/zh/" />
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://example.github.io/map-army/llms.txt</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>

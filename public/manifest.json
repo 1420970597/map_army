@@ -1,0 +1,75 @@
+{
+  "name": "map.army — 军事标图（开源复刻版）",
+  "short_name": "map.army",
+  "description": "依据 MIL-STD-2525 与 STANAG APP-6 创建、保存与交换军事标图的 Web 应用，支持 MGRS / UTM / BNG 军用网格。",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "orientation": "any",
+  "background_color": "#076391",
+  "theme_color": "#076391",
+  "categories": ["productivity", "utilities", "navigation"],
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "./",
+      "accept": {
+        "application/x-milxlyz": [".milxlyz"],
+        "application/json": [".milxly", ".geojson"]
+      },
+      "icons": [
+        {
+          "src": "favicon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "新建标图",
+      "short_name": "新建",
+      "url": "./?action=new"
+    },
+    {
+      "name": "查看示例",
+      "short_name": "示例",
+      "url": "./example/zh.html"
+    }
+  ]
+}

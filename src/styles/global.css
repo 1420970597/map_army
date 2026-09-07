@@ -1,16 +1,33 @@
-/*
- * 全局样式（脚手架版）。
+/**
+ * 全局样式。
  *
- * 品牌主色沿用原站 map.army 的深蓝 #076391；
- * 完整的工作区布局样式将随界面功能提交逐步纳入。
+ * 配色沿用原站的深蓝主色（#076391），整体采用深色顶栏 + 浅色画布的
+ * 组合，使军标符号的高饱和色彩在浅色底图上获得最大对比度。
  */
 
 :root {
   --c-primary: #076391;
-  --c-primary-dark: #054e73;
-  --c-text: #1c2b33;
+  --c-primary-dark: #054d70;
+  --c-primary-light: #0a7fb8;
+  --c-surface: #ffffff;
+  --c-surface-alt: #f4f6f8;
+  --c-border: #d8dee4;
+  --c-text: #1c2430;
+  --c-text-muted: #66748a;
+  --c-danger: #c0392b;
+
+  --h-toolbar: 48px;
+  --h-statusbar: 28px;
+  --w-symbol-panel: 260px;
+  --w-layer-panel: 280px;
+
   --radius: 4px;
-  --transition: 0.15s ease;
+  --shadow: 0 2px 8px rgb(0 0 0 / 15%);
+  --transition: 150ms ease;
+
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--c-text);
 }
 
 * {
@@ -22,29 +39,422 @@ body,
 #root {
   height: 100%;
   margin: 0;
+  padding: 0;
 }
 
 body {
-  font-family: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  color: var(--c-text);
-  background: #f3f6f8;
+  overflow: hidden;
+  background: var(--c-surface-alt);
 }
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* ── 应用骨架 ──────────────────────────────────────────── */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.map-container {
+  flex: 1;
+  height: 100%;
+  background: #dfe6ec;
+}
+
+/* ── 顶栏 ─────────────────────────────────────────────── */
 
 .toolbar {
   display: flex;
   gap: 8px;
   align-items: center;
-  height: 44px;
+  height: var(--h-toolbar);
   padding: 0 12px;
   color: #fff;
   background: var(--c-primary);
+  box-shadow: var(--shadow);
 }
 
 .toolbar-brand {
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
-.app-main {
-  padding: 24px;
+.toolbar-doc-name {
+  width: 180px;
+  padding: 4px 8px;
+  color: var(--c-text);
+  background: rgb(255 255 255 / 90%);
+  border: none;
+  border-radius: var(--radius);
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  padding-left: 8px;
+  border-left: 1px solid rgb(255 255 255 / 25%);
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.tb-button {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  height: 30px;
+  padding: 0 10px;
+  color: #fff;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  transition: background var(--transition);
+}
+
+.tb-button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 15%);
+}
+
+.tb-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.tb-button.is-active {
+  background: rgb(255 255 255 / 25%);
+  border-color: rgb(255 255 255 / 50%);
+}
+
+.tb-select {
+  height: 30px;
+  padding: 0 6px;
+  color: #fff;
+  background: var(--c-primary-dark);
+  border: 1px solid rgb(255 255 255 / 25%);
+  border-radius: var(--radius);
+}
+
+.tb-select option {
+  color: var(--c-text);
+  background: #fff;
+}
+
+/* 工具栏中的站点导航链接（关于 / 示例 / 文档），外观与 tb-button 保持一致 */
+.tb-link {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  height: 30px;
+  padding: 0 10px;
+  color: #fff;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  transition: background var(--transition);
+}
+
+.tb-link:hover {
+  background: rgb(255 255 255 / 15%);
+  color: #fff;
+}
+
+.io-message {
+  padding: 2px 8px;
+  font-size: 12px;
+  background: rgb(255 255 255 / 20%);
+  border-radius: var(--radius);
+  animation: io-fade-in 150ms ease;
+}
+
+@keyframes io-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── 侧边面板 ──────────────────────────────────────────── */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--c-surface);
+}
+
+.panel-left {
+  width: var(--w-symbol-panel);
+  border-right: 1px solid var(--c-border);
+}
+
+.panel-right {
+  width: var(--w-layer-panel);
+  border-left: 1px solid var(--c-border);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-weight: 600;
+  background: var(--c-surface-alt);
+  border-bottom: 1px solid var(--c-border);
+}
+
+.panel-body {
+  flex: 1;
+  padding: 8px;
+  overflow-y: auto;
+}
+
+.panel-section {
+  margin-bottom: 14px;
+}
+
+.panel-section-title {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+}
+
+/* ── 符号选择器 ────────────────────────────────────────── */
+
+.symbol-search {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+}
+
+.symbol-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.symbol-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  padding: 6px 2px;
+  background: var(--c-surface-alt);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  transition: border-color var(--transition);
+}
+
+.symbol-item:hover {
+  border-color: var(--c-primary-light);
+}
+
+.symbol-item.is-active {
+  background: #e7f2f8;
+  border-color: var(--c-primary);
+}
+
+.symbol-item-name {
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 图层列表 ─────────────────────────────────────────── */
+
+.layer-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px;
+  border-radius: var(--radius);
+}
+
+.layer-row:hover {
+  background: var(--c-surface-alt);
+}
+
+.layer-row.is-active {
+  background: #e7f2f8;
+}
+
+.layer-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feature-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 6px;
+  font-size: 13px;
+  border-radius: var(--radius);
+}
+
+.feature-row:hover {
+  background: var(--c-surface-alt);
+}
+
+.feature-row.is-selected {
+  background: #e7f2f8;
+  outline: 1px solid var(--c-primary);
+}
+
+.feature-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--c-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+}
+
+.icon-button:hover {
+  color: var(--c-text);
+  background: rgb(0 0 0 / 6%);
+}
+
+/* ── 属性面板 ─────────────────────────────────────────── */
+
+.inspector {
+  position: absolute;
+  top: calc(var(--h-toolbar) + 12px);
+  right: 12px;
+  z-index: 500;
+  width: 300px;
+  max-height: calc(100% - var(--h-toolbar) - 40px);
+  overflow-y: auto;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.field {
+  margin-bottom: 10px;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--c-text-muted);
+}
+
+.field-input,
+.field-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+}
+
+.field-row {
+  display: flex;
+  gap: 8px;
+}
+
+.field-row > * {
+  flex: 1;
+}
+
+/* ── 状态栏 ───────────────────────────────────────────── */
+
+.statusbar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  height: var(--h-statusbar);
+  padding: 0 12px;
+  font-size: 12px;
+  color: var(--c-text-muted);
+  background: var(--c-surface-alt);
+  border-top: 1px solid var(--c-border);
+}
+
+/* ── 地图上的军标符号 ──────────────────────────────────── */
+
+.mil-symbol-icon {
+  background: none;
+  border: none;
+}
+
+.mil-symbol-icon svg {
+  display: block;
+  overflow: visible;
+}
+
+.measure-badge {
+  padding: 2px 6px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--c-primary);
+  border: none;
+  border-radius: var(--radius);
+}
+
+.leaflet-tooltip.measure-badge::before {
+  border-top-color: var(--c-primary);
+}
+
+/* ── 通用工具 ─────────────────────────────────────────── */
+
+.empty-hint {
+  padding: 16px 8px;
+  color: var(--c-text-muted);
+  text-align: center;
+}
+
+.muted {
+  color: var(--c-text-muted);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

@@ -1,0 +1,13 @@
+# 抓取规则
+#
+# 允许全部主流爬虫访问站点内容，包括 AI/LLM 爬虫；
+# 本项目的 llms.txt 即为面向后者的结构化索引。
+
+User-agent: *
+Allow: /
+
+# 阻断构建产物与源码映射，避免索引到无意义内容
+Disallow: /assets/*.map
+Disallow: /node_modules/
+
+Sitemap: https://example.github.io/map-army/sitemap.xml

@@ -1,0 +1,61 @@
+{
+  "$comment": "示例页符号清单。SIDC 与语言无关，符号名称由军标引擎按语言自动给出，因此此处只需为分组标题提供各语言译文。",
+  "groups": [
+    {
+      "id": "land",
+      "captions": {
+        "zh": "地面作战",
+        "en": "Land operations",
+        "de": "Landoperationen",
+        "fr": "Opérations terrestres",
+        "it": "Operazioni terrestri"
+      },
+      "symbols": [
+        "10031000151211000000",
+        "10031000161205000000",
+        "10031000151303000000",
+        "10031000141407000000",
+        "10061000181211020000",
+        "10011000121213000000",
+        "10041000001613000000"
+      ]
+    },
+    {
+      "id": "air-sea",
+      "captions": {
+        "zh": "空中与海上",
+        "en": "Air and maritime",
+        "de": "Luft- und Seestreitkräfte",
+        "fr": "Forces aériennes et maritimes",
+        "it": "Forze aeree e marittime"
+      },
+      "symbols": [
+        "10030100001101040000",
+        "10030100001102000000",
+        "10030100001103000000",
+        "10033000001201000000",
+        "10033000001202030000",
+        "10063500001101000000",
+        "10033500001104000000"
+      ]
+    },
+    {
+      "id": "context-status",
+      "captions": {
+        "zh": "态势上下文与状态",
+        "en": "Context and status",
+        "de": "Kontext und Status",
+        "fr": "Contexte et statut",
+        "it": "Contesto e stato"
+      },
+      "symbols": [
+        "10131000161211000000",
+        "10161000171205000000",
+        "10031010151301000000",
+        "10031002181100000000",
+        "10061030151205000000",
+        "10051000121211000000"
+      ]
+    }
+  ]
+}
