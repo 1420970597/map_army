@@ -13,6 +13,12 @@ build/
 out/
 *.tsbuildinfo
 
+# 站点生成器产物：由 `npm run site` 从 site/ 下的内容源重建，不入库
+public/about/
+public/example/
+public/doc/
+public/icons/
+
 # 测试与覆盖率
 coverage/
 .vitest/

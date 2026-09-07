@@ -23,7 +23,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "site": "node site/generate.mjs && node site/icons.mjs",
+    "build": "npm run site && tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

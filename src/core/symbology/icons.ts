@@ -1,0 +1,588 @@
+/**
+ * 军标图标库。
+ *
+ * 每个图标在 **100 × 100 的局部坐标系**内定义（中心 50,50），
+ * 渲染时按框架的内部可用区域等比缩放并居中。这样做的收益是：
+ * 图标定义与框架尺寸彻底解耦，同一份图标可复用于任意尺寸的符号。
+ *
+ * 实体代码（entity code）取自 MIL-STD-2525D / APP-6(D) 的标准编码表，
+ * 与符号集（symbol set）联合构成检索主键。
+ *
+ * 说明：标准全集包含数千个符号，本库选取**最常用的核心符号**作为覆盖目标，
+ * 未收录的实体代码会回退到该符号集的通用图标，保证渲染永不失败。
+ */
+
+import { SymbolSet } from './types';
+
+/** 图标中的一条路径 */
+export interface IconPath {
+  /** SVG path 的 d 属性，定义在 100×100 局部坐标系内 */
+  d: string;
+  /** 是否为实心（填充）图元，默认 false 即仅描边 */
+  filled?: boolean;
+}
+
+/** 一个符号条目的定义 */
+export interface SymbolDefinition {
+  /** 中文名称 */
+  name: string;
+  /** 英文名称 */
+  nameEn: string;
+  /** 所属符号集 */
+  symbolSet: SymbolSet;
+  /** 6 位实体代码 */
+  entity: string;
+  /** 图标路径集合 */
+  paths: IconPath[];
+}
+
+/** 检索主键：`符号集-实体代码`，例如 `10-121100` */
+function key(symbolSet: SymbolSet, entity: string): string {
+  return `${symbolSet}-${entity}`;
+}
+
+/**
+ * 地面单位图标（符号集 10）。
+ *
+ * 各图标依据 2525 标准外观绘制：装甲为椭圆（象征坦克俯视轮廓）、
+ * 炮兵为实心圆（象征炮弹）、工兵为桥形、医疗为十字等。
+ */
+const LAND_UNIT: SymbolDefinition[] = [
+  // ── 指挥控制 ──────────────────────────────────────────────
+  {
+    name: '指挥控制',
+    nameEn: 'Command and Control',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '110000',
+    paths: [{ d: 'M 30,30 L 70,30 L 70,70 L 30,70 Z' }],
+  },
+  {
+    name: '通信',
+    nameEn: 'Signal',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '111000',
+    paths: [
+      { d: 'M 50,20 L 50,80' }, // 天线主杆
+      { d: 'M 32,34 L 68,34' }, // 上横担
+      { d: 'M 36,50 L 64,50' }, // 下横担
+    ],
+  },
+  // ── 机动与作战 ────────────────────────────────────────────
+  {
+    name: '装甲',
+    nameEn: 'Armor',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '120500',
+    paths: [{ d: 'M 15,50 A 35,22 0 0 1 85,50 A 35,22 0 0 1 15,50 Z' }],
+  },
+  {
+    name: '反坦克',
+    nameEn: 'Antitank / Antiarmor',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '120400',
+    paths: [
+      { d: 'M 15,50 A 35,22 0 0 1 85,50 A 35,22 0 0 1 15,50 Z' }, // 椭圆
+      { d: 'M 20,76 L 80,24' }, // 穿过椭圆的斜线
+    ],
+  },
+  {
+    name: '步兵',
+    nameEn: 'Infantry',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '121100',
+    paths: [{ d: 'M 25,22 L 75,78' }, { d: 'M 75,22 L 25,78' }],
+  },
+  {
+    name: '机械化步兵',
+    nameEn: 'Mechanized Infantry',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '121102',
+    paths: [
+      { d: 'M 12,50 A 38,25 0 0 1 88,50 A 38,25 0 0 1 12,50 Z' }, // 外椭圆
+      { d: 'M 33,30 L 67,70' }, // 内嵌 X
+      { d: 'M 67,30 L 33,70' },
+    ],
+  },
+  {
+    name: '侦察/骑兵',
+    nameEn: 'Reconnaissance / Cavalry',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '121300',
+    paths: [
+      { d: 'M 18,82 L 82,18' }, // 主对角线
+      { d: 'M 82,18 L 60,22' }, // 顶端短钩
+    ],
+  },
+  {
+    name: '特种部队',
+    nameEn: 'Special Operations Forces',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '121800',
+    paths: [{ d: 'M 56,10 L 32,56 L 48,56 L 42,90 L 70,42 L 52,42 Z', filled: true }],
+  },
+  {
+    name: '陆航旋翼',
+    nameEn: 'Army Aviation Rotary Wing',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '120600',
+    paths: [
+      { d: 'M 50,50 m -26,0 a 26,26 0 1,0 52,0 a 26,26 0 1,0 -52,0' }, // 旋翼圆
+      { d: 'M 24,24 L 76,76' },
+      { d: 'M 76,24 L 24,76' },
+    ],
+  },
+  {
+    name: '陆航固定翼',
+    nameEn: 'Army Aviation Fixed Wing',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '120800',
+    paths: [
+      { d: 'M 50,14 L 50,86' }, // 机身
+      { d: 'M 18,54 L 82,54' }, // 主翼
+      { d: 'M 32,80 L 68,80' }, // 尾翼
+    ],
+  },
+  // ── 火力支援 ──────────────────────────────────────────────
+  {
+    name: '防空',
+    nameEn: 'Air Defense',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '130100',
+    paths: [
+      { d: 'M 18,58 A 32,32 0 0 1 82,58' }, // 半球穹顶
+      { d: 'M 18,58 L 82,58' }, // 地平面
+      { d: 'M 50,58 L 50,20' }, // 指向上方的炮管
+      { d: 'M 44,28 L 50,18 L 56,28 Z', filled: true }, // 箭头
+    ],
+  },
+  {
+    name: '野战炮兵',
+    nameEn: 'Field Artillery',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '130300',
+    paths: [{ d: 'M 50,50 m -16,0 a 16,16 0 1,0 32,0 a 16,16 0 1,0 -32,0', filled: true }],
+  },
+  {
+    name: '炮兵观察员',
+    nameEn: 'Field Artillery Observer',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '130400',
+    paths: [
+      { d: 'M 50,50 m -16,0 a 16,16 0 1,0 32,0 a 16,16 0 1,0 -32,0', filled: true },
+      { d: 'M 50,78 L 50,92' }, // 观察镜支架
+      { d: 'M 42,92 L 58,92' },
+    ],
+  },
+  {
+    name: '导弹',
+    nameEn: 'Missile',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '130700',
+    paths: [
+      { d: 'M 50,10 L 58,34 L 58,72 L 42,72 L 42,34 Z' }, // 弹体
+      { d: 'M 42,72 L 34,90 L 50,82 L 66,90 L 58,72' }, // 尾焰
+    ],
+  },
+  // ── 防护 ──────────────────────────────────────────────────
+  {
+    name: '工兵',
+    nameEn: 'Engineer',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '140700',
+    paths: [
+      { d: 'M 14,74 L 86,74' }, // 桥面
+      { d: 'M 26,74 L 34,44' }, // 左斜撑
+      { d: 'M 74,74 L 66,44' }, // 右斜撑
+      { d: 'M 34,44 L 66,44' }, // 横梁
+      { d: 'M 44,44 L 44,74 M 56,44 L 56,74' }, // 立柱
+    ],
+  },
+  {
+    name: '宪兵',
+    nameEn: 'Military Police',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '141200',
+    paths: [
+      { d: 'M 50,14 L 80,28 L 80,52 C 80,72 66,84 50,90 C 34,84 20,72 20,52 L 20,28 Z' },
+      { d: 'M 38,42 L 62,42 M 38,56 L 62,56' }, // 盾面横纹
+    ],
+  },
+  {
+    name: '核生化防护',
+    nameEn: 'CBRN Defense',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '140100',
+    paths: [
+      { d: 'M 50,16 L 88,82 L 12,82 Z' }, // 警示三角
+      { d: 'M 50,52 m -9,0 a 9,9 0 1,0 18,0 a 9,9 0 1,0 -18,0', filled: true },
+    ],
+  },
+  {
+    name: '导弹防御',
+    nameEn: 'Missile Defense',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '142200',
+    paths: [
+      { d: 'M 50,10 L 58,34 L 58,70 L 42,70 L 42,34 Z' },
+      { d: 'M 20,84 L 80,84' },
+      { d: 'M 50,70 L 50,84' },
+    ],
+  },
+  // ── 情报 ──────────────────────────────────────────────────
+  {
+    name: '电子战',
+    nameEn: 'Electronic Warfare',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '150500',
+    paths: [
+      { d: 'M 14,50 Q 26,20 38,50 T 62,50 T 86,50' }, // 电波
+      { d: 'M 14,70 Q 26,40 38,70 T 62,70 T 86,70' },
+    ],
+  },
+  // ── 保障 ──────────────────────────────────────────────────
+  {
+    name: '医疗',
+    nameEn: 'Medical',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '161300',
+    paths: [
+      {
+        d: 'M 40,18 L 60,18 L 60,40 L 82,40 L 82,60 L 60,60 L 60,82 L 40,82 L 40,60 L 18,60 L 18,40 L 40,40 Z',
+        filled: true,
+      },
+    ],
+  },
+  {
+    name: '补给',
+    nameEn: 'All Classes of Supply',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '160200',
+    paths: [{ d: 'M 20,36 L 80,36 L 80,80 L 20,80 Z' }, { d: 'M 20,36 L 50,20 L 80,36' }],
+  },
+  {
+    name: '弹药',
+    nameEn: 'Ammunition',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '160400',
+    paths: [{ d: 'M 36,20 L 64,20 L 64,58 L 50,72 L 36,58 Z' }, { d: 'M 36,44 L 64,44' }],
+  },
+  {
+    name: '维修',
+    nameEn: 'Maintenance',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '161100',
+    paths: [
+      { d: 'M 50,50 m -14,0 a 14,14 0 1,0 28,0 a 14,14 0 1,0 -28,0' }, // 齿轮主体
+      { d: 'M 50,20 L 50,30 M 50,70 L 50,80 M 20,50 L 30,50 M 70,50 L 80,50' }, // 四向凸齿
+      { d: 'M 29,29 L 36,36 M 71,29 L 64,36 M 29,71 L 36,64 M 71,71 L 64,64' }, // 斜向凸齿
+    ],
+  },
+  {
+    name: '运输',
+    nameEn: 'Transportation',
+    symbolSet: SymbolSet.LandUnit,
+    entity: '161200',
+    paths: [
+      { d: 'M 16,66 L 84,66' }, // 车轮基线
+      { d: 'M 28,66 L 28,40 L 72,40 L 72,66' }, // 车厢
+      { d: 'M 72,48 L 84,48 L 84,66' }, // 车头
+      { d: 'M 32,66 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0' }, // 车轮
+      { d: 'M 68,66 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0' },
+    ],
+  },
+];
+
+/**
+ * 空中图标（符号集 01）。
+ *
+ * 空中图标以「机身 + 机翼」的侧视/俯视混合表达，不同机型靠机翼形状区分。
+ */
+const AIR: SymbolDefinition[] = [
+  {
+    name: '固定翼',
+    nameEn: 'Fixed Wing',
+    symbolSet: SymbolSet.Air,
+    entity: '110100',
+    paths: [
+      { d: 'M 50,12 L 54,44 L 54,88 L 46,88 L 46,44 Z' }, // 机身
+      { d: 'M 12,52 L 88,52' }, // 主翼
+      { d: 'M 34,80 L 66,80' }, // 尾翼
+    ],
+  },
+  {
+    name: '战斗机',
+    nameEn: 'Fighter',
+    symbolSet: SymbolSet.Air,
+    entity: '110104',
+    paths: [
+      { d: 'M 50,12 L 54,46 L 54,88 L 46,88 L 46,46 Z' },
+      { d: 'M 14,58 L 50,46 L 86,58' }, // 后掠翼
+      { d: 'M 36,82 L 64,82' },
+    ],
+  },
+  {
+    name: '轰炸机',
+    nameEn: 'Bomber',
+    symbolSet: SymbolSet.Air,
+    entity: '110103',
+    paths: [
+      { d: 'M 50,14 L 55,48 L 55,86 L 45,86 L 45,48 Z' },
+      { d: 'M 16,50 L 84,50' },
+      { d: 'M 30,78 L 70,78' },
+      { d: 'M 42,26 L 58,26' },
+    ],
+  },
+  {
+    name: '运输机',
+    nameEn: 'Cargo',
+    symbolSet: SymbolSet.Air,
+    entity: '110107',
+    paths: [
+      { d: 'M 50,16 L 58,50 L 58,82 L 42,82 L 42,50 Z' },
+      { d: 'M 14,54 L 86,54' },
+      { d: 'M 34,78 L 66,78' },
+      { d: 'M 40,60 L 60,60' }, // 货舱线
+    ],
+  },
+  {
+    name: '加油机',
+    nameEn: 'Tanker',
+    symbolSet: SymbolSet.Air,
+    entity: '110109',
+    paths: [
+      { d: 'M 50,16 L 56,50 L 56,82 L 44,82 L 44,50 Z' },
+      { d: 'M 14,54 L 86,54' },
+      { d: 'M 34,78 L 66,78' },
+      { d: 'M 56,64 L 82,64 L 82,72' }, // 加油管
+    ],
+  },
+  {
+    name: '侦察机',
+    nameEn: 'Reconnaissance',
+    symbolSet: SymbolSet.Air,
+    entity: '110111',
+    paths: [
+      { d: 'M 50,14 L 54,46 L 54,86 L 46,86 L 46,46 Z' },
+      { d: 'M 16,52 L 84,52' },
+      { d: 'M 34,78 L 66,78' },
+      { d: 'M 50,50 m -8,0 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0' }, // 侦察吊舱
+    ],
+  },
+  {
+    name: '旋翼机',
+    nameEn: 'Rotary Wing',
+    symbolSet: SymbolSet.Air,
+    entity: '110200',
+    paths: [
+      { d: 'M 50,50 m -28,0 a 28,28 0 1,0 56,0 a 28,28 0 1,0 -56,0' }, // 旋翼盘
+      { d: 'M 24,24 L 76,76' },
+      { d: 'M 76,24 L 24,76' },
+      { d: 'M 42,50 L 58,50 L 55,84 L 45,84 Z' }, // 机身
+    ],
+  },
+  {
+    name: '无人机',
+    nameEn: 'Unmanned Aircraft',
+    symbolSet: SymbolSet.Air,
+    entity: '110300',
+    paths: [
+      { d: 'M 50,18 L 62,34 L 62,66 L 38,66 L 38,34 Z' }, // 机体
+      { d: 'M 12,52 L 38,52 M 62,52 L 88,52' }, // 分离式机翼
+      { d: 'M 40,66 L 40,84 M 60,66 L 60,84' }, // 起落架
+    ],
+  },
+  {
+    name: '导弹（空中）',
+    nameEn: 'Air Weapon',
+    symbolSet: SymbolSet.Air,
+    entity: '130000',
+    paths: [
+      { d: 'M 50,10 L 58,36 L 58,74 L 42,74 L 42,36 Z' },
+      { d: 'M 42,74 L 34,90 L 50,82 L 66,90 L 58,74' },
+    ],
+  },
+];
+
+/**
+ * 海面图标（符号集 30）。
+ *
+ * 海面舰艇以俯视船体轮廓表达，舰种靠上层建筑数量与形状区分。
+ */
+const SEA_SURFACE: SymbolDefinition[] = [
+  {
+    name: '水面舰艇',
+    nameEn: 'Surface Combatant',
+    symbolSet: SymbolSet.SeaSurface,
+    entity: '120000',
+    paths: [{ d: 'M 12,56 L 88,56 L 74,78 L 26,78 Z' }],
+  },
+  {
+    name: '航空母舰',
+    nameEn: 'Carrier',
+    symbolSet: SymbolSet.SeaSurface,
+    entity: '120100',
+    paths: [
+      { d: 'M 10,54 L 90,54 L 76,80 L 24,80 Z' }, // 船体
+      { d: 'M 18,54 L 82,54 L 82,44 L 18,44 Z' }, // 飞行甲板
+      { d: 'M 66,44 L 66,32 L 78,32 L 78,44' }, // 舰岛
+    ],
+  },
+  {
+    name: '驱逐舰',
+    nameEn: 'Destroyer',
+    symbolSet: SymbolSet.SeaSurface,
+    entity: '120203',
+    paths: [
+      { d: 'M 12,58 L 88,58 L 74,78 L 26,78 Z' },
+      { d: 'M 40,58 L 40,42 L 60,42 L 60,58' }, // 上层建筑
+    ],
+  },
+  {
+    name: '护卫舰',
+    nameEn: 'Frigate',
+    symbolSet: SymbolSet.SeaSurface,
+    entity: '120204',
+    paths: [{ d: 'M 16,58 L 84,58 L 72,78 L 28,78 Z' }, { d: 'M 42,58 L 42,44 L 58,44 L 58,58' }],
+  },
+  {
+    name: '两栖舰',
+    nameEn: 'Amphibious Warfare Ship',
+    symbolSet: SymbolSet.SeaSurface,
+    entity: '120300',
+    paths: [
+      { d: 'M 12,52 L 88,52 L 74,78 L 26,78 Z' },
+      { d: 'M 30,52 L 30,36 L 70,36 L 70,52' }, // 宽大甲板室
+      { d: 'M 70,52 L 88,52' },
+    ],
+  },
+  {
+    name: '水雷战舰艇',
+    nameEn: 'Mine Warfare Ship',
+    symbolSet: SymbolSet.SeaSurface,
+    entity: '120400',
+    paths: [
+      { d: 'M 16,58 L 84,58 L 72,78 L 28,78 Z' },
+      { d: 'M 44,58 L 44,44 L 56,44 L 56,58' },
+      { d: 'M 50,86 m -7,0 a 7,7 0 1,0 14,0 a 7,7 0 1,0 -14,0' }, // 水雷
+    ],
+  },
+];
+
+/**
+ * 水下图标（符号集 35）。
+ */
+const SEA_SUBSURFACE: SymbolDefinition[] = [
+  {
+    name: '潜艇',
+    nameEn: 'Submarine',
+    symbolSet: SymbolSet.SeaSubsurface,
+    entity: '110100',
+    paths: [
+      { d: 'M 14,56 L 86,56 C 86,68 72,76 50,76 C 28,76 14,68 14,56 Z' }, // 艇身
+      { d: 'M 44,56 L 44,36 L 56,36 L 56,56' }, // 指挥塔
+    ],
+  },
+  {
+    name: '无人潜航器',
+    nameEn: 'Unmanned Underwater Vehicle',
+    symbolSet: SymbolSet.SeaSubsurface,
+    entity: '110400',
+    paths: [
+      { d: 'M 24,56 L 76,56 C 76,66 66,72 50,72 C 34,72 24,66 24,56 Z' },
+      { d: 'M 50,56 L 50,40' },
+    ],
+  },
+];
+
+/** 全量符号表 */
+const DEFINITIONS: SymbolDefinition[] = [...LAND_UNIT, ...AIR, ...SEA_SURFACE, ...SEA_SUBSURFACE];
+
+/** 主键到定义的索引 */
+const INDEX: Map<string, SymbolDefinition> = new Map(
+  DEFINITIONS.map((definition) => [key(definition.symbolSet, definition.entity), definition]),
+);
+
+/** 各符号集在实体代码未收录时使用的回退定义 */
+const FALLBACKS: Partial<Record<SymbolSet, Omit<SymbolDefinition, 'entity'>>> = {
+  [SymbolSet.LandUnit]: {
+    name: '地面单位',
+    nameEn: 'Land Unit',
+    symbolSet: SymbolSet.LandUnit,
+    paths: [{ d: 'M 30,30 L 70,30 L 70,70 L 30,70 Z' }],
+  },
+  [SymbolSet.Air]: {
+    name: '空中单位',
+    nameEn: 'Air Unit',
+    symbolSet: SymbolSet.Air,
+    paths: [{ d: 'M 50,12 L 54,44 L 54,88 L 46,88 L 46,44 Z' }, { d: 'M 12,52 L 88,52' }],
+  },
+  [SymbolSet.SeaSurface]: {
+    name: '海面单位',
+    nameEn: 'Sea Surface Unit',
+    symbolSet: SymbolSet.SeaSurface,
+    paths: [{ d: 'M 12,56 L 88,56 L 74,78 L 26,78 Z' }],
+  },
+  [SymbolSet.SeaSubsurface]: {
+    name: '水下单位',
+    nameEn: 'Sea Subsurface Unit',
+    symbolSet: SymbolSet.SeaSubsurface,
+    paths: [{ d: 'M 14,56 L 86,56 C 86,68 72,76 50,76 C 28,76 14,68 14,56 Z' }],
+  },
+};
+
+/**
+ * 按符号集与实体代码查找符号定义。
+ *
+ * 若精确代码未收录，则逐级回退：
+ * 先尝试实体子类型归零（`121102` → `121100`），再回退到该符号集的通用图标。
+ * 这样即便遇到较冷门的实体代码，也能给出语义相近的图形而非空白。
+ *
+ * @param symbolSet 符号集
+ * @param entity 6 位实体代码
+ * @returns 符号定义，永不返回 undefined
+ */
+export function findSymbol(symbolSet: SymbolSet, entity: string): SymbolDefinition {
+  const exact = INDEX.get(key(symbolSet, entity));
+  if (exact) return exact;
+
+  // 逐级归零：子类型 → 类型 → 实体
+  const parent = `${entity.slice(0, 4)}00`;
+  const byType = INDEX.get(key(symbolSet, parent));
+  if (byType) return { ...byType, entity };
+
+  const grandParent = `${entity.slice(0, 2)}0000`;
+  const byEntity = INDEX.get(key(symbolSet, grandParent));
+  if (byEntity) return { ...byEntity, entity };
+
+  const fallback = FALLBACKS[symbolSet];
+  if (fallback) return { ...fallback, entity };
+
+  return {
+    name: '未知单位',
+    nameEn: 'Unknown Unit',
+    symbolSet,
+    entity,
+    paths: [{ d: 'M 30,30 L 70,70 M 70,30 L 30,70' }],
+  };
+}
+
+/** 列出当前符号库中全部已收录的定义（供 UI 生成符号选择器） */
+export function listSymbols(symbolSet?: SymbolSet): SymbolDefinition[] {
+  if (symbolSet === undefined) return [...DEFINITIONS];
+  return DEFINITIONS.filter((definition) => definition.symbolSet === symbolSet);
+}
+
+/**
+ * 按名称关键字搜索符号（中英文均匹配）。
+ *
+ * @param keyword 关键字
+ * @param symbolSet 限定符号集，省略时检索全部
+ */
+export function searchSymbols(keyword: string, symbolSet?: SymbolSet): SymbolDefinition[] {
+  const lower = keyword.trim().toLowerCase();
+  if (!lower) return listSymbols(symbolSet);
+  return listSymbols(symbolSet).filter(
+    (definition) =>
+      definition.name.includes(keyword.trim()) || definition.nameEn.toLowerCase().includes(lower),
+  );
+}

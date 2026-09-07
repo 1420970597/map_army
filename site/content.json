@@ -1,0 +1,597 @@
+{
+  "meta": {
+    "siteName": "map.army",
+    "languages": {
+      "zh": { "label": "简体中文", "dir": "ltr" },
+      "en": { "label": "English", "dir": "ltr" },
+      "de": { "label": "Deutsch", "dir": "ltr" },
+      "fr": { "label": "Français", "dir": "ltr" },
+      "it": { "label": "Italiano", "dir": "ltr" }
+    }
+  },
+  "zh": {
+    "nav": { "app": "打开应用", "about": "关于", "example": "示例", "doc": "文档" },
+    "about": {
+      "title": "关于 map.army 开源复刻版",
+      "lead": "一个用于创建、保存与交换军事标图的免费开源渐进式 Web 应用，依据 MIL-STD-2525 与 STANAG APP-6 标准自绘军标符号，支持 MGRS / UTM / BNG 军用网格。",
+      "sections": [
+        {
+          "heading": "项目定位",
+          "paragraphs": [
+            "本项目是对 https://www.map.army 的功能等价开源复刻。原站为 gs-soft AG 出品的商业闭源产品，本项目不包含其任何源代码，全部实现均依据公开标准与可公开观察的产品行为从零编写，仅用于技术学习与研究。",
+            "复刻遵循同一信息架构：相同的应用入口、相同的页面组织、等价可用的核心标图能力。"
+          ]
+        },
+        {
+          "heading": "核心能力",
+          "paragraphs": ["覆盖战术态势图从绘制到交换的完整链路："],
+          "list": [
+            "军标符号：按 20 位数字型 SIDC 编码解析与渲染，含七种框架轮廓与四十余个常用符号",
+            "身份与层级：友军、敌军、中立、不明四种身份，以及班到集团军的完整梯队体系",
+            "战术图形：折线与多边形，用于进攻轴线、行军路线、作战地域、目标区域",
+            "军用网格：MGRS、UTM、BNG 三种网格按视口实时生成，间距随缩放自适应",
+            "图层管理：多图层可见性、锁定、排序与不透明度控制",
+            "数据交换：MilX 图层（.milxly / .milxlyz）与 GeoJSON 双向互转，另可导出 PNG",
+            "离线可用：可安装为 PWA，数据保存在浏览器本地"
+          ]
+        },
+        {
+          "heading": "技术栈",
+          "paragraphs": [
+            "前端采用 Vite + React + TypeScript，地图基于 Leaflet，状态管理使用 Zustand，测试使用 Vitest。全部代码注释与提交信息使用简体中文，遵循 Conventional Commits 规范。",
+            "测绘与符号两个核心模块不依赖 DOM 与任何地图库，可在 node 环境下独立测试。"
+          ]
+        },
+        {
+          "heading": "正确性保证",
+          "paragraphs": [
+            "测绘算法的正确性以三重手段验证：与第三方成熟实现全域逐点比对、公开标准示例命中、全带全纬度往返一致性测试。MGRS 编解码与参考实现在 210 个采样点上零差异，横轴墨卡托投影的往返误差降至纳米级。",
+            "军标符号的实体代码取自标准编码表并经第三方实现交叉核对，未凭记忆推导。"
+          ]
+        }
+      ]
+    },
+    "example": {
+      "title": "示例标图",
+      "lead": "下列示例展示本复刻版能够表达的典型战术态势，可作为新建标图的起点。",
+      "sections": [
+        {
+          "heading": "营级进攻态势",
+          "paragraphs": [
+            "以营级梯队展开的地面进攻：两个步兵连沿各自轴线推进，营属迫击炮分队提供火力支援，前方标出目标区域与集结地域。",
+            "该示例覆盖点符号、梯队修饰、机动方向箭头与面状区域四类要素的组合使用。"
+          ]
+        },
+        {
+          "heading": "海空联合行动",
+          "paragraphs": [
+            "海面编队与空中掩护的协同：水面作战舰艇编队以椭圆框架呈现，舰载直升机与固定翼战斗机使用叶形框架，水下潜艇使用半椭圆框架。",
+            "该示例展示不同战斗维度符号在图上共存时的视觉区分方式。"
+          ]
+        },
+        {
+          "heading": "演习态势（虚线）",
+          "paragraphs": [
+            "演习与模拟上下文下的态势以虚线框架渲染，计划中的目标以虚线图形表示，与已确认的实际态势形成明确区分。",
+            "这是 MIL-STD-2525 中上下文与状态字段的标准表达方式。"
+          ]
+        }
+      ]
+    },
+    "doc": {
+      "title": "使用文档",
+      "lead": "按主题组织的简明指南，覆盖从放置第一个符号到交换标图文件的完整流程。",
+      "sections": [
+        {
+          "heading": "快速上手",
+          "paragraphs": ["完成一次标图的基本流程："],
+          "list": [
+            "在左侧符号面板选择身份与梯队，再点选具体符号",
+            "在地图上单击即可放置该符号；放置后自动回到选择模式",
+            "切换到「线」或「面」工具连续单击采集顶点，双击或按回车结束，按 Esc 放弃",
+            "单击要素打开属性面板，可修改 SIDC 全字段、文本修饰符与样式",
+            "通过顶栏导出为 MilX 图层、GeoJSON 或 PNG 图像"
+          ]
+        },
+        {
+          "heading": "快捷键",
+          "list": [
+            "Ctrl+Z / Ctrl+Shift+Z：撤销 / 重做",
+            "Ctrl+Y：重做",
+            "Enter：结束当前绘制",
+            "Esc：放弃绘制或取消选中",
+            "Delete：删除选中要素"
+          ]
+        },
+        {
+          "heading": "军用网格",
+          "paragraphs": [
+            "MGRS 适用于全球范围，UTM 以六度分带表达平面坐标，BNG 仅覆盖英国及其周边海域。三者可随时切换，网格间距随缩放级别自动选取合适的档位。",
+            "底部状态栏实时显示光标位置的经纬度、MGRS 与 UTM 三种坐标。"
+          ]
+        },
+        {
+          "heading": "数据交换",
+          "paragraphs": [
+            ".milxly 为 UTF-8 的 JSON 文本，便于人工检视与版本控制；.milxlyz 是其 gzip 压缩形式，用于减小体积。两者携带完整的图层、要素与军标语义。",
+            "GeoJSON 用于与通用 GIS 工具互通，SIDC 与文本修饰符写入要素属性，导入时可无损还原。解析采用宽容策略，损坏的要素会被跳过并计数，而非导致整份文件无法打开。"
+          ]
+        },
+        {
+          "heading": "安装为 PWA",
+          "paragraphs": [
+            "在支持的浏览器中打开应用，通过地址栏或菜单中的「安装」选项即可将本应用安装到桌面或主屏幕，随后可离线启动并与 .milxlyz 文件关联。"
+          ]
+        }
+      ]
+    }
+  },
+  "en": {
+    "nav": { "app": "Open app", "about": "About", "example": "Examples", "doc": "Docs" },
+    "about": {
+      "title": "About the map.army open-source replica",
+      "lead": "A free, open-source progressive web app for creating, saving and exchanging military map overlays. It renders military symbols according to MIL-STD-2525 and STANAG APP-6 and supports the MGRS, UTM and BNG military grids.",
+      "sections": [
+        {
+          "heading": "Project scope",
+          "paragraphs": [
+            "This project is a functionally equivalent, open-source replica of https://www.map.army. The original site is a commercial closed-source product by gs-soft AG. This repository contains none of its source code; everything here was written from scratch against public standards and publicly observable product behaviour, for study and research only.",
+            "The replica follows the same information architecture: the same application entry point, the same page organisation, and equivalent core mapping capabilities."
+          ]
+        },
+        {
+          "heading": "Core capabilities",
+          "paragraphs": ["The full chain from drawing to exchanging a tactical situation:"],
+          "list": [
+            "Military symbols: parsed and rendered from 20-digit numeric SIDC codes, with seven frame families and more than forty common symbols",
+            "Identity and echelon: friend, hostile, neutral and unknown affiliations, plus the full echelon ladder from team to army",
+            "Tactical graphics: polylines and polygons for axes of advance, routes, areas of operation and target areas",
+            "Military grids: MGRS, UTM and BNG generated live for the current viewport, with spacing adapted to zoom level",
+            "Layer management: visibility, locking, ordering and opacity across multiple layers",
+            "Data exchange: MilX layer (.milxly / .milxlyz) and GeoJSON in both directions, plus PNG export",
+            "Offline capable: installable as a PWA, with data stored locally in the browser"
+          ]
+        },
+        {
+          "heading": "Technology",
+          "paragraphs": [
+            "The front end uses Vite, React and TypeScript, with Leaflet for mapping, Zustand for state and Vitest for tests. All code comments and commit messages follow a strict convention, and commits follow Conventional Commits.",
+            "The geodesy and symbology core modules depend on neither the DOM nor any mapping library, so they can be tested in isolation under node."
+          ]
+        },
+        {
+          "heading": "Correctness",
+          "paragraphs": [
+            "Geodetic correctness is verified three ways: point-by-point comparison against a mature third-party implementation across the whole domain, conformance with published reference examples, and round-trip consistency tests across all zones and latitudes. MGRS encoding matches the reference implementation on 210 sample points with zero differences, and transverse Mercator round-trip error is down to the nanometre range.",
+            "Symbol entity codes come from the standard code tables and were cross-checked against a third-party implementation rather than recalled from memory."
+          ]
+        }
+      ]
+    },
+    "example": {
+      "title": "Example overlays",
+      "lead": "The examples below show typical tactical situations this replica can express and can serve as starting points for new overlays.",
+      "sections": [
+        {
+          "heading": "Battalion attack",
+          "paragraphs": [
+            "A ground attack deployed at battalion echelon: two infantry companies advancing along their own axes, a battalion mortar element in support, and a target area plus assembly area marked forward.",
+            "This example combines point symbols, echelon modifiers, direction-of-movement arrows and area graphics."
+          ]
+        },
+        {
+          "heading": "Combined maritime and air operation",
+          "paragraphs": [
+            "Coordination between a surface group and air cover: surface combatants use the elliptical frame, ship-borne helicopters and fixed-wing fighters use the leaf frame, and submarines use the half-ellipse frame.",
+            "This example shows how symbols from different battle dimensions stay visually distinct on one map."
+          ]
+        },
+        {
+          "heading": "Exercise situation (dashed)",
+          "paragraphs": [
+            "Situations in exercise or simulation context are rendered with dashed frames, and planned objects with dashed graphics, clearly separating them from confirmed reality.",
+            "This is the standard MIL-STD-2525 expression of the context and status fields."
+          ]
+        }
+      ]
+    },
+    "doc": {
+      "title": "Documentation",
+      "lead": "Concise guides by topic, covering everything from placing your first symbol to exchanging overlay files.",
+      "sections": [
+        {
+          "heading": "Getting started",
+          "paragraphs": ["The basic workflow for producing an overlay:"],
+          "list": [
+            "Pick an affiliation and echelon in the symbol panel, then choose a symbol",
+            "Click the map to place it; the tool returns to select mode afterwards",
+            "Switch to the line or area tool, click to add vertices, then double-click or press Enter to finish and Esc to cancel",
+            "Click a feature to open the inspector and edit all SIDC fields, text modifiers and styling",
+            "Export to a MilX layer, GeoJSON or PNG from the toolbar"
+          ]
+        },
+        {
+          "heading": "Keyboard shortcuts",
+          "list": [
+            "Ctrl+Z / Ctrl+Shift+Z: undo / redo",
+            "Ctrl+Y: redo",
+            "Enter: finish the current drawing",
+            "Esc: cancel drawing or clear the selection",
+            "Delete: remove selected features"
+          ]
+        },
+        {
+          "heading": "Military grids",
+          "paragraphs": [
+            "MGRS works worldwide, UTM expresses planar coordinates in six-degree zones, and BNG covers Great Britain and surrounding waters only. You can switch between them at any time; grid spacing is chosen automatically per zoom level.",
+            "The status bar shows latitude/longitude, MGRS and UTM for the cursor position in real time."
+          ]
+        },
+        {
+          "heading": "Data exchange",
+          "paragraphs": [
+            ".milxly is UTF-8 JSON, easy to inspect and version; .milxlyz is its gzip-compressed form for smaller files. Both carry complete layers, features and symbology.",
+            "GeoJSON is used for interoperability with general-purpose GIS tools; SIDC and text modifiers are stored in feature properties and restored losslessly on import. Parsing is lenient: damaged features are skipped and counted rather than failing the whole file."
+          ]
+        },
+        {
+          "heading": "Install as a PWA",
+          "paragraphs": [
+            "Open the app in a supported browser and use the install option in the address bar or menu to add it to your desktop or home screen. It then starts offline and can be associated with .milxlyz files."
+          ]
+        }
+      ]
+    }
+  },
+  "de": {
+    "nav": { "app": "App öffnen", "about": "Über", "example": "Beispiele", "doc": "Dokumentation" },
+    "about": {
+      "title": "Über die Open-Source-Nachbildung von map.army",
+      "lead": "Eine kostenlose Open-Source-Web-App zum Erstellen, Speichern und Austauschen militärischer Kartenüberlagerungen. Sie stellt militärische Symbole nach MIL-STD-2525 und STANAG APP-6 dar und unterstützt die Militärgitter MGRS, UTM und BNG.",
+      "sections": [
+        {
+          "heading": "Projektumfang",
+          "paragraphs": [
+            "Dieses Projekt ist eine funktional gleichwertige Open-Source-Nachbildung von https://www.map.army. Die Originalseite ist ein kommerzielles Closed-Source-Produkt der gs-soft AG. Dieses Repository enthält keinen dessen Quellcodes; alles wurde anhand öffentlicher Standards und öffentlich beobachtbaren Produktverhaltens neu geschrieben, ausschließlich zu Lern- und Forschungszwecken.",
+            "Die Nachbildung folgt derselben Informationsarchitektur: gleicher Anwendungseinstieg, gleiche Seitenstruktur und gleichwertige Kernfunktionen."
+          ]
+        },
+        {
+          "heading": "Kernfunktionen",
+          "paragraphs": ["Die vollständige Kette vom Zeichnen bis zum Austausch einer Lage:"],
+          "list": [
+            "Militärische Symbole: aus 20-stelligen numerischen SIDC-Codes geparst und gerendert, mit sieben Rahmenformen und über vierzig gängigen Symbolen",
+            "Identität und Gliederung: Freund, Feind, Neutral und Unbekannt sowie die vollständige Gliederung von Trupp bis Armee",
+            "Taktische Grafiken: Linien und Flächen für Angriffsachsen, Marschwege, Operationsräume und Zielgebiete",
+            "Militärgitter: MGRS, UTM und BNG werden live für den aktuellen Kartenausschnitt erzeugt, der Abstand passt sich der Zoomstufe an",
+            "Ebenenverwaltung: Sichtbarkeit, Sperren, Reihenfolge und Deckkraft über mehrere Ebenen",
+            "Datenaustausch: MilX-Layer (.milxly / .milxlyz) und GeoJSON in beide Richtungen sowie PNG-Export",
+            "Offlinefähig: als PWA installierbar, Daten werden lokal im Browser gespeichert"
+          ]
+        },
+        {
+          "heading": "Technik",
+          "paragraphs": [
+            "Das Frontend nutzt Vite, React und TypeScript, Leaflet für die Karte, Zustand für den Zustand und Vitest für Tests. Alle Kommentare und Commit-Nachrichten folgen einer festen Konvention; Commits folgen Conventional Commits.",
+            "Die Kernmodule für Geodäsie und Symbolsystem hängen weder vom DOM noch von einer Kartenbibliothek ab und sind daher isoliert unter node testbar."
+          ]
+        },
+        {
+          "heading": "Korrektheit",
+          "paragraphs": [
+            "Die geodätische Korrektheit wird dreifach geprüft: punktweiser Vergleich mit einer etablierten Drittanbieter-Implementierung über den gesamten Bereich, Übereinstimmung mit veröffentlichten Referenzbeispielen und Hin-und-Rück-Tests über alle Zonen und Breiten. Die MGRS-Codierung stimmt auf 210 Stichprobenpunkten mit der Referenz überein, der Rückführfehler der transversalen Mercator-Projektion liegt im Nanometerbereich.",
+            "Symbol-Entity-Codes stammen aus den Standard-Codetabellen und wurden mit einer Drittanbieter-Implementierung abgeglichen, nicht aus dem Gedächtnis ergänzt."
+          ]
+        }
+      ]
+    },
+    "example": {
+      "title": "Beispiellagen",
+      "lead": "Die folgenden Beispiele zeigen typische taktische Lagen, die diese Nachbildung darstellen kann, und dienen als Ausgangspunkt für neue Überlagerungen.",
+      "sections": [
+        {
+          "heading": "Bataillonsangriff",
+          "paragraphs": [
+            "Ein Bodenangriff in Bataillonsgliederung: zwei Infanteriekompanien stoßen auf eigenen Achsen vor, ein Bataillonsmörserzug unterstützt, vorne sind Zielgebiet und Bereitstellungsraum markiert.",
+            "Dieses Beispiel verbindet Punktsymbole, Gliederungszeichen, Bewegungsrichtungspfeile und Flächengrafiken."
+          ]
+        },
+        {
+          "heading": "Kombinierte See- und Luftoperation",
+          "paragraphs": [
+            "Zusammenwirken einer Überwassergruppe mit Luftsicherung: Überwasserkampfschiffe nutzen den elliptischen Rahmen, Bordhubschrauber und Strahlflugzeuge den Blattrahmen, Unterseeboote den Halbellipsen-Rahmen.",
+            "Dieses Beispiel zeigt, wie Symbole verschiedener Dimensionen auf einer Karte unterscheidbar bleiben."
+          ]
+        },
+        {
+          "heading": "Übungslage (gestrichelt)",
+          "paragraphs": [
+            "Lagen im Übungs- oder Simulationskontext werden mit gestrichelten Rahmen dargestellt, geplante Objekte mit gestrichelten Grafiken — eine klare Trennung von der bestätigten reellen Lage.",
+            "Dies ist die standardkonforme Darstellung der Kontext- und Statusfelder nach MIL-STD-2525."
+          ]
+        }
+      ]
+    },
+    "doc": {
+      "title": "Dokumentation",
+      "lead": "Kompakte Anleitungen nach Themen, vom ersten Symbol bis zum Austausch von Lagedateien.",
+      "sections": [
+        {
+          "heading": "Erste Schritte",
+          "paragraphs": ["Der grundlegende Ablauf für eine Überlagerung:"],
+          "list": [
+            "Im Symbolpanel Identität und Gliederung wählen, dann ein Symbol auswählen",
+            "Auf die Karte klicken, um es zu setzen; danach wechselt das Werkzeug zurück in den Auswahlmodus",
+            "Zu Linie oder Fläche wechseln, Stützpunkte setzen, mit Doppelklick oder Enter abschließen, mit Esc abbrechen",
+            "Auf ein Objekt klicken, um alle SIDC-Felder, Textzusätze und das Erscheinungsbild zu bearbeiten",
+            "Über die Werkzeugleiste als MilX-Layer, GeoJSON oder PNG exportieren"
+          ]
+        },
+        {
+          "heading": "Tastenkürzel",
+          "list": [
+            "Strg+Z / Strg+Umschalt+Z: Rückgängig / Wiederholen",
+            "Strg+Y: Wiederholen",
+            "Enter: aktuelle Zeichnung abschließen",
+            "Esc: Zeichnung abbrechen oder Auswahl aufheben",
+            "Entf: ausgewählte Objekte löschen"
+          ]
+        },
+        {
+          "heading": "Militärgitter",
+          "paragraphs": [
+            "MGRS gilt weltweit, UTM gibt ebene Koordinaten in Sechs-Grad-Zonen an, BNG deckt nur Großbritannien und angrenzende Seegebiete ab. Der Wechsel ist jederzeit möglich; der Gitterabstand wird pro Zoomstufe automatisch gewählt.",
+            "Die Statusleiste zeigt laufend Breite/Länge, MGRS und UTM an der Cursorposition."
+          ]
+        },
+        {
+          "heading": "Datenaustausch",
+          "paragraphs": [
+            ".milxly ist UTF-8-JSON, gut lesbar und versionierbar; .milxlyz ist die gzip-komprimierte Form für kleinere Dateien. Beide enthalten vollständige Ebenen, Objekte und Symbolik.",
+            "GeoJSON dient dem Austausch mit allgemeinen GIS-Werkzeugen; SIDC und Textzusätze werden in den Objekteigenschaften gespeichert und beim Import verlustfrei zurückgewonnen. Das Parsen ist fehlertolerant: beschädigte Objekte werden übersprungen und gezählt, statt die ganze Datei scheitern zu lassen."
+          ]
+        },
+        {
+          "heading": "Als PWA installieren",
+          "paragraphs": [
+            "Öffnen Sie die App in einem unterstützten Browser und nutzen Sie die Installationsoption in der Adressleiste oder im Menü, um sie zum Desktop oder Startbildschirm hinzuzufügen. Danach startet sie offline und kann mit .milxlyz-Dateien verknüpft werden."
+          ]
+        }
+      ]
+    }
+  },
+  "fr": {
+    "nav": { "app": "Ouvrir l'app", "about": "À propos", "example": "Exemples", "doc": "Documentation" },
+    "about": {
+      "title": "À propos de la réplique open source de map.army",
+      "lead": "Une application web progressive open source et gratuite pour créer, enregistrer et échanger des calques de cartes militaires. Elle affiche les symboles militaires selon MIL-STD-2525 et STANAG APP-6 et prend en charge les grilles militaires MGRS, UTM et BNG.",
+      "sections": [
+        {
+          "heading": "Portée du projet",
+          "paragraphs": [
+            "Ce projet est une réplique open source fonctionnellement équivalente à https://www.map.army. Le site original est un produit commercial à source fermée de gs-soft AG. Ce dépôt ne contient aucun de ses codes sources ; tout a été écrit à partir de zéro d'après des normes publiques et le comportement observable du produit, à des fins d'étude et de recherche uniquement.",
+            "La réplique suit la même architecture d'information : même point d'entrée, même organisation des pages et capacités essentielles équivalentes."
+          ]
+        },
+        {
+          "heading": "Fonctionnalités principales",
+          "paragraphs": ["La chaîne complète, du tracé à l'échange d'une situation tactique :"],
+          "list": [
+            "Symboles militaires : analysés et rendus à partir des codes SIDC numériques à 20 chiffres, avec sept familles de cadres et plus de quarante symboles courants",
+            "Identité et échelon : ami, hostile, neutre et inconnu, ainsi que toute l'échelle des échelons de l'équipe à l'armée",
+            "Graphiques tactiques : polylignes et polygones pour axes de progression, itinéraires, zones d'opération et zones d'objectif",
+            "Grilles militaires : MGRS, UTM et BNG générées en direct pour la vue courante, avec un espacement adapté au zoom",
+            "Gestion des calques : visibilité, verrouillage, ordre et opacité sur plusieurs calques",
+            "Échange de données : couche MilX (.milxly / .milxlyz) et GeoJSON dans les deux sens, plus export PNG",
+            "Utilisable hors ligne : installable comme PWA, données conservées localement dans le navigateur"
+          ]
+        },
+        {
+          "heading": "Technologie",
+          "paragraphs": [
+            "Le front-end utilise Vite, React et TypeScript, avec Leaflet pour la carte, Zustand pour l'état et Vitest pour les tests. Tous les commentaires et messages de commit suivent une convention stricte, et les commits suivent Conventional Commits.",
+            "Les modules centraux de géodésie et de symbologie ne dépendent ni du DOM ni d'une bibliothèque cartographique, et peuvent donc être testés isolément sous node."
+          ]
+        },
+        {
+          "heading": "Exactitude",
+          "paragraphs": [
+            "L'exactitude géodésique est vérifiée de trois manières : comparaison point par point avec une implémentation tierce éprouvée sur tout le domaine, conformité aux exemples de référence publiés et tests d'aller-retour sur toutes les zones et latitudes. Le codage MGRS correspond à l'implémentation de référence sur 210 points d'échantillonnage sans aucune différence, et l'erreur d'aller-retour de la projection transverse de Mercator descend à l'échelle du nanomètre.",
+            "Les codes d'entité des symboles proviennent des tables de codes normalisées et ont été recoupés avec une implémentation tierce, sans être reconstitués de mémoire."
+          ]
+        }
+      ]
+    },
+    "example": {
+      "title": "Exemples de situations",
+      "lead": "Les exemples ci-dessous montrent des situations tactiques typiques que cette réplique peut représenter et servent de point de départ à de nouveaux calques.",
+      "sections": [
+        {
+          "heading": "Attaque de bataillon",
+          "paragraphs": [
+            "Une attaque terrestre déployée à l'échelon bataillon : deux compagnies d'infanterie progressent sur leurs axes, un élément de mortiers du bataillon appuie, et une zone d'objectif ainsi qu'une zone de rassemblement sont marquées à l'avant.",
+            "Cet exemple combine symboles ponctuels, modificateurs d'échelon, flèches de direction de mouvement et graphiques de zone."
+          ]
+        },
+        {
+          "heading": "Opération combinée mer-air",
+          "paragraphs": [
+            "Coordination entre un groupe de surface et une couverture aérienne : les bâtiments de combat de surface utilisent le cadre elliptique, les hélicoptères embarqués et les chasseurs le cadre en feuille, les sous-marins le cadre en demi-ellipse.",
+            "Cet exemple montre comment des symboles de dimensions différentes restent visuellement distincts sur une même carte."
+          ]
+        },
+        {
+          "heading": "Situation d'exercice (pointillés)",
+          "paragraphs": [
+            "Les situations en contexte d'exercice ou de simulation sont rendues avec des cadres en pointillés, et les objets planifiés avec des graphiques en pointillés, les séparant clairement de la situation réelle confirmée.",
+            "C'est l'expression standard des champs de contexte et d'état dans MIL-STD-2525."
+          ]
+        }
+      ]
+    },
+    "doc": {
+      "title": "Documentation",
+      "lead": "Guides concis par sujet, du placement du premier symbole à l'échange de fichiers de situation.",
+      "sections": [
+        {
+          "heading": "Premiers pas",
+          "paragraphs": ["Le déroulement de base pour produire un calque :"],
+          "list": [
+            "Choisir une appartenance et un échelon dans le panneau de symboles, puis sélectionner un symbole",
+            "Cliquer sur la carte pour le placer ; l'outil revient ensuite en mode sélection",
+            "Passer à l'outil ligne ou zone, cliquer pour ajouter des sommets, puis double-cliquer ou appuyer sur Entrée pour terminer et Échap pour annuler",
+            "Cliquer sur un objet pour ouvrir l'inspecteur et modifier tous les champs SIDC, les compléments de texte et le style",
+            "Exporter en couche MilX, GeoJSON ou PNG depuis la barre d'outils"
+          ]
+        },
+        {
+          "heading": "Raccourcis clavier",
+          "list": [
+            "Ctrl+Z / Ctrl+Maj+Z : annuler / rétablir",
+            "Ctrl+Y : rétablir",
+            "Entrée : terminer le tracé en cours",
+            "Échap : annuler le tracé ou effacer la sélection",
+            "Suppr : supprimer les objets sélectionnés"
+          ]
+        },
+        {
+          "heading": "Grilles militaires",
+          "paragraphs": [
+            "MGRS s'applique mondialement, UTM exprime des coordonnées planes en fuseaux de six degrés, et BNG ne couvre que la Grande-Bretagne et les eaux environnantes. Le changement est possible à tout moment ; l'espacement de la grille est choisi automatiquement selon le niveau de zoom.",
+            "La barre d'état affiche en continu latitude/longitude, MGRS et UTM à la position du curseur."
+          ]
+        },
+        {
+          "heading": "Échange de données",
+          "paragraphs": [
+            ".milxly est du JSON UTF-8, facile à inspecter et à versionner ; .milxlyz est sa forme compressée gzip pour réduire la taille. Les deux contiennent les calques, objets et symbologies complets.",
+            "GeoJSON sert à l'interopérabilité avec les outils SIG généralistes ; le SIDC et les compléments de texte sont stockés dans les propriétés des objets et restaurés sans perte à l'import. L'analyse est tolérante : les objets endommagés sont ignorés et comptés plutôt que de faire échouer tout le fichier."
+          ]
+        },
+        {
+          "heading": "Installer comme PWA",
+          "paragraphs": [
+            "Ouvrez l'application dans un navigateur pris en charge et utilisez l'option d'installation de la barre d'adresse ou du menu pour l'ajouter au bureau ou à l'écran d'accueil. Elle démarre ensuite hors ligne et peut être associée aux fichiers .milxlyz."
+          ]
+        }
+      ]
+    }
+  },
+  "it": {
+    "nav": { "app": "Apri l'app", "about": "Informazioni", "example": "Esempi", "doc": "Documentazione" },
+    "about": {
+      "title": "Informazioni sulla replica open source di map.army",
+      "lead": "Un'applicazione web progressiva open source e gratuita per creare, salvare e scambiare sovrapposizioni di carte militari. Rende i simboli militari secondo MIL-STD-2525 e STANAG APP-6 e supporta le griglie militari MGRS, UTM e BNG.",
+      "sections": [
+        {
+          "heading": "Ambito del progetto",
+          "paragraphs": [
+            "Questo progetto è una replica open source funzionalmente equivalente a https://www.map.army. Il sito originale è un prodotto commerciale a codice chiuso di gs-soft AG. Questo repository non contiene alcun suo codice sorgente; tutto è stato scritto da zero sulla base di standard pubblici e del comportamento osservabile del prodotto, solo per studio e ricerca.",
+            "La replica segue la stessa architettura dell'informazione: stesso punto di ingresso, stessa organizzazione delle pagine e capacità fondamentali equivalenti."
+          ]
+        },
+        {
+          "heading": "Funzionalità principali",
+          "paragraphs": ["La catena completa, dal disegno allo scambio di una situazione tattica:"],
+          "list": [
+            "Simboli militari: analizzati e resi dai codici SIDC numerici a 20 cifre, con sette famiglie di cornici e più di quaranta simboli comuni",
+            "Identità e scaglione: amico, ostile, neutrale e sconosciuto, oltre all'intera scala degli scaglioni dalla squadra all'armata",
+            "Grafici tattici: polilinee e poligoni per assi di avanzata, itinerari, aree di operazione e aree obiettivo",
+            "Griglie militari: MGRS, UTM e BNG generate in tempo reale per la vista corrente, con spaziatura adattata allo zoom",
+            "Gestione dei livelli: visibilità, blocco, ordine e opacità su più livelli",
+            "Scambio dati: livello MilX (.milxly / .milxlyz) e GeoJSON in entrambe le direzioni, oltre all'esportazione PNG",
+            "Utilizzabile offline: installabile come PWA, con dati conservati localmente nel browser"
+          ]
+        },
+        {
+          "heading": "Tecnologia",
+          "paragraphs": [
+            "Il front-end usa Vite, React e TypeScript, con Leaflet per la mappa, Zustand per lo stato e Vitest per i test. Tutti i commenti e i messaggi di commit seguono una convenzione rigorosa e i commit seguono Conventional Commits.",
+            "I moduli centrali di geodesia e simbologia non dipendono né dal DOM né da alcuna libreria di mappe, quindi possono essere testati isolatamente sotto node."
+          ]
+        },
+        {
+          "heading": "Correttezza",
+          "paragraphs": [
+            "La correttezza geodesica è verificata in tre modi: confronto punto per punto con un'implementazione di terze parti consolidata su tutto il dominio, conformità agli esempi di riferimento pubblicati e test di andata e ritorno su tutte le zone e latitudini. La codifica MGRS coincide con l'implementazione di riferimento su 210 punti di campionamento senza differenze e l'errore di andata e ritorno della proiezione trasversa di Mercatore scende alla scala del nanometro.",
+            "I codici entità dei simboli provengono dalle tabelle di codici standard e sono stati riscontrati con un'implementazione di terze parti, non ricostruiti a memoria."
+          ]
+        }
+      ]
+    },
+    "example": {
+      "title": "Esempi di situazioni",
+      "lead": "Gli esempi seguenti mostrano situazioni tattiche tipiche che questa replica può rappresentare e fungono da punto di partenza per nuove sovrapposizioni.",
+      "sections": [
+        {
+          "heading": "Attacco di battaglione",
+          "paragraphs": [
+            "Un attacco terrestre dispiegato a livello di battaglione: due compagnie di fanteria avanzano lungo assi propri, un elemento mortai del battaglione fornisce supporto, e davanti sono segnate un'area obiettivo e un'area di radunata.",
+            "Questo esempio combina simboli puntuali, modificatori di scaglione, frecce di direzione del movimento e grafici d'area."
+          ]
+        },
+        {
+          "heading": "Operazione combinata navale e aerea",
+          "paragraphs": [
+            "Coordinamento tra un gruppo di superficie e la copertura aerea: le unità da combattimento di superficie usano la cornice ellittica, elicotteri imbarcati e caccia la cornice a foglia, i sottomarini la cornice a semiellisse.",
+            "Questo esempio mostra come simboli di dimensioni diverse restino visivamente distinguibili su una stessa carta."
+          ]
+        },
+        {
+          "heading": "Situazione di esercitazione (tratteggiata)",
+          "paragraphs": [
+            "Le situazioni in contesto di esercitazione o simulazione sono rese con cornici tratteggiate e gli oggetti pianificati con grafici tratteggiati, separandoli chiaramente dalla situazione reale confermata.",
+            "Questa è l'espressione standard dei campi di contesto e stato in MIL-STD-2525."
+          ]
+        }
+      ]
+    },
+    "doc": {
+      "title": "Documentazione",
+      "lead": "Guide concise per argomento, dal primo simbolo allo scambio dei file di situazione.",
+      "sections": [
+        {
+          "heading": "Primi passi",
+          "paragraphs": ["Il flusso di base per produrre una sovrapposizione:"],
+          "list": [
+            "Scegliere appartenenza e scaglione nel pannello simboli, quindi selezionare un simbolo",
+            "Fare clic sulla mappa per posizionarlo; lo strumento torna poi in modalità selezione",
+            "Passare allo strumento linea o area, fare clic per aggiungere vertici, quindi doppio clic o Invio per terminare ed Esc per annullare",
+            "Fare clic su un oggetto per aprire l'ispettore e modificare tutti i campi SIDC, i testi e lo stile",
+            "Esportare come livello MilX, GeoJSON o PNG dalla barra degli strumenti"
+          ]
+        },
+        {
+          "heading": "Scorciatoie da tastiera",
+          "list": [
+            "Ctrl+Z / Ctrl+Maiusc+Z: annulla / ripristina",
+            "Ctrl+Y: ripristina",
+            "Invio: termina il disegno corrente",
+            "Esc: annulla il disegno o deseleziona",
+            "Canc: elimina gli oggetti selezionati"
+          ]
+        },
+        {
+          "heading": "Griglie militari",
+          "paragraphs": [
+            "MGRS vale a livello mondiale, UTM esprime coordinate piane in fusi di sei gradi, BNG copre solo la Gran Bretagna e le acque circostanti. Si può passare dall'una all'altra in qualsiasi momento; la spaziatura della griglia è scelta automaticamente per livello di zoom.",
+            "La barra di stato mostra in continuo latitudine/longitudine, MGRS e UTM alla posizione del cursore."
+          ]
+        },
+        {
+          "heading": "Scambio dati",
+          "paragraphs": [
+            ".milxly è JSON UTF-8, facile da ispezionare e versionare; .milxlyz è la sua forma compressa gzip per ridurre la dimensione. Entrambi contengono livelli, oggetti e simbologia completi.",
+            "GeoJSON serve all'interoperabilità con gli strumenti GIS generalisti; SIDC e testi sono memorizzati nelle proprietà degli oggetti e ripristinati senza perdite all'importazione. L'analisi è tollerante: gli oggetti danneggiati vengono saltati e conteggiati invece di far fallire l'intero file."
+          ]
+        },
+        {
+          "heading": "Installare come PWA",
+          "paragraphs": [
+            "Aprire l'app in un browser supportato e usare l'opzione di installazione nella barra degli indirizzi o nel menu per aggiungerla al desktop o alla schermata iniziale. Si avvierà poi offline e potrà essere associata ai file .milxlyz."
+          ]
+        }
+      ]
+    }
+  }
+}

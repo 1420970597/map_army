@@ -1,0 +1,39 @@
+# map.army 开源复刻版 — 军事标图 Web 应用
+
+> map.army 复刻版是一个免费开源的渐进式 Web 应用（PWA），用于创建、编辑、保存、导出与共享战术态势图和军事标图。它依据 MIL-STD-2525 与 STANAG APP-6 标准自绘军标符号，支持在交互式地图上叠加 MGRS / UTM / BNG 军用网格。运行于任何现代浏览器，无需安装，可作为 PWA 安装并关联 `.milxlyz` 文件。
+>
+> **重要声明**：本项目是对 https://www.map.army 的**功能等价开源复刻**，不包含原站任何源代码。原站为 gs-soft AG 出品的商业闭源产品。本项目全部代码依据公开标准从零实现，仅用于技术学习与研究。
+
+使用场景：规划军事演习与任务、以标准化符号维护组织态势叠加层、将态势导出为图片或 PDF、以 MilX 图层文件交换态势。受众：军事规划人员、演习参谋，以及绘制战术地图的爱好者。数据保存在浏览器本地，无需服务端账户。
+
+## 应用
+
+- [map.army 复刻版应用](https://example.github.io/map-army/)：军事标图生成器 —— 在浏览器中打开即可开始绘制战术态势。
+- [关于本项目](https://example.github.io/map-army/about/zh.html)：项目定位、技术栈与复刻范围说明。
+- [示例标图](https://example.github.io/map-army/example/zh.html)：战术态势示例与文件交换演示。
+- [PWA 清单](https://example.github.io/map-army/manifest.json)：用于将本应用安装为渐进式 Web 应用的清单文件。
+
+## 文档
+
+- [文档首页](https://example.github.io/map-army/doc/zh/)：用户文档 —— 符号、图层、数据交换、导出与 PWA 安装指南。
+- [面向 AI/LLM 爬虫的文档索引](https://example.github.io/map-army/doc/llms.txt)：机器可读的文档页面索引，逐页一行描述。
+
+## 核心概念
+
+- [MilX 文件格式](https://example.github.io/map-army/doc/zh/milx-format/)：本复刻版使用的交换格式（`.milxly` 为 JSON 文本，`.milxlyz` 为其 gzip 压缩形式）。
+- [军标符号体系](https://example.github.io/map-army/doc/zh/symbology/)：MIL-STD-2525D 的 20 位 SIDC 编码结构与身份/梯队/修饰符的渲染规则。
+- [军用网格](https://example.github.io/map-army/doc/zh/grids/)：MGRS、UTM、BNG 三种军用网格的适用范围与精度说明。
+- [技术架构](https://example.github.io/map-army/doc/zh/architecture/)：模块划分、依赖选型与测试策略。
+
+## 技术要点
+
+- 测绘核心：Krüger 六阶级数横轴墨卡托投影，全带全纬度往返误差达纳米级。
+- 符号引擎：20 位数字型 SIDC 解析与 SVG 渲染，含七种框架轮廓与四十余个常用符号。
+- 军事网格：MGRS 编解码经第三方成熟实现全域逐点比对校验；BNG 含七参数赫尔默特基准变换。
+- 数据交换：MilX 图层（JSON / gzip）与 GeoJSON 双向互转。
+
+## 相关
+
+- [原站 map.army](https://www.map.army/)：本项目复刻的商业产品，gs-soft AG 出品。
+- [MIL-STD-2525 维基条目](https://en.wikipedia.org/wiki/NATO_Joint_Military_Symbology)：北约联合军标体系的公开说明。
+- [MGRS 维基条目](https://en.wikipedia.org/wiki/Military_Grid_Reference_System)：军用网格参考系的定义与编码规则。
