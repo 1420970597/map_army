@@ -1,0 +1,49 @@
+# ---------------------------------------------------------
+# map.army 复刻项目 —— Git 忽略规则
+# ---------------------------------------------------------
+
+# 依赖
+node_modules/
+.npm-cache/
+.pnpm-store/
+
+# 构建产物
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# 测试与覆盖率
+coverage/
+.vitest/
+
+# 日志
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 编辑器 / 系统
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# 站点抓取的原始参考文件（仅本地分析使用，不入库）
+.reference/
+
+# 临时文件
+.tmp/
+tmp/

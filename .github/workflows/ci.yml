@@ -1,0 +1,55 @@
+name: CI
+
+# 触发条件：推送到主干分支、以及所有面向 main 的 PR
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# 同一分支上的新提交会自动取消旧任务，节省 CI 资源
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: 代码质量与测试
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 代码风格检查
+        run: npm run lint
+
+      - name: 格式检查
+        run: npm run format:check
+
+      - name: 单元测试
+        run: npm run test -- --reporter=verbose
+
+      - name: 类型检查与构建
+        run: npm run build
+
+      - name: 上传构建产物
+        if: matrix.node-version == '22.x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7

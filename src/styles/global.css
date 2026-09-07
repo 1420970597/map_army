@@ -1,0 +1,50 @@
+/*
+ * 全局样式（脚手架版）。
+ *
+ * 品牌主色沿用原站 map.army 的深蓝 #076391；
+ * 完整的工作区布局样式将随界面功能提交逐步纳入。
+ */
+
+:root {
+  --c-primary: #076391;
+  --c-primary-dark: #054e73;
+  --c-text: #1c2b33;
+  --radius: 4px;
+  --transition: 0.15s ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: var(--c-text);
+  background: #f3f6f8;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  height: 44px;
+  padding: 0 12px;
+  color: #fff;
+  background: var(--c-primary);
+}
+
+.toolbar-brand {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.app-main {
+  padding: 24px;
+}

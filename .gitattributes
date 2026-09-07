@@ -1,0 +1,16 @@
+# 统一行尾序列，保证 Windows / Linux / macOS 协作一致
+* text=auto eol=lf
+
+# 明确声明二进制文件，避免 Git 尝试做差异比对
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.mp4 binary
+*.pdf binary
+
+# 语言统计：将锁定文件与资源排除在语言统计之外
+package-lock.json linguist-generated=true
+public/** linguist-documentation=false

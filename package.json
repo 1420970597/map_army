@@ -1,0 +1,65 @@
+{
+  "name": "map-army",
+  "version": "6.1.1",
+  "private": true,
+  "type": "module",
+  "description": "map.army —— 军事标图 Web 应用开源复刻版：基于 MIL-STD-2525 / STANAG APP-6 军标符号，支持 MGRS / UTM / BNG 军网，可绘制、保存、导出与交换战术态势图（MilX）。",
+  "keywords": [
+    "military map",
+    "common operational picture",
+    "COP",
+    "MIL-STD-2525",
+    "STANAG APP-6",
+    "MGRS",
+    "UTM",
+    "BNG",
+    "MilX",
+    "tactical map"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"*.{json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"*.{json,md}\"",
+    "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "ci": "npm run lint && npm run format:check && npm run test && npm run build"
+  },
+  "dependencies": {
+    "html-to-image": "^1.11.13",
+    "jspdf": "^3.0.1",
+    "leaflet": "^1.9.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-leaflet": "^5.0.0",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@types/leaflet": "^1.9.20",
+    "@types/node": "^26.4.1",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^9.32.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.39.1",
+    "vite": "^7.1.0",
+    "vitest": "^3.2.4"
+  }
+}

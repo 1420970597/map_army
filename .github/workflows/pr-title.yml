@@ -1,0 +1,33 @@
+name: PR 标题规范检查
+
+# 保证所有合入 main 的提交记录符合 Conventional Commits，
+# 便于后续自动生成 CHANGELOG 与语义化版本号。
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  conventional-title:
+    name: 校验 Conventional Commits
+    runs-on: ubuntu-latest
+    steps:
+      - name: 校验 PR 标题
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            refactor
+            perf
+            test
+            docs
+            chore
+            ci
+            build
+            revert
+          requireScope: false

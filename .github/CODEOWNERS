@@ -1,0 +1,17 @@
+# CODEOWNERS —— 定义各模块的默认评审人
+# 语法：路径模式  评审人
+
+# 默认评审人
+*                       @map-army/maintainers
+
+# 军事符号引擎（MIL-STD-2525 / APP-6）属于核心算法，需核心维护者评审
+/src/core/symbology/     @map-army/symbology-owners
+
+# 地理计算（MGRS / UTM / BNG）
+/src/core/geo/           @map-army/geo-owners
+
+# MilX 文件格式读写，涉及数据兼容性
+/src/core/milx/          @map-army/maintainers
+
+# CI 与工程配置
+/.github/                @map-army/maintainers
