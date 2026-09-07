@@ -85,6 +85,22 @@ npm run ci        # lint + 格式校验 + 单测 + 构建
 
 必须全绿方可发起 PR。
 
+## 提交与推送
+
+- **及时提交、及时推送**：新增或修改的文件在自检通过后应立即提交并推送远程分支，
+  避免本地长期堆积未推送的改动。一轮工作结束时，本地与远程必须处于一致状态。
+- 推送后须复核：以 `git ls-remote origin` 或 GitHub API 返回的分支 SHA 与本地比对，
+  不可仅凭推送命令的返回码判定成功。
+- 若环境的凭据助手不可用（提示 `terminal prompts disabled`），显式指定
+  Git Credential Manager：
+
+  ```bash
+  git -c credential.helper= -c credential.helper=manager push -u origin <分支名>
+  ```
+
+- 本环境下 remote-tracking 引用（`refs/remotes/origin/*`）可能失效，
+  同步分支时直接按完整 SHA 操作：`git update-ref refs/heads/<分支> <sha>`。
+
 ## Pull Request 流程
 
 1. 从 `develop` 切出功能分支
