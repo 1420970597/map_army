@@ -152,8 +152,8 @@ export function milxXmlToDocument(
   name: string,
 ): { document: MapDocument; skipped: number } {
   const doc = parseXml(xml);
-  const root = doc.documentElement;
-  if (!root || root.localName !== 'milx') {
+  const root = doc.root;
+  if (root.name !== 'milx') {
     throw new Error('XML 根节点不是 <milx>，无法作为 MilX 文件载入');
   }
 
@@ -290,19 +290,19 @@ function writeGeometry(lines: string[], geometry: MapFeature['geometry']): void 
  * XML 中没有强制的文档级名称节点，沿用调用方传入的 `name` 参数；
  * 这里仅预留扩展位（未来可从 `<metadata>` 中读取）。
  */
-function readLayersAndName(root: Element, fallback: string): string {
+function readLayersAndName(root: XmlNode, fallback: string): string {
   // 优先取 <milx name="..."/> 属性，其次使用调用方传入的名称
-  const attr = root.getAttribute('name');
+  const attr = getAttribute(root, 'name');
   return attr && attr.trim() ? attr : fallback;
 }
 
 /** 读取图层列表 */
-function readLayers(layersRoot: Element): MapDocument['layers'] {
+function readLayers(layersRoot: XmlNode): MapDocument['layers'] {
   return childrenOf(layersRoot, 'layer').map((node, index) => ({
-    id: node.getAttribute('id') ?? `lyr_imported_${index}`,
-    name: node.getAttribute('name') ?? `图层 ${index + 1}`,
-    visible: node.getAttribute('visible') !== 'false',
-    locked: node.getAttribute('locked') === 'true',
+    id: getAttribute(node, 'id') ?? `lyr_imported_${index}`,
+    name: getAttribute(node, 'name') ?? `图层 ${index + 1}`,
+    visible: getAttribute(node, 'visible') !== 'false',
+    locked: getAttribute(node, 'locked') === 'true',
     opacity: readNumberAttribute(node, 'opacity', 1),
     order: readNumberAttribute(node, 'order', index),
   }));
@@ -314,9 +314,9 @@ function readLayers(layersRoot: Element): MapDocument['layers'] {
  * 返回 null 表示该要素被跳过：通常是因为缺少关键字段（id / sidc）
  * 或几何非法。SIDC 长度不是跳过条件——15 位会被自动补 0。
  */
-function readFeature(node: Element, layerIds: Set<string>, fallbackTime: number): MapFeature | null {
-  const id = node.getAttribute('id');
-  const sidcRaw = node.getAttribute('sidc');
+function readFeature(node: XmlNode, layerIds: Set<string>, fallbackTime: number): MapFeature | null {
+  const id = getAttribute(node, 'id');
+  const sidcRaw = getAttribute(node, 'sidc');
   if (!id || !sidcRaw) return null;
 
   const sidc = sidlPad(sidcRaw);
@@ -324,7 +324,7 @@ function readFeature(node: Element, layerIds: Set<string>, fallbackTime: number)
   if (sidc.length !== SIDC_LENGTH_D) return null;
   if (!/^\d+$/.test(sidc)) return null;
 
-  const layerIdAttr = node.getAttribute('layerId');
+  const layerIdAttr = getAttribute(node, 'layerId');
   // 未知图层回退到第一个已知图层（与 JSON 路径的宽容接管一致）；
   // 调用方若需要按 layerId 重新归并，可在导入后调用相关工具。
   const layerId =
@@ -349,7 +349,7 @@ function readFeature(node: Element, layerIds: Set<string>, fallbackTime: number)
     id,
     layerId,
     sidc,
-    name: node.getAttribute('name') ?? '',
+    name: getAttribute(node, 'name') ?? '',
     geometry,
     textFields,
     style: undefined,
@@ -360,8 +360,8 @@ function readFeature(node: Element, layerIds: Set<string>, fallbackTime: number)
 }
 
 /** 读取几何节点；返回 null 表示几何缺失或类型不支持 */
-function readGeometry(node: Element): MapFeature['geometry'] | null {
-  const type = node.getAttribute('type');
+function readGeometry(node: XmlNode): MapFeature['geometry'] | null {
+  const type = getAttribute(node, 'type');
   if (type === GeometryKind.Point) {
     const positionNode = getFirstChild(node, 'position');
     if (!positionNode) return null;
@@ -392,12 +392,12 @@ function readGeometry(node: Element): MapFeature['geometry'] | null {
 }
 
 /** 读取文本修饰符节点；缺失节点时返回空对象 */
-function readTextFields(node: Element): MapFeature['textFields'] {
+function readTextFields(node: XmlNode): MapFeature['textFields'] {
   const text: MapFeature['textFields'] = {};
   for (const child of childrenOf(node)) {
-    const value = child.textContent ?? '';
+    const value = child.text ?? '';
     if (!value) continue;
-    switch (child.localName) {
+    switch (child.name) {
       case 'uniqueDesignation':
         text.uniqueDesignation = value;
         break;
@@ -421,45 +421,239 @@ function readTextFields(node: Element): MapFeature['textFields'] {
 // ─────────────────────────── XML 解析层 ───────────────────────────
 
 /**
- * 解析 XML 文本。
+ * 简化的 XML 节点结构。
  *
- * 优先使用浏览器原生的 `DOMParser`，Node 环境（>= 20）也已内置；
- * 缺失时抛出明确错误，避免静默 fallback。
+ * 我们自实现 XML 解析而非依赖 DOMParser，原因有二：
+ *
+ * 1. 浏览器与 Node 环境对 DOMParser 的可用性不一致，跨环境运行需要
+ *    polyfill，违背"无运行时依赖"的仓库约束；
+ * 2. MilX 文件结构简单（自闭合 + 开闭标签 + 属性 + 文本），用一个
+ *    紧凑的递归下降解析器即可覆盖所有真实输入，且无需处理 DTD、
+ *    CDATA、注释等通用 XML 特性。
  */
-function parseXml(xml: string): Document {
-  if (typeof DOMParser === 'undefined') {
-    throw new Error('当前环境不支持 DOMParser，无法解析 MilX XML');
-  }
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xml, 'application/xml');
-  // parseFromString 在解析失败时会返回包含 <parsererror> 的文档
-  if (doc.getElementsByTagName('parsererror').length > 0) {
-    throw new Error('XML 内容非法，无法解析');
-  }
-  return doc;
+interface XmlNode {
+  /** 标签名（不含命名空间前缀） */
+  name: string;
+  /** 属性集合 */
+  attributes: Record<string, string>;
+  /** 直接子元素 */
+  children: XmlNode[];
+  /** 纯文本内容（子元素之间的文本会被合并到此） */
+  text?: string;
 }
 
-/** 取节点的直接子元素中第一个 localName 匹配的元素 */
-function getFirstChild(parent: Element, localName: string): Element | null {
-  for (const child of Array.from(parent.children)) {
-    if (child.localName === localName) return child;
+interface XmlDoc {
+  root: XmlNode;
+}
+
+/**
+ * 解析 XML 文本为简化节点树。
+ *
+ * 仅支持本仓库 MilX 输出所需的语法：开闭标签、自闭合标签、属性（双引号
+ * 或单引号）、文本节点与基本实体（`&amp; &gt; &lt; &quot; &apos;` 与
+ * 十进制 / 十六进制字符引用）。遇到不识别的结构抛出错误。
+ */
+function parseXml(xml: string): XmlDoc {
+  // 去掉 BOM 与 XML 声明（不影响后续解析）
+  const trimmed = xml.replace(/^\uFEFF/, '').replace(/<\?xml[^?]*\?>/g, '');
+  const parser = createParser(trimmed);
+  const root = parseElement(parser);
+  // 解析根节点后允许尾部空白；不允许再出现任何元素
+  skipWhitespace(parser);
+  if (!atEnd(parser)) {
+    throw new Error(`XML 内容非法：根节点之后仍有内容（位置 ${parser.pos}）`);
+  }
+  return { root };
+}
+
+/** 递归下降解析器：基于指针位置的状态对象 */
+interface Parser {
+  source: string;
+  pos: number;
+}
+
+function createParser(source: string): Parser {
+  return { source, pos: 0 };
+}
+
+/** 跳过空白字符（空格、Tab、换行、回车） */
+function skipWhitespace(p: Parser): void {
+  while (p.pos < p.source.length) {
+    const ch = p.source[p.pos];
+    if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {
+      p.pos += 1;
+    } else {
+      break;
+    }
+  }
+}
+
+/** 判断是否到达源串末尾 */
+function atEnd(p: Parser): boolean {
+  skipWhitespace(p);
+  return p.pos >= p.source.length;
+}
+
+/** 断言下一个非空白字符等于 expected，否则抛出错误 */
+function expect(p: Parser, expected: string): void {
+  skipWhitespace(p);
+  if (p.source[p.pos] !== expected) {
+    throw new Error(`XML 非法：期望 "${expected}"，实际为 "${p.source[p.pos] ?? 'EOF'}"（位置 ${p.pos}）`);
+  }
+  p.pos += 1;
+}
+
+/** 解析一个元素（开闭标签或自闭合标签） */
+function parseElement(p: Parser): XmlNode {
+  skipWhitespace(p);
+  expect(p, '<');
+  const name = parseName(p);
+  const attributes = parseAttributes(p);
+  skipWhitespace(p);
+
+  // 自闭合标签 <foo .../>
+  if (p.source[p.pos] === '/') {
+    p.pos += 1;
+    expect(p, '>');
+    return { name, attributes, children: [] };
+  }
+
+  expect(p, '>');
+
+  // 解析子节点与文本，直到遇到 </name>
+  const children: XmlNode[] = [];
+  let text = '';
+  while (true) {
+    if (p.pos >= p.source.length) {
+      throw new Error(`XML 非法：元素 <${name}> 未闭合`);
+    }
+    if (p.source.startsWith(`</${name}`, p.pos)) {
+      break;
+    }
+    if (p.source[p.pos] === '<') {
+      // 跳过注释 <!-- ... --> 与处理指令 <? ... ?>
+      if (p.source.startsWith('<!--', p.pos)) {
+        p.pos += 4;
+        const end = p.source.indexOf('-->', p.pos);
+        if (end < 0) throw new Error('XML 非法：注释未闭合');
+        p.pos = end + 3;
+        continue;
+      }
+      if (p.source.startsWith('<?', p.pos)) {
+        const end = p.source.indexOf('?>', p.pos);
+        if (end < 0) throw new Error('XML 非法：处理指令未闭合');
+        p.pos = end + 2;
+        continue;
+      }
+      children.push(parseElement(p));
+    } else {
+      text += parseText(p);
+    }
+  }
+
+  // 闭合标签
+  p.pos += `</${name}`.length;
+  expect(p, '>');
+
+  const node: XmlNode = { name, attributes, children };
+  const trimmedText = text.trim();
+  if (trimmedText) node.text = unescapeText(trimmedText);
+  return node;
+}
+
+/** 解析标签名或属性名（字母数字下划线、连字符、点、冒号） */
+function parseName(p: Parser): string {
+  const start = p.pos;
+  while (p.pos < p.source.length) {
+    const ch = p.source[p.pos];
+    if (/[A-Za-z0-9_.\-:]/.test(ch)) p.pos += 1;
+    else break;
+  }
+  if (p.pos === start) {
+    throw new Error(`XML 非法：缺少标签名（位置 ${p.pos}）`);
+  }
+  return p.source.slice(start, p.pos);
+}
+
+/** 解析元素起始标签内的若干属性 */
+function parseAttributes(p: Parser): Record<string, string> {
+  const attrs: Record<string, string> = {};
+  while (true) {
+    skipWhitespace(p);
+    const ch = p.source[p.pos];
+    if (ch === '>' || ch === '/' || ch === undefined) break;
+    const name = parseName(p);
+    skipWhitespace(p);
+    expect(p, '=');
+    skipWhitespace(p);
+    const quote = p.source[p.pos];
+    if (quote !== '"' && quote !== "'") {
+      throw new Error(`XML 非法：属性 ${name} 必须用引号包裹（位置 ${p.pos}）`);
+    }
+    p.pos += 1;
+    const valueStart = p.pos;
+    const closeQuote = p.source.indexOf(quote, p.pos);
+    if (closeQuote < 0) {
+      throw new Error(`XML 非法：属性 ${name} 缺少闭合引号`);
+    }
+    const value = p.source.slice(valueStart, closeQuote);
+    p.pos = closeQuote + 1;
+    attrs[name] = unescapeAttribute(value);
+  }
+  return attrs;
+}
+
+/** 解析两个标签之间的文本内容（直到下一个 <） */
+function parseText(p: Parser): string {
+  const start = p.pos;
+  while (p.pos < p.source.length && p.source[p.pos] !== '<') {
+    p.pos += 1;
+  }
+  return p.source.slice(start, p.pos);
+}
+
+/** 反转义属性值：与号、引号、空白字符引用 */
+function unescapeAttribute(value: string): string {
+  return unescapeText(value)
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#10;/g, '\n')
+    .replace(/&#9;/g, '\t');
+}
+
+/** 反转义通用实体与字符引用（用于文本节点与属性值的公共部分） */
+function unescapeText(value: string): string {
+  return value
+    .replace(/&#(\d+);/g, (_, digits: string) => String.fromCodePoint(Number(digits)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, digits: string) => String.fromCodePoint(parseInt(digits, 16)))
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
+
+/** 取节点的指定属性，缺失时返回 undefined */
+function getAttribute(node: XmlNode, name: string): string | undefined {
+  return node.attributes[name];
+}
+
+/** 取节点的直接子元素中第一个匹配标签的元素 */
+function getFirstChild(parent: XmlNode, name: string): XmlNode | null {
+  for (const child of parent.children) {
+    if (child.name === name) return child;
   }
   return null;
 }
 
-/** 列出节点下所有指定 localName 的直接子元素 */
-function childrenOf(parent: Element, localName?: string): Element[] {
-  const result: Element[] = [];
-  for (const child of Array.from(parent.children)) {
-    if (!localName || child.localName === localName) result.push(child);
-  }
-  return result;
+/** 列出节点下所有指定标签的直接子元素 */
+function childrenOf(parent: XmlNode, name?: string): XmlNode[] {
+  if (!name) return parent.children.slice();
+  return parent.children.filter((child) => child.name === name);
 }
 
 /** 读取数字属性，缺失或非数时回退到默认值 */
-function readNumberAttribute(node: Element, name: string, fallback: number): number {
-  const raw = node.getAttribute(name);
-  if (raw === null || raw === '') return fallback;
+function readNumberAttribute(node: XmlNode, name: string, fallback: number): number {
+  const raw = getAttribute(node, name);
+  if (raw === undefined || raw === '') return fallback;
   const num = Number(raw);
   return Number.isFinite(num) ? num : fallback;
 }
