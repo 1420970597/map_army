@@ -16,6 +16,7 @@ import { useViewStore } from '@/stores/useViewStore';
 import { DrawHandler } from '@/features/draw/DrawHandler';
 import { VertexEditor } from '@/features/draw/VertexEditor';
 import { isVertexEditorEligible } from '@/features/draw/vertexEditorLogic';
+import { BoxSelect } from './BoxSelect';
 import { MapClickHandler, FeatureLayer } from './FeatureLayer';
 import { GridOverlay } from './GridOverlay';
 import { selectionAfterBlankClick, selectionAfterFeatureClick } from './mapSelection';
@@ -190,6 +191,7 @@ export function MapView() {
       />
 
       <MapClickHandler onBlankClick={() => select(selectionAfterBlankClick())} />
+      <BoxSelect />
       <VertexEditor
         activeTool={activeTool}
         selectedIds={selectedIds}

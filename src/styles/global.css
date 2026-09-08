@@ -488,6 +488,13 @@ button {
   border-top-color: var(--c-primary);
 }
 
+/* ── 地图框选 ─────────────────────────────────────────── */
+
+.box-select-rectangle {
+  pointer-events: none;
+  stroke-dasharray: 4 3;
+}
+
 /* ── 顶点编辑器 ───────────────────────────────────────── */
 
 .vertex-editor-ghost {
