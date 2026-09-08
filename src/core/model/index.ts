@@ -31,6 +31,13 @@ export type { CreateFeatureParams, CreateLayerParams } from './factory';
 export { reorderLayers, sortLayersByDisplay } from './layerOrder';
 
 export {
+  addToSelection,
+  rangeSelection,
+  removeFromSelection,
+  toggleInSelection,
+} from './selection';
+
+export {
   defaultBearingAt,
   deleteVertex,
   insertVertex,
