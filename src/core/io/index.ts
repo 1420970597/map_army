@@ -45,6 +45,17 @@ export {
 export type { SessionErrorKind, SessionMeta } from './session';
 
 export {
+  loadPrefs,
+  parsePrefs,
+  savePrefs,
+  serializePrefs,
+  DEFAULT_APP_PREFS,
+  PREFS_STORAGE_KEY,
+  PREFS_VERSION,
+} from './prefs';
+export type { AppPrefs } from './prefs';
+
+export {
   downloadBytes,
   downloadText,
   pickBinaryFile,
