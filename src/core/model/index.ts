@@ -2,7 +2,7 @@
  * 标图文档模型统一出口。
  */
 
-export { BaseMapType, GeometryKind, Tool } from './types';
+export { BaseMapType, GeometryKind, LayerStatus, Tool } from './types';
 export type { GridType } from '../geo';
 export type {
   AreaGeometry,

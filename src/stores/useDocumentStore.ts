@@ -14,6 +14,7 @@ import {
   addToSelection as addSelectionIds,
   createDocument,
   createLayer,
+  LayerStatus,
   deleteVertex,
   featuresInBounds,
   insertVertex,
@@ -61,8 +62,8 @@ export interface DocumentState {
   insertVertexAt: (id: string, index: number, point: LonLat) => void;
   /** 删除非点要素的指定顶点，且不得低于几何最小点数。 */
   deleteVertexAt: (id: string, index: number) => void;
-  /** 重置一个或全部顶点的手动方向。 */
-  resetVertexBearing: (id: string, index?: number) => void;
+  /** 重置一个顶点或显式清除全部顶点的手动方向。 */
+  resetVertexBearing: (id: string, index?: number | 'all') => void;
 
   // ── 图层操作 ─────────────────────────────────────────────
   addLayer: (name: string) => string;
@@ -255,10 +256,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const targetLayer = state.document.layers.find((layer) => layer.id === layerId);
       if (!targetLayer || targetLayer.locked) return state;
 
-      const requestedIds = new Set(ids);
-      const movedIds = state.document.features
-        .filter((feature) => requestedIds.has(feature.id) && feature.layerId !== layerId)
-        .map((feature) => feature.id);
+      const requestedIds = [...new Set(ids)];
+      const featuresById = new Map(state.document.features.map((feature) => [feature.id, feature]));
+      const movedIds = requestedIds.filter((id) => {
+        const feature = featuresById.get(id);
+        return feature !== undefined && feature.layerId !== layerId;
+      });
       if (movedIds.length === 0) return state;
 
       const movedIdSet = new Set(movedIds);
@@ -326,7 +329,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       if (!feature || feature.geometry.kind === 'point') return state;
 
       const bearings =
-        index === undefined
+        index === undefined || index === 'all'
           ? resetAllBearings(feature.vertexBearings)
           : resetBearing(feature.vertexBearings, index);
       if (bearings === feature.vertexBearings) return state;
@@ -399,7 +402,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   setLayerStatus: (id, status) =>
     set((state) => {
       const layer = state.document.layers.find((item) => item.id === id);
-      if (!layer || layer.status === status) return state;
+      if (!layer || (layer.status ?? LayerStatus.Working) === status) return state;
       return commit(state, {
         ...state.document,
         layers: state.document.layers.map((item) => (item.id === id ? { ...item, status } : item)),
@@ -565,33 +568,40 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   canRedo: () => get().future.length > 0,
 }));
 
+/** 用于选择 selector 的最小状态形状。 */
+type SelectionState = Pick<DocumentState, 'document' | 'selectedIds'>;
+
+/** 返回选择队列末位仍存在的主选要素。 */
+export function selectPrimaryFeature(state: SelectionState): MapFeature | null {
+  const id = state.selectedIds[state.selectedIds.length - 1];
+  if (!id) return null;
+  return state.document.features.find((feature) => feature.id === id) ?? null;
+}
+
+/** 返回按选择队列顺序去重并过滤缺失项后的已选要素。 */
+export function selectSelectedFeatures(state: SelectionState): MapFeature[] {
+  const featuresById = new Map(state.document.features.map((feature) => [feature.id, feature]));
+  const seenIds = new Set<string>();
+  const selected: MapFeature[] = [];
+
+  for (const id of state.selectedIds) {
+    if (seenIds.has(id)) continue;
+    seenIds.add(id);
+    const feature = featuresById.get(id);
+    if (feature) selected.push(feature);
+  }
+
+  return selected;
+}
+
 /** 返回当前主选要素，即选择队列末位仍存在的要素。 */
 export function usePrimaryFeature(): MapFeature | null {
-  return useDocumentStore((state) => {
-    const id = state.selectedIds[state.selectedIds.length - 1];
-    if (!id) return null;
-    return state.document.features.find((feature) => feature.id === id) ?? null;
-  });
+  return useDocumentStore(selectPrimaryFeature);
 }
 
 /** 返回全部已选要素，按选择队列顺序过滤缺失项和重复项。 */
 export function useSelectedFeatures(): MapFeature[] {
-  return useDocumentStore(
-    useShallow((state) => {
-      const featuresById = new Map(state.document.features.map((feature) => [feature.id, feature]));
-      const seenIds = new Set<string>();
-      const selected: MapFeature[] = [];
-
-      for (const id of state.selectedIds) {
-        if (seenIds.has(id)) continue;
-        seenIds.add(id);
-        const feature = featuresById.get(id);
-        if (feature) selected.push(feature);
-      }
-
-      return selected;
-    }),
-  );
+  return useDocumentStore(useShallow(selectSelectedFeatures));
 }
 
 /** @deprecated 请使用 usePrimaryFeature。 */

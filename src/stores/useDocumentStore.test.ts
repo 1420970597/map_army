@@ -14,10 +14,11 @@ import {
   createLayer,
   createLineGeometry,
   createPointGeometry,
+  LayerStatus,
 } from '@/core/model';
 import type { MapDocument, MapFeature } from '@/core/model';
 
-import { useDocumentStore } from './useDocumentStore';
+import { selectPrimaryFeature, selectSelectedFeatures, useDocumentStore } from './useDocumentStore';
 
 const firstPoint = { lon: 100, lat: 30 };
 const secondPoint = { lon: 101, lat: 31 };
@@ -360,18 +361,15 @@ describe('useDocumentStore 多选操作', () => {
     expect(useDocumentStore.getState().selectedIds).toEqual([line.id, point.id]);
   });
 
-  it('主选与已选 selector 保持选择顺序、过滤缺失与重复项', () => {
+  it('纯 selector 以末位为主选，并按选择顺序去重过滤缺失要素', () => {
     const { line, point } = resetStore();
-    useDocumentStore.setState({ selectedIds: [point.id, 'missing', line.id, point.id] });
+    const state = {
+      document: useDocumentStore.getState().document,
+      selectedIds: [point.id, 'missing', line.id, point.id],
+    };
 
-    const state = useDocumentStore.getState();
-    const featuresById = new Map(state.document.features.map((feature) => [feature.id, feature]));
-    const selected = [...new Set(state.selectedIds)]
-      .map((id) => featuresById.get(id))
-      .filter((feature): feature is MapFeature => feature !== undefined);
-
-    expect(featuresById.get(state.selectedIds.at(-1) ?? '')).toBe(point);
-    expect(selected).toEqual([point, line]);
+    expect(selectPrimaryFeature(state)).toBe(point);
+    expect(selectSelectedFeatures(state)).toEqual([point, line]);
   });
 
   it('select 也会去重且不进入历史', () => {
@@ -409,7 +407,7 @@ describe('useDocumentStore 批量图层与顶点操作', () => {
     );
 
     expect(useDocumentStore.getState().past).toHaveLength(1);
-    expect(useDocumentStore.getState().selectedIds).toEqual([features[0].id, features[2].id]);
+    expect(useDocumentStore.getState().selectedIds).toEqual([features[2].id, features[0].id]);
     expect(featureOf(features[0].id).layerId).toBe(targetLayerId);
     expect(featureOf(features[2].id).layerId).toBe(targetLayerId);
     expect(featureOf(features[1].id).layerId).toBe(sourceLayerId);
@@ -430,15 +428,26 @@ describe('useDocumentStore 批量图层与顶点操作', () => {
     expect(useDocumentStore.getState().past).toHaveLength(0);
   });
 
-  it('setLayerStatus 仅在状态变化时提交一次历史', () => {
+  it('setLayerStatus 将缺省状态视为 working，仅在实际变化时提交历史', () => {
     const { document } = resetStore();
     const layerId = document.layers[0].id;
     const store = useDocumentStore.getState();
 
-    store.setLayerStatus(layerId, 'approved');
+    useDocumentStore.setState({
+      document: {
+        ...document,
+        layers: document.layers.map((layer) => {
+          const { status: _status, ...layerWithoutStatus } = layer;
+          return layerWithoutStatus;
+        }),
+      },
+    });
+    store.setLayerStatus(layerId, LayerStatus.Working);
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+    store.setLayerStatus(layerId, LayerStatus.Approved);
     expect(useDocumentStore.getState().past).toHaveLength(1);
-    expect(useDocumentStore.getState().document.layers[0].status).toBe('approved');
-    store.setLayerStatus(layerId, 'approved');
+    expect(useDocumentStore.getState().document.layers[0].status).toBe(LayerStatus.Approved);
+    store.setLayerStatus(layerId, LayerStatus.Approved);
 
     expect(useDocumentStore.getState().past).toHaveLength(1);
   });
@@ -498,7 +507,7 @@ describe('useDocumentStore 批量图层与顶点操作', () => {
     store.resetVertexBearing(line.id, 1);
     expect(useDocumentStore.getState().past).toHaveLength(1);
     expect(featureOf(line.id).vertexBearings).toEqual([45, undefined]);
-    store.resetVertexBearing(line.id);
+    store.resetVertexBearing(line.id, 'all');
     expect(useDocumentStore.getState().past).toHaveLength(2);
     expect(featureOf(line.id).vertexBearings).toBeUndefined();
     store.resetVertexBearing(line.id, 0);
