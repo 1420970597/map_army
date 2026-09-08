@@ -49,6 +49,15 @@ export interface RenderStyle {
 }
 
 /**
+ * 从可选的只读选择标识构造判定集合。
+ *
+ * Set 会自然去重，且构造过程不会修改调用方传入的数组。
+ */
+export function selectedIdSetOf(selectedIds?: readonly string[]): ReadonlySet<string> {
+  return new Set(selectedIds);
+}
+
+/**
  * 把任意数值夹到 `[0, 1]`，用于防御脏数据（如导入文档中的越界值）。
  *
  * 非有限数（NaN / Infinity）回退为 1（完全不透明），让要素至少可见。

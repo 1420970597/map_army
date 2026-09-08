@@ -14,9 +14,14 @@ import { BaseMapType, Tool } from '@/core/model';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { DrawHandler } from '@/features/draw/DrawHandler';
+import { VertexEditor } from '@/features/draw/VertexEditor';
+import { isVertexEditorEligible } from '@/features/draw/vertexEditorLogic';
+import { BoxSelect } from './BoxSelect';
 import { MapClickHandler, FeatureLayer } from './FeatureLayer';
 import { GridOverlay } from './GridOverlay';
+import { selectionAfterBlankClick, selectionAfterFeatureClick } from './mapSelection';
 import { MouseTracker } from './MouseTracker';
+import { MapCommandHandler } from './MapCommandHandler';
 
 /**
  * 底图瓦片源配置。
@@ -137,6 +142,20 @@ export function MapView() {
     return map;
   }, [layers]);
 
+  const primaryFeature = useMemo(() => {
+    const primaryId = selectedIds[selectedIds.length - 1];
+    return primaryId === undefined
+      ? null
+      : (features.find((feature) => feature.id === primaryId) ?? null);
+  }, [features, selectedIds]);
+
+  const vertexEditing = isVertexEditorEligible({
+    activeTool,
+    selectedIds,
+    feature: primaryFeature,
+    layers,
+  });
+  const hiddenIds = vertexEditing && primaryFeature !== null ? [primaryFeature.id] : [];
   const tile = TILE_SOURCES[baseMap];
 
   return (
@@ -153,20 +172,35 @@ export function MapView() {
 
       {/* 视图双向同步：替代会引发更新死循环的内联 ref 回调 */}
       <ViewSync />
+      <MapCommandHandler />
 
       <GridOverlay type={grid} showLabels={gridLabels} />
 
       <FeatureLayer
         features={orderedFeatures}
-        selectedId={selectedIds[0] ?? null}
+        selectedIds={selectedIds}
         layerOpacity={layerOpacity}
-        onSelect={(id) => {
-          select([id]);
-          useViewStore.getState().setInspectorOpen(true);
+        hiddenIds={hiddenIds}
+        onSelect={(id, event) => {
+          const originalEvent = event.originalEvent;
+          const next = selectionAfterFeatureClick(selectedIds, id, {
+            ctrlKey: originalEvent?.ctrlKey,
+            metaKey: originalEvent?.metaKey,
+          });
+          select(next);
+          if (next.length > 0) useViewStore.getState().setInspectorOpen(true);
         }}
       />
 
-      <MapClickHandler onBlankClick={() => select([])} />
+      <MapClickHandler onBlankClick={() => select(selectionAfterBlankClick())} />
+      <BoxSelect />
+      <VertexEditor
+        activeTool={activeTool}
+        selectedIds={selectedIds}
+        feature={primaryFeature}
+        visibleFeatures={orderedFeatures}
+        layers={layers}
+      />
       <DrawHandler />
       <MouseTracker />
     </MapContainer>

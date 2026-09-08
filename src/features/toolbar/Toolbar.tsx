@@ -13,6 +13,7 @@ import { useViewStore } from '@/stores/useViewStore';
 /** 绘制工具定义：工具值、显示名、提示 */
 const TOOLS: { tool: Tool; label: string; title: string }[] = [
   { tool: Tool.Select, label: '选择', title: '选择并移动要素' },
+  { tool: Tool.BoxSelect, label: '框选', title: '拖拽框选要素' },
   { tool: Tool.Symbol, label: '符号', title: '在地图上放置军标符号' },
   { tool: Tool.Line, label: '线', title: '绘制折线（双击或回车结束）' },
   { tool: Tool.Area, label: '面', title: '绘制多边形（双击或回车结束）' },

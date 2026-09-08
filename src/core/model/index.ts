@@ -2,7 +2,7 @@
  * 标图文档模型统一出口。
  */
 
-export { BaseMapType, GeometryKind, Tool } from './types';
+export { BaseMapType, GeometryKind, LayerStatus, Tool } from './types';
 export type { GridType } from '../geo';
 export type {
   AreaGeometry,
@@ -29,6 +29,43 @@ export {
 export type { CreateFeatureParams, CreateLayerParams } from './factory';
 
 export { reorderLayers, sortLayersByDisplay } from './layerOrder';
+
+export {
+  CLIPBOARD_KIND,
+  CLIPBOARD_VERSION,
+  DEFAULT_PASTE_OFFSET_PX,
+  materializeClipboard,
+  parseClipboard,
+  serializeClipboard,
+} from './clipboard';
+export type { ClipboardPayload, MaterializeParams } from './clipboard';
+
+export { DEFAULT_SPATIAL_CELL_SIZE, createSpatialIndex, querySpatialIndex } from './spatialIndex';
+export type { SpatialIndex, SpatialPoint } from './spatialIndex';
+
+export {
+  addToSelection,
+  featuresInBounds,
+  hitTestBounds,
+  rangeSelection,
+  removeFromSelection,
+  toggleInSelection,
+} from './selection';
+export type { SelectMode } from './selection';
+
+export {
+  defaultBearingAt,
+  deleteVertex,
+  insertVertex,
+  minVertexCountOf,
+  moveVertex,
+  resetAllBearings,
+  resetBearing,
+  stepVertex,
+} from './vertex';
+
+export { CURRENT_SCHEMA_VERSION, migrateDocument, registerMigration } from './migrate';
+export type { DocumentMigration, MigrationResult, MigrationWarning } from './migrate';
 
 export {
   anchorOf,
