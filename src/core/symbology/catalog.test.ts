@@ -12,6 +12,8 @@ import {
   symbolKeyOf,
 } from './catalog';
 import { listSymbols } from './icons';
+import { symbolToSvg } from './render';
+import { parseSidc } from './sidc';
 import { SymbolSet } from './types';
 
 describe('符号目录', () => {
@@ -70,6 +72,33 @@ describe('符号目录', () => {
 
   it('目录键与图标库同构', () => {
     expect(symbolKeyOf(SymbolSet.LandUnit, '121100')).toBe('10-121100');
+  });
+});
+
+describe('文本渲染', () => {
+  const sidc = parseSidc('10031000001211000000');
+
+  it('缺省文本字号保持 26', () => {
+    const svg = symbolToSvg(sidc, { uniqueDesignation: 'A' });
+    expect(svg).toContain('font-size="26"');
+    expect(svg).toContain('font-family="sans-serif"');
+  });
+
+  it('支持自定义文本字号与字体', () => {
+    const svg = symbolToSvg(sidc, {
+      uniqueDesignation: 'A',
+      fontSize: 18,
+      fontFamily: 'Noto Sans SC',
+    });
+    expect(svg).toContain('font-size="18"');
+    expect(svg).toContain('font-family="Noto Sans SC"');
+  });
+
+  it('自定义渲染不影响后续缺省渲染', () => {
+    symbolToSvg(sidc, { uniqueDesignation: 'A', fontSize: 18, fontFamily: 'Noto Sans SC' });
+    const svg = symbolToSvg(sidc, { uniqueDesignation: 'A' });
+    expect(svg).toContain('font-size="26"');
+    expect(svg).toContain('font-family="sans-serif"');
   });
 });
 
