@@ -53,6 +53,8 @@ export interface DocumentState {
 
   // ── 要素操作 ─────────────────────────────────────────────
   addFeature: (feature: MapFeature) => void;
+  /** 原子追加多个要素；重复标识会被过滤，成功项会成为当前选择。 */
+  addFeatures: (features: readonly MapFeature[]) => void;
   updateFeature: (id: string, patch: Partial<MapFeature>) => void;
   removeFeatures: (ids: string[]) => void;
   moveFeatureToLayer: (featureId: string, layerId: string) => void;
@@ -221,6 +223,29 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         features: [...state.document.features, feature],
       }),
     ),
+
+  addFeatures: (features) =>
+    set((state) => {
+      if (features.length === 0) return state;
+
+      const featureIds = new Set(state.document.features.map((feature) => feature.id));
+      const added: MapFeature[] = [];
+      for (const feature of features) {
+        if (featureIds.has(feature.id)) continue;
+        featureIds.add(feature.id);
+        // 剪贴板要素必须与调用方对象彻底隔离，避免后续修改穿透文档。
+        added.push(structuredClone(feature));
+      }
+      if (added.length === 0) return state;
+
+      return {
+        ...commit(state, {
+          ...state.document,
+          features: [...state.document.features, ...added],
+        }),
+        selectedIds: added.map((feature) => feature.id),
+      };
+    }),
 
   updateFeature: (id, patch) =>
     set((state) =>

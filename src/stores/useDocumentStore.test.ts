@@ -392,6 +392,190 @@ describe('useDocumentStore 多选操作', () => {
   });
 });
 
+describe('useDocumentStore 原子批量新增要素', () => {
+  beforeEach(() => {
+    resetStore();
+  });
+
+  it('空数组不改变文档、选择或历史', () => {
+    const before = useDocumentStore.getState();
+
+    useDocumentStore.getState().addFeatures([]);
+
+    expect(useDocumentStore.getState().document).toBe(before.document);
+    expect(useDocumentStore.getState().selectedIds).toEqual([]);
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+  });
+
+  it('单个要素追加后产生一条历史并选中新增项', () => {
+    const { document } = resetStore();
+    const feature = createFeature({
+      layerId: document.layers[0].id,
+      sidc: 'SFGPUCI----K---',
+      geometry: createPointGeometry(10, 10),
+    });
+
+    useDocumentStore.getState().addFeatures([feature]);
+
+    expect(useDocumentStore.getState().document.features.at(-1)).toEqual(feature);
+    expect(useDocumentStore.getState().selectedIds).toEqual([feature.id]);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+  });
+
+  it('多个要素仅产生一个撤销快照', () => {
+    const { document } = resetStore();
+    const features = [
+      createFeature({
+        layerId: document.layers[0].id,
+        sidc: 'SFGPUCI----K---',
+        geometry: createPointGeometry(10, 10),
+      }),
+      createFeature({
+        layerId: document.layers[0].id,
+        sidc: 'SFGPUCI----K---',
+        geometry: createPointGeometry(20, 20),
+      }),
+    ];
+
+    useDocumentStore.getState().addFeatures(features);
+
+    expect(useDocumentStore.getState().document.features.slice(-2)).toEqual(features);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+  });
+
+  it('过滤与文档既有标识冲突的要素', () => {
+    const { document, line } = resetStore();
+    const accepted = createFeature({
+      layerId: document.layers[0].id,
+      sidc: 'SFGPUCI----K---',
+      geometry: createPointGeometry(10, 10),
+    });
+    const conflict = { ...accepted, id: line.id };
+
+    useDocumentStore.getState().addFeatures([conflict, accepted]);
+
+    expect(useDocumentStore.getState().document.features.map((feature) => feature.id)).toEqual([
+      line.id,
+      useDocumentStore.getState().document.features[1].id,
+      accepted.id,
+    ]);
+    expect(useDocumentStore.getState().selectedIds).toEqual([accepted.id]);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+  });
+
+  it('过滤批次内部的重复标识并保留首项', () => {
+    const { document } = resetStore();
+    const first = createFeature({
+      layerId: document.layers[0].id,
+      sidc: 'SFGPUCI----K---',
+      geometry: createPointGeometry(10, 10),
+    });
+    const duplicate = { ...first, geometry: createPointGeometry(20, 20) };
+
+    useDocumentStore.getState().addFeatures([first, duplicate]);
+
+    expect(useDocumentStore.getState().document.features.at(-1)).toEqual(first);
+    expect(useDocumentStore.getState().document.features).toHaveLength(3);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+  });
+
+  it('按输入顺序去重设置新增要素选择', () => {
+    const { document } = resetStore();
+    const first = createFeature({
+      layerId: document.layers[0].id,
+      sidc: 'SFGPUCI----K---',
+      geometry: createPointGeometry(10, 10),
+    });
+    const second = createFeature({
+      layerId: document.layers[0].id,
+      sidc: 'SFGPUCI----K---',
+      geometry: createPointGeometry(20, 20),
+    });
+
+    useDocumentStore.getState().addFeatures([second, first, second]);
+
+    expect(useDocumentStore.getState().selectedIds).toEqual([second.id, first.id]);
+  });
+
+  it('深拷贝输入要素，后续修改不会影响文档', () => {
+    const { document } = resetStore();
+    const feature: MapFeature = {
+      ...createFeature({
+        layerId: document.layers[0].id,
+        sidc: 'SFGPUCI----K---',
+        geometry: createLineGeometry([
+          { lon: 100, lat: 30 },
+          { lon: 101, lat: 31 },
+        ]),
+      }),
+      geometry: createLineGeometry([
+        { lon: 100, lat: 30 },
+        { lon: 101, lat: 31 },
+      ]),
+      textFields: { uniqueDesignation: '原始标号' },
+    };
+
+    useDocumentStore.getState().addFeatures([feature]);
+    if (feature.geometry.kind !== 'line') throw new Error('测试要素必须是线');
+    feature.geometry.points[0].lon = 999;
+    feature.textFields.uniqueDesignation = '已修改标号';
+
+    const stored = featureOf(feature.id);
+    expect(stored.geometry).toEqual({
+      kind: 'line',
+      points: [
+        { lon: 100, lat: 30 },
+        { lon: 101, lat: 31 },
+      ],
+    });
+    expect(stored.textFields.uniqueDesignation).toBe('原始标号');
+  });
+
+  it('一次 undo 恢复批量新增前的文档', () => {
+    const { document } = resetStore();
+    const features = [
+      createFeature({
+        layerId: document.layers[0].id,
+        sidc: 'SFGPUCI----K---',
+        geometry: createPointGeometry(10, 10),
+      }),
+      createFeature({
+        layerId: document.layers[0].id,
+        sidc: 'SFGPUCI----K---',
+        geometry: createPointGeometry(20, 20),
+      }),
+    ];
+
+    useDocumentStore.getState().addFeatures(features);
+    useDocumentStore.getState().undo();
+
+    expect(useDocumentStore.getState().document.features).toEqual(document.features);
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+    expect(useDocumentStore.getState().future).toHaveLength(1);
+  });
+
+  it('批量新增会清空已有 future', () => {
+    const { document } = resetStore();
+    const oldFeature = createFeature({
+      layerId: document.layers[0].id,
+      sidc: 'SFGPUCI----K---',
+      geometry: createPointGeometry(10, 10),
+    });
+    const nextFeature = createFeature({
+      layerId: document.layers[0].id,
+      sidc: 'SFGPUCI----K---',
+      geometry: createPointGeometry(20, 20),
+    });
+    useDocumentStore.getState().addFeature(oldFeature);
+    useDocumentStore.getState().undo();
+
+    useDocumentStore.getState().addFeatures([nextFeature]);
+
+    expect(useDocumentStore.getState().future).toEqual([]);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+  });
+});
+
 describe('useDocumentStore 批量图层与顶点操作', () => {
   beforeEach(() => {
     resetStore();
