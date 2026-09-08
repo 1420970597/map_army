@@ -34,7 +34,9 @@ export function hitTestBounds(feature: MapFeature, bounds: Bounds, mode: SelectM
     return points.every((point) => pointInBounds(point, normalized));
   }
 
-  return points.some((point) => pointInBounds(point, normalized)) || boundsIntersect(points, normalized);
+  return (
+    points.some((point) => pointInBounds(point, normalized)) || boundsIntersect(points, normalized)
+  );
 }
 
 /**
@@ -50,7 +52,9 @@ export function featuresInBounds(
   bounds: Bounds,
   mode: SelectMode,
 ): string[] {
-  return features.filter((feature) => hitTestBounds(feature, bounds, mode)).map((feature) => feature.id);
+  return features
+    .filter((feature) => hitTestBounds(feature, bounds, mode))
+    .map((feature) => feature.id);
 }
 
 function normalizeBounds(bounds: Bounds): Bounds {
@@ -84,7 +88,12 @@ function boundsIntersect(points: readonly LonLat[], bounds: Bounds): boolean {
     maxLat = Math.max(maxLat, point.lat);
   }
 
-  return minLon <= bounds.maxLon && maxLon >= bounds.minLon && minLat <= bounds.maxLat && maxLat >= bounds.minLat;
+  return (
+    minLon <= bounds.maxLon &&
+    maxLon >= bounds.minLon &&
+    minLat <= bounds.maxLat &&
+    maxLat >= bounds.minLat
+  );
 }
 
 /**

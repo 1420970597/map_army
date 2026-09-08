@@ -32,10 +32,13 @@ export { reorderLayers, sortLayersByDisplay } from './layerOrder';
 
 export {
   addToSelection,
+  featuresInBounds,
+  hitTestBounds,
   rangeSelection,
   removeFromSelection,
   toggleInSelection,
 } from './selection';
+export type { SelectMode } from './selection';
 
 export {
   defaultBearingAt,

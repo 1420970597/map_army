@@ -1,11 +1,139 @@
 import { describe, expect, it } from 'vitest';
 
+import type { Bounds } from './geometry';
+import { GeometryKind, type MapFeature } from './types';
 import {
   addToSelection,
+  featuresInBounds,
+  hitTestBounds,
   rangeSelection,
   removeFromSelection,
   toggleInSelection,
 } from './selection';
+
+const selectionBounds: Bounds = {
+  minLon: 0,
+  minLat: 0,
+  maxLon: 10,
+  maxLat: 10,
+};
+
+function pointFeature(id: string, lon: number, lat: number): MapFeature {
+  return createFeature(id, { kind: GeometryKind.Point, position: { lon, lat } });
+}
+
+function lineFeature(id: string, points: { lon: number; lat: number }[]): MapFeature {
+  return createFeature(id, { kind: GeometryKind.Line, points });
+}
+
+function areaFeature(id: string, points: { lon: number; lat: number }[]): MapFeature {
+  return createFeature(id, { kind: GeometryKind.Area, points });
+}
+
+function createFeature(id: string, geometry: MapFeature['geometry']): MapFeature {
+  return {
+    id,
+    layerId: 'layer-1',
+    sidc: 'SFGPUCI----K---',
+    name: id,
+    geometry,
+    textFields: {},
+    createdAt: 0,
+    updatedAt: 0,
+  };
+}
+
+describe('hitTestBounds', () => {
+  it('将乱序 bounds 标准化后判断点要素', () => {
+    const reversedBounds: Bounds = { minLon: 10, minLat: 10, maxLon: 0, maxLat: 0 };
+
+    expect(hitTestBounds(pointFeature('point', 5, 5), reversedBounds, 'inside')).toBe(true);
+  });
+
+  it('命中选择框内部的点', () => {
+    expect(hitTestBounds(pointFeature('inside', 5, 5), selectionBounds, 'inside')).toBe(true);
+  });
+
+  it('将边界上的点视为命中', () => {
+    expect(hitTestBounds(pointFeature('boundary', 0, 10), selectionBounds, 'intersect')).toBe(true);
+  });
+
+  it('不命中选择框外的点', () => {
+    expect(hitTestBounds(pointFeature('outside', 11, 5), selectionBounds, 'intersect')).toBe(false);
+  });
+
+  it('线的 inside 要求所有顶点在框内，而 intersect 接受相交', () => {
+    const line = lineFeature('crossing-line', [
+      { lon: -5, lat: 5 },
+      { lon: 15, lat: 5 },
+    ]);
+
+    expect(hitTestBounds(line, selectionBounds, 'inside')).toBe(false);
+    expect(hitTestBounds(line, selectionBounds, 'intersect')).toBe(true);
+  });
+
+  it('面任一顶点在框内时 intersect 命中', () => {
+    const area = areaFeature('area-vertex', [
+      { lon: 5, lat: 5 },
+      { lon: 15, lat: 5 },
+      { lon: 15, lat: 15 },
+    ]);
+
+    expect(hitTestBounds(area, selectionBounds, 'intersect')).toBe(true);
+  });
+
+  it('要素包围盒与选择框相交时即使所有顶点在外也在 intersect 命中', () => {
+    const area = areaFeature('surrounding-area', [
+      { lon: -5, lat: -5 },
+      { lon: 15, lat: -5 },
+      { lon: 15, lat: 15 },
+      { lon: -5, lat: 15 },
+    ]);
+
+    expect(hitTestBounds(area, selectionBounds, 'intersect')).toBe(true);
+  });
+
+  it('空线不命中', () => {
+    expect(hitTestBounds(lineFeature('empty-line', []), selectionBounds, 'intersect')).toBe(false);
+  });
+
+  it('空面不命中', () => {
+    expect(hitTestBounds(areaFeature('empty-area', []), selectionBounds, 'intersect')).toBe(false);
+  });
+
+  it('不修改输入 feature 和 bounds', () => {
+    const feature = lineFeature('immutable-line', [
+      { lon: -5, lat: 5 },
+      { lon: 15, lat: 5 },
+    ]);
+    const reversedBounds: Bounds = { minLon: 10, minLat: 10, maxLon: 0, maxLat: 0 };
+    const featureSnapshot = structuredClone(feature);
+    const boundsSnapshot = structuredClone(reversedBounds);
+
+    hitTestBounds(feature, reversedBounds, 'intersect');
+
+    expect(feature).toEqual(featureSnapshot);
+    expect(reversedBounds).toEqual(boundsSnapshot);
+  });
+});
+
+describe('featuresInBounds', () => {
+  it('按输入要素顺序返回命中的标识', () => {
+    const features = [
+      pointFeature('third', 3, 3),
+      pointFeature('outside', 20, 20),
+      pointFeature('first', 1, 1),
+    ];
+
+    expect(featuresInBounds(features, selectionBounds, 'inside')).toEqual(['third', 'first']);
+  });
+
+  it('无命中时返回空数组', () => {
+    expect(
+      featuresInBounds([pointFeature('outside', -1, -1)], selectionBounds, 'intersect'),
+    ).toEqual([]);
+  });
+});
 
 describe('toggleInSelection', () => {
   it('追加尚未选择的标识', () => {
