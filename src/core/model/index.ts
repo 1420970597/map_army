@@ -30,6 +30,9 @@ export type { CreateFeatureParams, CreateLayerParams } from './factory';
 
 export { reorderLayers, sortLayersByDisplay } from './layerOrder';
 
+export { CURRENT_SCHEMA_VERSION, migrateDocument, registerMigration } from './migrate';
+export type { DocumentMigration, MigrationResult, MigrationWarning } from './migrate';
+
 export {
   anchorOf,
   bearingOf,
