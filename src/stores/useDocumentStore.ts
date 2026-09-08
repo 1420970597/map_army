@@ -260,10 +260,11 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   removeFeatures: (ids) =>
     set((state) => {
       const target = new Set(ids);
-      return commit(state, {
-        ...state.document,
-        features: state.document.features.filter((feature) => !target.has(feature.id)),
-      });
+      const remaining = state.document.features.filter((feature) => !target.has(feature.id));
+      // 一个都没删掉时不提交历史，避免出现「按一次 Ctrl+Z 什么都没发生」的空记录。
+      if (remaining.length === state.document.features.length) return state;
+
+      return commit(state, { ...state.document, features: remaining });
     }),
 
   moveFeatureToLayer: (featureId, layerId) =>

@@ -573,10 +573,10 @@ describe('QA 隐藏与锁定图层的边界', () => {
     expect(useDocumentStore.getState().past).toHaveLength(1);
   });
 
-  // BUG-04：`removeFeatures` 无条件提交历史，即使一个要素都没删掉。
+  // 回归 BUG-04：`removeFeatures` 曾无条件提交历史，即使一个要素都没删掉。
   // 这会让撤销栈里出现"按一次 Ctrl+Z 什么都没发生"的空记录，
   // 与批次 1「无变化手势不产生历史」的既定语义不一致。
-  it.fails('删除不存在的标识不应产生历史', () => {
+  it('删除不存在的标识不应产生历史', () => {
     installLayerVisibilityFixture();
 
     useDocumentStore.getState().removeFeatures(['missing']);
