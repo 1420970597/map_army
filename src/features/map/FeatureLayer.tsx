@@ -10,10 +10,12 @@ import { Marker, Polygon, Polyline, Tooltip, useMapEvent } from 'react-leaflet';
 
 import type { LonLat } from '@/core/geo';
 import { GeometryKind, type MapFeature } from '@/core/model';
+import type * as L from 'leaflet';
 import {
   applyLayerOpacity,
   featureHighlightStyleOf,
   featureStyleOf,
+  selectedIdSetOf,
   type RenderStyle,
 } from './featureStyle';
 import { iconPartsOf, symbolIcon } from './symbolIcon';
@@ -23,9 +25,9 @@ export interface FeatureLayerProps {
   /** 需要渲染的要素集合，通常由调用方按图层过滤后传入 */
   features: MapFeature[];
   /** 点击要素的回调 */
-  onSelect?: (id: string) => void;
-  /** 当前选中的要素标识 */
-  selectedId?: string | null;
+  onSelect?: (id: string, event: L.LeafletMouseEvent) => void;
+  /** 当前选中的要素标识集合 */
+  selectedIds?: readonly string[];
   /**
    * 图层标识到不透明度的映射，缺省的图层视为完全不透明。
    * 在渲染时被叠加到要素自身样式上，使调整面板滑块时地图立即变化。
@@ -39,14 +41,16 @@ const DEFAULT_LAYER_OPACITY = 1;
 /**
  * 要素渲染层组件。
  */
-export function FeatureLayer({ features, onSelect, selectedId, layerOpacity }: FeatureLayerProps) {
+export function FeatureLayer({ features, onSelect, selectedIds, layerOpacity }: FeatureLayerProps) {
+  const selectedIdSet = useMemo(() => selectedIdSetOf(selectedIds), [selectedIds]);
+
   return (
     <>
       {features.map((feature) => (
         <FeatureShape
           key={feature.id}
           feature={feature}
-          selected={feature.id === selectedId}
+          selected={selectedIdSet.has(feature.id)}
           onSelect={onSelect}
           opacity={layerOpacity?.[feature.layerId] ?? DEFAULT_LAYER_OPACITY}
         />
@@ -64,53 +68,59 @@ function FeatureShape({
 }: {
   feature: MapFeature;
   selected: boolean;
-  onSelect?: (id: string) => void;
+  onSelect?: (id: string, event: L.LeafletMouseEvent) => void;
   /** 图层级不透明度 */
   opacity: number;
 }) {
   const geometry = feature.geometry;
 
-  if (geometry.kind === GeometryKind.Point) {
-    return (
-      <PointFeature
-        feature={feature}
-        position={geometry.position}
-        selected={selected}
-        onSelect={onSelect}
-        opacity={opacity}
-      />
-    );
+  switch (geometry.kind) {
+    case GeometryKind.Point:
+      return (
+        <PointFeature
+          feature={feature}
+          position={geometry.position}
+          selected={selected}
+          onSelect={onSelect}
+          opacity={opacity}
+        />
+      );
+    case GeometryKind.Line:
+    case GeometryKind.Area: {
+      const positions = toLatLngs(geometry.points);
+      // 把图层级不透明度叠加到要素样式上：选中态与常态都受影响，
+      // 这样拉滑块时高亮也会同步半透明，符合直觉。
+      const style: RenderStyle = applyLayerOpacity(
+        selected ? featureHighlightStyleOf(feature) : featureStyleOf(feature),
+        opacity,
+      );
+      const shared = {
+        positions,
+        pathOptions: {
+          color: style.color,
+          weight: style.weight,
+          opacity: style.opacity,
+          dashArray: style.dashArray,
+          fillOpacity: style.fillOpacity,
+        },
+        eventHandlers: onSelect
+          ? { click: (event: L.LeafletMouseEvent) => onSelect(feature.id, event) }
+          : undefined,
+      };
+
+      return geometry.kind === GeometryKind.Line ? (
+        <Polyline {...shared}>
+          {feature.name ? <Tooltip direction="top">{feature.name}</Tooltip> : null}
+        </Polyline>
+      ) : (
+        <Polygon {...shared}>
+          {feature.name ? <Tooltip direction="top">{feature.name}</Tooltip> : null}
+        </Polygon>
+      );
+    }
+    default:
+      return assertNever(geometry);
   }
-
-  const positions = toLatLngs(geometry.points);
-  // 把图层级不透明度叠加到要素样式上：选中态与常态都受影响，
-  // 这样拉滑块时高亮也会同步半透明，符合直觉。
-  const style: RenderStyle = applyLayerOpacity(
-    selected ? featureHighlightStyleOf(feature) : featureStyleOf(feature),
-    opacity,
-  );
-
-  const shared = {
-    positions,
-    pathOptions: {
-      color: style.color,
-      weight: style.weight,
-      opacity: style.opacity,
-      dashArray: style.dashArray,
-      fillOpacity: style.fillOpacity,
-    },
-    eventHandlers: onSelect ? { click: () => onSelect(feature.id) } : undefined,
-  };
-
-  return geometry.kind === GeometryKind.Line ? (
-    <Polyline {...shared}>
-      {feature.name ? <Tooltip direction="top">{feature.name}</Tooltip> : null}
-    </Polyline>
-  ) : (
-    <Polygon {...shared}>
-      {feature.name ? <Tooltip direction="top">{feature.name}</Tooltip> : null}
-    </Polygon>
-  );
 }
 
 /** 点要素：以军标符号标记呈现 */
@@ -124,7 +134,7 @@ function PointFeature({
   feature: MapFeature;
   position: LonLat;
   selected: boolean;
-  onSelect?: (id: string) => void;
+  onSelect?: (id: string, event: L.LeafletMouseEvent) => void;
   /** 图层级不透明度，传递给 Leaflet Marker 的 opacity 选项 */
   opacity: number;
 }) {
@@ -143,7 +153,11 @@ function PointFeature({
       icon={icon}
       opacity={opacity}
       zIndexOffset={selected ? 1000 : 0}
-      eventHandlers={onSelect ? { click: () => onSelect(feature.id) } : undefined}
+      eventHandlers={
+        onSelect
+          ? { click: (event: L.LeafletMouseEvent) => onSelect(feature.id, event) }
+          : undefined
+      }
     >
       {feature.name ? <Tooltip direction="top">{feature.name}</Tooltip> : null}
     </Marker>
@@ -168,4 +182,9 @@ export function MapClickHandler({ onBlankClick }: { onBlankClick: () => void }) 
  */
 function toLatLngs(points: LonLat[]): [number, number][] {
   return points.map((point) => [point.lat, point.lon]);
+}
+
+/** 几何联合类型扩展后强制补齐渲染分支。 */
+function assertNever(value: never): never {
+  throw new Error(`未支持的几何类型: ${String(value)}`);
 }
