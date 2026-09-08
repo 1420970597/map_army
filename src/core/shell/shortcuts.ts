@@ -50,7 +50,12 @@ export const SHORTCUTS: readonly ShortcutSpec[] = [
   { id: 'view.panRight', combo: 'ArrowRight', group: '视图', description: '向右平移视图' },
   { id: 'view.north', combo: 'N', group: '视图', description: '视图朝北' },
   { id: 'edit.confirm', combo: 'Space', group: '编辑', description: '确认当前操作' },
-  { id: 'edit.toggleSnap', combo: 'S', group: '编辑', description: '切换吸附' },
+  {
+    id: 'edit.toggleSnap',
+    combo: 'S',
+    group: '编辑',
+    description: '切换吸附（绘制与顶点编辑均生效）',
+  },
   {
     id: 'edit.previousVertex',
     combo: 'Ctrl+ArrowLeft',

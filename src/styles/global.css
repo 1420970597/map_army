@@ -16,6 +16,11 @@
   --c-text-muted: #66748a;
   --c-danger: #c0392b;
 
+  /* 编辑态语义色：幽灵图形与顶点手柄沿用主色亮调，吸附提示单独一色，两处吸附共用 */
+  --c-edit-accent: var(--c-primary-light);
+  --c-edit-bearing: #7c3aed;
+  --c-snap-accent: #f59e0b;
+
   --h-toolbar: 48px;
   --h-statusbar: 28px;
   --w-symbol-panel: 260px;
@@ -81,6 +86,13 @@ button {
   color: var(--c-text);
   background: #edf5f8;
   border-bottom: 1px solid var(--c-border);
+}
+
+/* 提示文案占满剩余宽度并允许折行，按钮组始终贴右；窄屏下由下方媒体查询换行 */
+.session-banner > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .session-banner-actions {
@@ -387,6 +399,13 @@ button {
   border-radius: 2px;
 }
 
+/* 两种状态都在浅色底上用深色字，仅靠色相区分语义，保证 280px 面板内对比度达标 */
+.layer-status-badge.is-working {
+  color: #47536b;
+  background: #eef1f5;
+  border-color: #ccd4de;
+}
+
 .layer-status-badge.is-approved {
   color: #1f6b42;
   background: #e8f5ed;
@@ -621,8 +640,12 @@ button {
 
 /* ── 顶点编辑器 ───────────────────────────────────────── */
 
+/* 顶点编辑期的幽灵图形：描边与手柄同色；填充仍由 JS 按线/面分别给出，此处不覆盖 */
 .vertex-editor-ghost {
   pointer-events: none;
+  stroke: var(--c-edit-accent);
+  stroke-width: 3;
+  stroke-opacity: 0.9;
 }
 
 .vertex-editor-handle-icon {
@@ -636,31 +659,40 @@ button {
   display: block;
   width: 12px;
   height: 12px;
-  background: #fff;
-  border: 2px solid #0a7fb8;
+  background: var(--c-surface);
+  border: 2px solid var(--c-edit-accent);
   border-radius: 50%;
   box-shadow: 0 1px 3px rgb(0 0 0 / 40%);
 }
 
+/* 手动指定过方向的顶点换用紫色描边，与自动切线方向的顶点区分 */
 .vertex-editor-handle-dot.is-manual-bearing {
-  border-color: #7c3aed;
+  border-color: var(--c-edit-bearing);
 }
 
 .vertex-editor-handle-icon.is-active .vertex-editor-handle-dot {
-  background: #0a7fb8;
-  border-color: #f59e0b;
+  background: var(--c-edit-accent);
+  border-color: var(--c-snap-accent);
   transform: scale(1.2);
 }
 
 .vertex-editor-handle-icon:hover .vertex-editor-handle-dot {
-  border-color: #f59e0b;
+  border-color: var(--c-snap-accent);
   transform: scale(1.15);
 }
 
-/* 编辑器与绘制共用的吸附指示器：仅作视觉提示，不参与命中 */
+/*
+ * 吸附指示器：顶点编辑用 `vertex-editor-snap-indicator`，绘制期用 `draw-snap-indicator`。
+ * 两者 class 名不同（分属不同组件、不同生命周期），但明确并列在同一规则里共用一套
+ * 描边与填充，避免出现两套吸附颜色。仅作视觉提示，不参与命中。
+ */
 .vertex-editor-snap-indicator,
 .draw-snap-indicator {
   pointer-events: none;
+  fill: var(--c-surface);
+  fill-opacity: 0.75;
+  stroke: var(--c-snap-accent);
+  stroke-width: 2;
 }
 
 /* ── 快捷键帮助 ───────────────────────────────────────── */
@@ -726,6 +758,12 @@ button {
   align-items: center;
   justify-content: space-between;
   min-height: 28px;
+}
+
+/* 描述文字随面板宽度折行，键位徽标保持不换行且贴右 */
+.shortcut-help-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .shortcut-help-row kbd {
