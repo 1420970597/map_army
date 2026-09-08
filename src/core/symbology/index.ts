@@ -56,6 +56,23 @@ export type { FrameFamily } from './frames';
 export { findSymbol, listSymbols, searchSymbols } from './icons';
 export type { IconPath, SymbolDefinition } from './icons';
 
+// ── 符号目录 ──
+export {
+  catalogSearch,
+  categoryLabelOf,
+  entriesInCategory,
+  findCatalogEntry,
+  listCatalog,
+  matchesQuery,
+  normalizeQuery,
+  symbolKeyOf,
+  SymbolCategory,
+  SYMBOL_CATEGORY_ORDER,
+  DEFAULT_CATEGORY_BY_SYMBOL_SET,
+} from './catalog';
+export type { CatalogEntry, SymbolCategory as SymbolCategoryValue } from './catalog';
+export { aliasesOf, SYMBOL_ALIASES } from './aliases';
+
 // ── 修饰符 ──
 export { buildDirectionArrow, buildEchelon, buildHqTfDummy, buildStatusOverlay } from './modifiers';
 
