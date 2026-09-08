@@ -7,7 +7,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
-  CLIPBOARD_STORAGE_KEY,
   createDocument,
   createFeature,
   createLineGeometry,
@@ -16,7 +15,7 @@ import {
   type ClipboardPayload,
 } from '@/core/model';
 
-import { useClipboardStore } from './useClipboardStore';
+import { CLIPBOARD_STORAGE_KEY, useClipboardStore } from './useClipboardStore';
 
 const firstPoint = { lon: 100, lat: 30 };
 const secondPoint = { lon: 101, lat: 31 };
@@ -54,7 +53,7 @@ function resetStore(): void {
   useClipboardStore.getState().reset();
 }
 
-describe('useClipboardStore', () => {
+describe.sequential('useClipboardStore', () => {
   beforeEach(() => {
     resetStore();
   });
@@ -95,7 +94,11 @@ describe('useClipboardStore', () => {
 
     state.setPayload(null);
 
-    expect(useClipboardStore.getState()).toMatchObject({ payload: null, pasteCount: 0, lastError: null });
+    expect(useClipboardStore.getState()).toMatchObject({
+      payload: null,
+      pasteCount: 0,
+      lastError: null,
+    });
   });
 
   it('setPayload 对语义相同载荷保持状态引用', () => {
@@ -104,7 +107,7 @@ describe('useClipboardStore', () => {
     state.setPayload(payload);
     const afterSet = useClipboardStore.getState();
 
-    afterSet.setPayload(createPayload());
+    afterSet.setPayload(structuredClone(payload));
 
     expect(useClipboardStore.getState()).toBe(afterSet);
   });
@@ -165,15 +168,16 @@ describe('useClipboardStore', () => {
 
   it('persist 与 hydrate 可通过注入式存储往返载荷', () => {
     const storage = createMemoryStorage();
+    const payload = createPayload();
     const state = useClipboardStore.getState();
-    state.setPayload(createPayload());
+    state.setPayload(payload);
 
     expect(state.persist(storage)).toBe(true);
     expect(storage.values.get(CLIPBOARD_STORAGE_KEY)).toBeTypeOf('string');
     state.reset();
 
     expect(useClipboardStore.getState().hydrate(storage)).toBe(true);
-    expect(useClipboardStore.getState().payload).toEqual(createPayload());
+    expect(useClipboardStore.getState().payload).toEqual(payload);
     expect(useClipboardStore.getState().lastError).toBeNull();
   });
 
@@ -257,6 +261,9 @@ describe('useClipboardStore', () => {
 });
 
 /** 返回测试断言所需的默认状态字段。 */
-function defaultState(): Pick<ReturnType<typeof useClipboardStore.getState>, 'payload' | 'pasteCount' | 'lastError'> {
+function defaultState(): Pick<
+  ReturnType<typeof useClipboardStore.getState>,
+  'payload' | 'pasteCount' | 'lastError'
+> {
   return { payload: null, pasteCount: 0, lastError: null };
 }
