@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import type { LonLat } from '@/core/geo';
+import type { LonLat, Projection } from '@/core/geo';
 import { GeometryKind, Tool, type Layer, type MapFeature } from '@/core/model';
 
 import {
   MAX_VERTEX_SNAP_CANDIDATES,
   buildVertexSnapCandidates,
   isVertexEditorEligible,
+  nearestSegment,
+  nextActiveVertexIndex,
   sameVertexPoints,
   shouldCommitVertexDrag,
   verticesOfFeature,
@@ -17,6 +19,11 @@ const points: LonLat[] = [
   { lon: 101, lat: 21 },
   { lon: 102, lat: 22 },
 ];
+
+const identityProjection: Projection = {
+  toPixel: (point) => ({ x: point.lon, y: point.lat }),
+  toLonLat: (pixel) => ({ lon: pixel.x, lat: pixel.y }),
+};
 
 const editableLayer: Layer = {
   id: 'editable',
@@ -212,5 +219,156 @@ describe('vertexEditorLogic', () => {
     const moved = [...points.slice(0, 1), { lon: 110, lat: 30 }, ...points.slice(2)];
     expect(shouldCommitVertexDrag(points, moved)).toBe(true);
     expect(sameVertexPoints(points, moved)).toBe(false);
+  });
+
+  it('活动顶点在首尾间循环，空顶点集不产生目标', () => {
+    expect(nextActiveVertexIndex(null, 1, 3)).toBe(1);
+    expect(nextActiveVertexIndex(0, -1, 3)).toBe(2);
+    expect(nextActiveVertexIndex(2, 1, 3)).toBe(0);
+    expect(nextActiveVertexIndex(0, 1, 0)).toBeNull();
+  });
+
+  it('命中水平线段并返回投影点与插入位置', () => {
+    expect(
+      nearestSegment(
+        [
+          { lon: 0, lat: 0 },
+          { lon: 10, lat: 0 },
+        ],
+        { lon: 4, lat: 3 },
+        identityProjection,
+        3,
+      ),
+    ).toEqual({ index: 1, point: { lon: 4, lat: 0 }, distancePx: 3 });
+  });
+
+  it('命中竖直线段', () => {
+    expect(
+      nearestSegment(
+        [
+          { lon: 2, lat: 0 },
+          { lon: 2, lat: 10 },
+        ],
+        { lon: 5, lat: 7 },
+        identityProjection,
+        3,
+      ),
+    ).toEqual({ index: 1, point: { lon: 2, lat: 7 }, distancePx: 3 });
+  });
+
+  it('命中斜线段并保留最近投影', () => {
+    expect(
+      nearestSegment(
+        [
+          { lon: 0, lat: 0 },
+          { lon: 10, lat: 10 },
+        ],
+        { lon: 8, lat: 6 },
+        identityProjection,
+        2,
+      ),
+    ).toEqual({ index: 1, point: { lon: 7, lat: 7 }, distancePx: Math.SQRT2 });
+  });
+
+  it('将段外点击投影夹取到最近端点', () => {
+    expect(
+      nearestSegment(
+        [
+          { lon: 0, lat: 0 },
+          { lon: 10, lat: 0 },
+        ],
+        { lon: -2, lat: 1 },
+        identityProjection,
+        3,
+      ),
+    ).toEqual({ index: 1, point: { lon: 0, lat: 0 }, distancePx: Math.sqrt(5) });
+  });
+
+  it('阈值外或无可用段时不命中', () => {
+    expect(
+      nearestSegment(
+        [
+          { lon: 0, lat: 0 },
+          { lon: 10, lat: 0 },
+        ],
+        { lon: 5, lat: 4 },
+        identityProjection,
+        3,
+      ),
+    ).toBeNull();
+    expect(
+      nearestSegment([{ lon: 0, lat: 0 }], { lon: 0, lat: 0 }, identityProjection, 3),
+    ).toBeNull();
+  });
+
+  it('面闭合边命中后在尾部插入', () => {
+    expect(
+      nearestSegment(
+        [
+          { lon: 0, lat: 0 },
+          { lon: 10, lat: 0 },
+          { lon: 10, lat: 10 },
+        ],
+        { lon: 4, lat: 4 },
+        identityProjection,
+        1,
+        true,
+      ),
+    ).toEqual({ index: 3, point: { lon: 4, lat: 4 }, distancePx: 0 });
+  });
+
+  it('未闭合折线不会命中末首之间的隐式边', () => {
+    expect(
+      nearestSegment(
+        [
+          { lon: 0, lat: 0 },
+          { lon: 10, lat: 0 },
+          { lon: 10, lat: 10 },
+        ],
+        { lon: 4, lat: 4 },
+        identityProjection,
+        1,
+      ),
+    ).toBeNull();
+  });
+
+  it('相同距离的多段命中保持首个插入位置', () => {
+    expect(
+      nearestSegment(
+        [
+          { lon: 0, lat: 0 },
+          { lon: 10, lat: 0 },
+          { lon: 10, lat: 10 },
+        ],
+        { lon: 10, lat: 0 },
+        identityProjection,
+        0,
+      ),
+    ).toEqual({ index: 1, point: { lon: 10, lat: 0 }, distancePx: 0 });
+  });
+
+  it('退化线段与非法阈值按安全语义处理', () => {
+    expect(
+      nearestSegment(
+        [
+          { lon: 2, lat: 2 },
+          { lon: 2, lat: 2 },
+        ],
+        { lon: 2, lat: 3 },
+        identityProjection,
+        1,
+      ),
+    ).toEqual({ index: 1, point: { lon: 2, lat: 2 }, distancePx: 1 });
+    expect(
+      nearestSegment(
+        [
+          { lon: 0, lat: 0 },
+          { lon: 1, lat: 0 },
+        ],
+        { lon: 0, lat: 0 },
+        identityProjection,
+        -1,
+      ),
+    ).toBeNull();
   });
 });

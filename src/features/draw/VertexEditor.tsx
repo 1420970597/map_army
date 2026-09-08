@@ -20,6 +20,7 @@ import { useMap } from 'react-leaflet';
 
 import type { LonLat } from '@/core/geo';
 import { snapPoint } from '@/core/geo';
+import { isTypingTarget } from '@/core/shell/shortcuts';
 import { GeometryKind, moveVertex, type Layer, type MapFeature, type Tool } from '@/core/model';
 import { createLeafletProjection } from '@/features/map/leafletProjection';
 import { useDocumentStore } from '@/stores/useDocumentStore';
@@ -28,6 +29,8 @@ import { useEditStore } from '@/stores/useEditStore';
 import {
   buildVertexSnapCandidates,
   isVertexEditorEligible,
+  nearestSegment,
+  nextActiveVertexIndex,
   shouldCommitVertexDrag,
 } from './vertexEditorLogic';
 
@@ -35,6 +38,8 @@ import {
 const HANDLE_SIZE = 12;
 /** 幽灵线与手柄之上的吸附指示半径。 */
 const SNAP_INDICATOR_RADIUS = 9;
+/** Ctrl/Cmd 插入顶点的最大屏幕命中距离。 */
+const INSERT_SEGMENT_THRESHOLD_PX = 12;
 
 /** 组件所需的选中要素与文档可见数据。 */
 export interface VertexEditorProps {
@@ -51,10 +56,13 @@ function toLatLngs(points: readonly LonLat[]): LatLngExpression[] {
 }
 
 /** 创建用于拖拽的顶点手柄图标。 */
-function vertexHandleIcon() {
+function vertexHandleIcon(active: boolean, hasManualBearing: boolean) {
+  const stateClass = active ? ' is-active' : '';
+  const bearingClass = hasManualBearing ? ' is-manual-bearing' : ' is-auto-bearing';
+  const bearingLabel = hasManualBearing ? '手动方向' : '自动方向';
   return divIcon({
-    className: 'vertex-editor-handle-icon',
-    html: '<span class="vertex-editor-handle-dot"></span>',
+    className: `vertex-editor-handle-icon${stateClass}`,
+    html: `<span class="vertex-editor-handle-dot${bearingClass}" title="${bearingLabel}"></span>`,
     iconSize: [HANDLE_SIZE, HANDLE_SIZE],
     iconAnchor: [HANDLE_SIZE / 2, HANDLE_SIZE / 2],
   });
@@ -83,6 +91,9 @@ export function VertexEditor({
     const editableFeature = feature;
     if (editableFeature.geometry.kind === GeometryKind.Point) return;
     const initialPoints = editableFeature.geometry.points.map((point) => ({ ...point }));
+    if ((useEditStore.getState().activeVertex ?? -1) >= initialPoints.length) {
+      useEditStore.getState().setActiveVertex(null);
+    }
     const pointsRef = { current: initialPoints };
     const dragRef = { current: null as { index: number; startPoints: LonLat[] } | null };
     const projection = createLeafletProjection(map);
@@ -95,14 +106,14 @@ export function VertexEditor({
             opacity: 0.9,
             fillColor: '#0a7fb8',
             fillOpacity: 0.1,
-            interactive: false,
+            interactive: true,
           })
         : polyline(toLatLngs(initialPoints), {
             className: 'vertex-editor-ghost',
             color: '#0a7fb8',
             weight: 3,
             opacity: 0.9,
-            interactive: false,
+            interactive: true,
           });
     const snapIndicator = circleMarker([0, 0], {
       className: 'vertex-editor-snap-indicator',
@@ -120,7 +131,6 @@ export function VertexEditor({
     const resetTransient = (): void => {
       const edit = useEditStore.getState();
       edit.endDrag();
-      edit.setActiveVertex(null);
       edit.setSnapPreview(null);
       edit.setSnapCandidates([]);
       if (map.hasLayer(snapIndicator)) map.removeLayer(snapIndicator);
@@ -146,7 +156,59 @@ export function VertexEditor({
       resetTransient();
     };
 
+    const updateHandleStyles = (activeIndex: number | null): void => {
+      for (const [index, handle] of handles.entries()) {
+        handle.setIcon(
+          vertexHandleIcon(
+            index === activeIndex,
+            editableFeature.vertexBearings?.[index] !== undefined,
+          ),
+        );
+      }
+    };
+
+    const setActiveVertex = (index: number): void => {
+      useEditStore.getState().setActiveVertex(index);
+      updateHandleStyles(index);
+    };
+
     const createHandlers = (index: number): LeafletEventHandlerFnMap => ({
+      click: (event) => {
+        const originalEvent = event.originalEvent;
+        if (originalEvent.shiftKey) {
+          originalEvent.preventDefault();
+          originalEvent.stopPropagation();
+          if (dragRef.current !== null) return;
+
+          const documentStore = useDocumentStore.getState();
+          const beforeLength = documentStore.document.features.find(
+            (item) => item.id === editableFeature.id,
+          )?.geometry;
+          if (!beforeLength || beforeLength.kind === GeometryKind.Point) return;
+
+          documentStore.deleteVertexAt(editableFeature.id, index);
+          const nextFeature = useDocumentStore
+            .getState()
+            .document.features.find((item) => item.id === editableFeature.id);
+          if (nextFeature?.geometry.kind === GeometryKind.Point) return;
+          if (!nextFeature || nextFeature.geometry.points.length === beforeLength.points.length)
+            return;
+
+          setActiveVertex(Math.min(index, nextFeature.geometry.points.length - 1));
+          return;
+        }
+
+        originalEvent.stopPropagation();
+        setActiveVertex(index);
+      },
+      contextmenu: (event) => {
+        event.originalEvent.preventDefault();
+        event.originalEvent.stopPropagation();
+        if (dragRef.current !== null) return;
+
+        setActiveVertex(index);
+        useDocumentStore.getState().resetVertexBearing(editableFeature.id, index);
+      },
       dragstart: () => {
         if (dragRef.current !== null) return;
 
@@ -165,7 +227,7 @@ export function VertexEditor({
         const edit = useEditStore.getState();
         edit.setSnapCandidates(candidates);
         edit.beginDrag(editableFeature.id, index, startPoints);
-        edit.setActiveVertex(index);
+        setActiveVertex(index);
       },
       drag: (event) => {
         const drag = dragRef.current;
@@ -204,7 +266,10 @@ export function VertexEditor({
     for (const [index, point] of initialPoints.entries()) {
       const handle = marker([point.lat, point.lon], {
         draggable: true,
-        icon: vertexHandleIcon(),
+        icon: vertexHandleIcon(
+          useEditStore.getState().activeVertex === index,
+          editableFeature.vertexBearings?.[index] !== undefined,
+        ),
         keyboard: false,
         autoPan: true,
         bubblingMouseEvents: false,
@@ -215,7 +280,60 @@ export function VertexEditor({
       handles.push(handle);
     }
 
+    const onGhostClick = (event: {
+      latlng: { lng: number; lat: number };
+      originalEvent: MouseEvent;
+    }) => {
+      const originalEvent = event.originalEvent;
+      if (!(originalEvent.ctrlKey || originalEvent.metaKey) || dragRef.current !== null) return;
+
+      originalEvent.preventDefault();
+      originalEvent.stopPropagation();
+      const hit = nearestSegment(
+        pointsRef.current,
+        { lon: event.latlng.lng, lat: event.latlng.lat },
+        projection,
+        INSERT_SEGMENT_THRESHOLD_PX,
+        editableFeature.geometry.kind === GeometryKind.Area,
+      );
+      if (hit === null) return;
+
+      useDocumentStore.getState().insertVertexAt(editableFeature.id, hit.index, hit.point);
+      setActiveVertex(hit.index);
+    };
+    ghost.on('click', onGhostClick);
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (
+        !(event.ctrlKey || event.metaKey) ||
+        event.altKey ||
+        event.shiftKey ||
+        (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') ||
+        isTypingTarget(event.target) ||
+        dragRef.current !== null
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const nextIndex = nextActiveVertexIndex(
+        useEditStore.getState().activeVertex,
+        event.key === 'ArrowLeft' ? -1 : 1,
+        pointsRef.current.length,
+      );
+      if (nextIndex !== null) setActiveVertex(nextIndex);
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    const unsubscribeActiveVertex = useEditStore.subscribe((state, previousState) => {
+      if (state.activeVertex !== previousState.activeVertex) updateHandleStyles(state.activeVertex);
+    });
+
     return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      unsubscribeActiveVertex();
+      ghost.off('click', onGhostClick);
       finishDrag(false);
       for (const handle of handles) handle.remove();
       ghost.remove();

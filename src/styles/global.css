@@ -511,6 +511,16 @@ button {
   box-shadow: 0 1px 3px rgb(0 0 0 / 40%);
 }
 
+.vertex-editor-handle-dot.is-manual-bearing {
+  border-color: #7c3aed;
+}
+
+.vertex-editor-handle-icon.is-active .vertex-editor-handle-dot {
+  background: #0a7fb8;
+  border-color: #f59e0b;
+  transform: scale(1.2);
+}
+
 .vertex-editor-handle-icon:hover .vertex-editor-handle-dot {
   border-color: #f59e0b;
   transform: scale(1.15);
