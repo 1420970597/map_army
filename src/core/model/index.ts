@@ -30,6 +30,17 @@ export type { CreateFeatureParams, CreateLayerParams } from './factory';
 
 export { reorderLayers, sortLayersByDisplay } from './layerOrder';
 
+export {
+  defaultBearingAt,
+  deleteVertex,
+  insertVertex,
+  minVertexCountOf,
+  moveVertex,
+  resetAllBearings,
+  resetBearing,
+  stepVertex,
+} from './vertex';
+
 export { CURRENT_SCHEMA_VERSION, migrateDocument, registerMigration } from './migrate';
 export type { DocumentMigration, MigrationResult, MigrationWarning } from './migrate';
 
