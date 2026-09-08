@@ -30,6 +30,9 @@ export type { CreateFeatureParams, CreateLayerParams } from './factory';
 
 export { reorderLayers, sortLayersByDisplay } from './layerOrder';
 
+export { DEFAULT_SPATIAL_CELL_SIZE, createSpatialIndex, querySpatialIndex } from './spatialIndex';
+export type { SpatialIndex, SpatialPoint } from './spatialIndex';
+
 export {
   addToSelection,
   featuresInBounds,
