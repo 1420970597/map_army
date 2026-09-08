@@ -73,6 +73,20 @@ export {
 export type { CatalogEntry, SymbolCategory as SymbolCategoryValue } from './catalog';
 export { aliasesOf, SYMBOL_ALIASES } from './aliases';
 
+// ── 收藏 ──
+export {
+  FAVORITES_VERSION,
+  isFavorite,
+  normalizeFavorites,
+  parseFavorites,
+  serializeFavorites,
+  toggleFavorite,
+} from './favorites';
+
+// ── 默认格式 ──
+export { DEFAULT_SYMBOL_DEFAULTS, normalizeSymbolDefaults } from './defaults';
+export type { SymbolDefaults } from './defaults';
+
 // ── 修饰符 ──
 export { buildDirectionArrow, buildEchelon, buildHqTfDummy, buildStatusOverlay } from './modifiers';
 
