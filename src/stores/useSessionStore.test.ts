@@ -171,11 +171,14 @@ describe('useSessionStore', () => {
     expect(useSessionStore.getState().conflict).toBe(false);
   });
 
-  it('clearError 清空最近错误', () => {
+  it('setError 设置独立错误副本，clearError 清空最近错误', () => {
     const state = useSessionStore.getState();
-    state.recordSaveResult(errorResult('corrupt'));
-    state.clearError();
+    const error = { kind: 'corrupt' as const, message: '损坏' };
+    state.setError(error);
+    error.message = '已修改';
 
+    expect(useSessionStore.getState().error).toEqual({ kind: 'corrupt', message: '损坏' });
+    state.clearError();
     expect(useSessionStore.getState().error).toBeNull();
   });
 

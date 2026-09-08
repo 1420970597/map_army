@@ -53,6 +53,8 @@ export interface SessionState {
   discardRestore: () => void;
   /** 设置跨标签编辑冲突状态。 */
   setConflict: (conflict: boolean) => void;
+  /** 设置可展示的会话错误。 */
+  setError: (error: SessionStoreError | null) => void;
   /** 清空最近错误。 */
   clearError: () => void;
   /** 重置全部会话瞬态状态。 */
@@ -137,6 +139,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   discardRestore: () => set({ pendingRestore: null }),
 
   setConflict: (conflict) => set((state) => (state.conflict === conflict ? state : { conflict })),
+
+  setError: (error) => set({ error: error === null ? null : { ...error } }),
 
   clearError: () => set({ error: null }),
 

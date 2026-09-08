@@ -67,6 +67,72 @@ button {
   min-height: 0;
 }
 
+/* ── 会话恢复与保存横幅 ─────────────────────────────────── */
+
+.session-banner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 12px;
+  font-size: 13px;
+  color: var(--c-text);
+  background: #edf5f8;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.session-banner-actions {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.session-banner button {
+  padding: 3px 8px;
+  color: inherit;
+  background: #fff;
+  border: 1px solid currentcolor;
+  border-radius: 2px;
+}
+
+.session-banner--restore {
+  color: #075b85;
+  background: #e7f2f8;
+}
+
+.session-banner--error {
+  color: #942d22;
+  background: #fbeceb;
+}
+
+.session-banner--conflict {
+  color: #7a4b04;
+  background: #fff5dc;
+}
+
+.session-banner--saving,
+.session-banner--saved {
+  min-height: 28px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  font-size: 12px;
+  color: var(--c-text-muted);
+  background: var(--c-surface-alt);
+}
+
+@media (max-width: 560px) {
+  .session-banner {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .session-banner-actions {
+    width: 100%;
+  }
+}
+
 .map-container {
   flex: 1;
   height: 100%;

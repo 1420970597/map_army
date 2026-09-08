@@ -118,23 +118,35 @@ export function saveDocument(
   document: MapDocument,
   immediate = false,
   storage?: StorageLike,
+  onResult?: (result: PersistenceSaveResult) => void,
 ): PersistenceSaveResult {
+  const report = (result: PersistenceSaveResult): void => {
+    try {
+      onResult?.(result);
+    } catch {
+      // 观察者异常不应打断保存流程。
+    }
+  };
   if (pendingTimer !== null) {
     clearTimeout(pendingTimer);
     pendingTimer = null;
   }
 
   if (immediate) {
-    return trySaveDocument(document, storage);
+    const result = trySaveDocument(document, storage);
+    report(result);
+    return result;
   }
 
   const elapsed = Date.now() - lastWrite;
   const delay = Math.max(WRITE_DEBOUNCE, WRITE_THROTTLE - elapsed);
   const scheduled: PersistenceSaveResult = { status: 'scheduled', ok: true };
   lastSaveResult = scheduled;
+  report(scheduled);
   pendingTimer = setTimeout(() => {
     pendingTimer = null;
-    trySaveDocument(document, storage);
+    const result = trySaveDocument(document, storage);
+    report(result);
   }, delay);
   return scheduled;
 }
@@ -196,15 +208,19 @@ export function clearDocument(storage?: StorageLike): void {
 /**
  * 订阅文档变化并自动保存。
  *
- * 返回取消订阅函数，便于在组件卸载时清理。
+ * 返回取消订阅函数，便于在组件卸载时清理。结果回调为可选，且回调异常不会影响保存。
  */
-export function autoSave(getDocument: () => MapDocument): () => void {
+export function autoSave(
+  getDocument: () => MapDocument,
+  onResult?: (result: PersistenceSaveResult) => void,
+  storage?: StorageLike,
+): () => void {
   let previous = getDocument();
   const timer = setInterval(() => {
     const current = getDocument();
     if (current !== previous) {
       previous = current;
-      saveDocument(current);
+      saveDocument(current, false, storage, onResult);
     }
   }, 1000);
 

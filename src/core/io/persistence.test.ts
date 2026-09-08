@@ -5,12 +5,13 @@
  * 不依赖或污染测试环境的全局 localStorage。
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createDocument } from '../model/factory';
 import { CURRENT_SCHEMA_VERSION } from '../model/migrate';
 import { serializeMilxly } from './milxly';
 import {
+  autoSave,
   CORRUPT_BACKUP_STORAGE_KEY,
   LEGACY_STORAGE_KEY,
   loadDocument,
@@ -47,6 +48,10 @@ function oldDocumentText(): string {
   const { schemaVersion: _schemaVersion, ...legacy } = document;
   return serializeMilxly(legacy);
 }
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('会话持久化', () => {
   it('保存成功返回可观察的体积与配额预警结果', () => {
@@ -172,5 +177,48 @@ describe('会话持久化', () => {
     trySaveDocument(document, storage);
 
     expect(document).toEqual(before);
+  });
+
+  it('autoSave 回调依次收到 scheduled 与最终 saved', () => {
+    vi.useFakeTimers();
+    const storage = new FakeStorage();
+    let current = createDocument('初始');
+    const statuses: string[] = [];
+    const stop = autoSave(
+      () => current,
+      (result) => statuses.push(result.status),
+      storage,
+    );
+
+    current = createDocument('已修改');
+    vi.advanceTimersByTime(1_000);
+    vi.advanceTimersByTime(2_000);
+    stop();
+
+    expect(statuses).toEqual(['scheduled', 'saved']);
+    expect(storage.values.has(STORAGE_KEY)).toBe(true);
+  });
+
+  it('saveDocument 回调异常不会中断保存', () => {
+    const storage = new FakeStorage();
+
+    expect(() => {
+      saveDocument(createDocument('回调异常'), true, storage, () => {
+        throw new Error('observer failed');
+      });
+    }).not.toThrow();
+    expect(storage.values.get(STORAGE_KEY)).toContain('回调异常');
+  });
+
+  it('延迟 saveDocument 回调可收到最终 error', () => {
+    vi.useFakeTimers();
+    const storage = new FakeStorage();
+    storage.writeError = Object.assign(new Error('满了'), { name: 'QuotaExceededError' });
+    const statuses: string[] = [];
+
+    saveDocument(createDocument(), false, storage, (result) => statuses.push(result.status));
+    vi.advanceTimersByTime(2_000);
+
+    expect(statuses).toEqual(['scheduled', 'error']);
   });
 });
