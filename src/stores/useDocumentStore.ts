@@ -8,7 +8,8 @@
 
 import { create } from 'zustand';
 
-import { createDocument, createLayer, reorderLayers } from '@/core/model';
+import type { LonLat } from '@/core/geo';
+import { createDocument, createLayer, minVertexCountOf, reorderLayers } from '@/core/model';
 import type { FeatureStyle, FeatureTextFields, Layer, MapDocument, MapFeature } from '@/core/model';
 
 /** 撤销栈的最大深度，防止长时间编辑后内存无界增长 */
@@ -47,6 +48,18 @@ export interface DocumentState {
    */
   moveLayer: (sourceId: string, targetId: string) => void;
 
+  // ── 手势事务与几何预览 ────────────────────────────────────
+  /** 开启一次手势事务；嵌套调用保留最初的快照。 */
+  beginGesture: () => void;
+  /** 结束当前手势事务；仅在预览实际改动后提交一条历史记录。 */
+  endGesture: () => void;
+  /** 在已开启手势内预览要素几何，不写入撤销栈。 */
+  previewFeatureGeometry: (id: string, points: LonLat[], bearings?: number[]) => void;
+  /** 在已开启手势内预览图层变更，不写入撤销栈。 */
+  previewLayer: (id: string, patch: Partial<Layer>) => void;
+  /** 原子应用要素几何，成功时只产生一条历史记录。 */
+  applyGeometry: (id: string, points: LonLat[], bearings?: number[]) => void;
+
   // ── 选择与文档级操作 ──────────────────────────────────────
   select: (ids: string[]) => void;
   renameDocument: (name: string) => void;
@@ -80,8 +93,7 @@ function commit(
   state: DocumentState,
   next: MapDocument,
 ): Pick<DocumentState, 'document' | 'past' | 'future'> {
-  const past = [...state.past, snapshot(state.document)];
-  if (past.length > MAX_HISTORY) past.shift();
+  const past = appendHistory(state.past, snapshot(state.document));
 
   return {
     document: touch(next),
@@ -89,6 +101,63 @@ function commit(
     future: [],
   };
 }
+
+/** 把快照加入历史，并保持撤销栈在容量上限内。 */
+function appendHistory(past: MapDocument[], document: MapDocument): MapDocument[] {
+  const next = [...past, document];
+  if (next.length > MAX_HISTORY) next.shift();
+  return next;
+}
+
+/** 两个坐标数组是否具有完全相同的经纬度值。 */
+function samePoints(first: readonly LonLat[], second: readonly LonLat[]): boolean {
+  return (
+    first.length === second.length &&
+    first.every(
+      (point, index) => point.lon === second[index]?.lon && point.lat === second[index]?.lat,
+    )
+  );
+}
+
+/** 两个可选方向数组是否值相等，空槽与 undefined 均表示自动方向。 */
+function sameBearings(
+  first: readonly number[] | undefined,
+  second: readonly number[] | undefined,
+): boolean {
+  if (first === undefined || second === undefined) return first === second;
+  if (first.length !== second.length) return false;
+
+  for (let index = 0; index < first.length; index += 1) {
+    if (first[index] !== second[index]) return false;
+  }
+
+  return true;
+}
+
+/** 图层补丁是否会改变图层的任意字段。 */
+function changesLayer(layer: Layer, patch: Partial<Layer>): boolean {
+  return Object.entries(patch).some(([key, value]) => layer[key as keyof Layer] !== value);
+}
+
+/** 校验几何编辑的点数与方向平行数组。 */
+function isValidGeometryUpdate(
+  feature: MapFeature,
+  points: LonLat[],
+  bearings?: number[],
+): boolean {
+  return (
+    points.length >= minVertexCountOf(feature.geometry.kind) &&
+    (bearings === undefined || bearings.length === points.length)
+  );
+}
+
+/** 文档仅包含可序列化数据，可用稳定序列化判断手势最终是否回到起点。 */
+function sameDocument(first: MapDocument, second: MapDocument): boolean {
+  return JSON.stringify(first) === JSON.stringify(second);
+}
+
+/** 手势事务只存在 store 闭包中，绝不写入文档或持久化状态。 */
+let pendingGesture: { snapshot: MapDocument; dirty: boolean } | null = null;
 
 /** 初始文档 */
 const initialDocument = createDocument();
@@ -190,6 +259,91 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       if (next === state.document.layers) return state;
       return commit(state, { ...state.document, layers: next });
     }),
+
+  beginGesture: () => {
+    if (pendingGesture !== null) return;
+    pendingGesture = { snapshot: snapshot(get().document), dirty: false };
+  },
+
+  endGesture: () => {
+    if (pendingGesture === null) return;
+
+    const gesture = pendingGesture;
+    pendingGesture = null;
+    if (!gesture.dirty || sameDocument(gesture.snapshot, get().document)) return;
+
+    set((state) => ({
+      document: touch(state.document),
+      past: appendHistory(state.past, gesture.snapshot),
+      future: [],
+    }));
+  },
+
+  previewFeatureGeometry: (id, points, bearings) => {
+    if (pendingGesture === null) return;
+
+    set((state) => {
+      const feature = state.document.features.find((item) => item.id === id);
+      if (!feature || !isValidGeometryUpdate(feature, points, bearings)) return state;
+
+      const currentPoints =
+        feature.geometry.kind === 'point' ? [feature.geometry.position] : feature.geometry.points;
+      if (samePoints(currentPoints, points) && sameBearings(feature.vertexBearings, bearings))
+        return state;
+
+      const geometry =
+        feature.geometry.kind === 'point'
+          ? { ...feature.geometry, position: { ...points[0] } }
+          : { ...feature.geometry, points: points.map((point) => ({ ...point })) };
+      const nextFeature: MapFeature = {
+        ...feature,
+        geometry,
+        vertexBearings: bearings ? [...bearings] : undefined,
+      };
+      pendingGesture!.dirty = true;
+
+      return {
+        document: {
+          ...state.document,
+          features: state.document.features.map((item) => (item.id === id ? nextFeature : item)),
+        },
+      };
+    });
+  },
+
+  previewLayer: (id, patch) => {
+    if (pendingGesture === null) return;
+
+    set((state) => {
+      const layer = state.document.layers.find((item) => item.id === id);
+      if (!layer || !changesLayer(layer, patch)) return state;
+
+      pendingGesture!.dirty = true;
+      return {
+        document: {
+          ...state.document,
+          layers: state.document.layers.map((item) =>
+            item.id === id ? { ...item, ...patch } : item,
+          ),
+        },
+      };
+    });
+  },
+
+  applyGeometry: (id, points, bearings) => {
+    const state = get();
+    const feature = state.document.features.find((item) => item.id === id);
+    if (!feature || !isValidGeometryUpdate(feature, points, bearings)) return;
+
+    const currentPoints =
+      feature.geometry.kind === 'point' ? [feature.geometry.position] : feature.geometry.points;
+    if (samePoints(currentPoints, points) && sameBearings(feature.vertexBearings, bearings)) return;
+
+    const ownsGesture = pendingGesture === null;
+    if (ownsGesture) state.beginGesture();
+    get().previewFeatureGeometry(id, points, bearings);
+    if (ownsGesture) get().endGesture();
+  },
 
   select: (ids) => set({ selectedIds: ids }),
 
