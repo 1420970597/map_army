@@ -40,10 +40,12 @@ describe('mergeStyleWithDefaults', () => {
   });
 
   it('同时覆盖多个字段', () => {
-    expect(mergeStyleWithDefaults(defaults, { color: '#FFFFFF', weight: 2, opacity: 0.8 })).toEqual({
-      color: '#FFFFFF',
-      weight: 2,
-      opacity: 0.8,
-    });
+    expect(mergeStyleWithDefaults(defaults, { color: '#FFFFFF', weight: 2, opacity: 0.8 })).toEqual(
+      {
+        color: '#FFFFFF',
+        weight: 2,
+        opacity: 0.8,
+      },
+    );
   });
 });

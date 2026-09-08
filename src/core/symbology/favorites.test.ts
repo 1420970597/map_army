@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { isFavorite, normalizeFavorites, parseFavorites, serializeFavorites, toggleFavorite } from './favorites';
+import {
+  isFavorite,
+  normalizeFavorites,
+  parseFavorites,
+  serializeFavorites,
+  toggleFavorite,
+} from './favorites';
 
 describe('收藏集合', () => {
   it('规范化去除重复项并保持顺序', () => {

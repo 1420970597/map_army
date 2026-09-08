@@ -51,7 +51,10 @@ describe('符号偏好', () => {
   });
 
   it('规范化符号默认值', () => {
-    expect(parsePrefs('{"symbolDefaults":{"lineWeight":100,"fillColor":"bad","fontSize":1}}').symbolDefaults).toEqual({
+    expect(
+      parsePrefs('{"symbolDefaults":{"lineWeight":100,"fillColor":"bad","fontSize":1}}')
+        .symbolDefaults,
+    ).toEqual({
       lineWeight: 8,
       fillColor: '#0B82D6',
       fontSize: 10,
@@ -82,11 +85,30 @@ describe('符号偏好', () => {
   });
 
   it('存储 getItem 失败时读取默认值', () => {
-    expect(loadPrefs({ getItem: () => { throw new Error('blocked'); }, setItem: () => {}, removeItem: () => {} })).toEqual(DEFAULT_APP_PREFS);
+    expect(
+      loadPrefs({
+        getItem: () => {
+          throw new Error('blocked');
+        },
+        setItem: () => {},
+        removeItem: () => {},
+      }),
+    ).toEqual(DEFAULT_APP_PREFS);
   });
 
   it('存储 setItem 失败时返回 false', () => {
-    expect(savePrefs({}, { getItem: () => null, setItem: () => { throw new Error('quota'); }, removeItem: () => {} })).toBe(false);
+    expect(
+      savePrefs(
+        {},
+        {
+          getItem: () => null,
+          setItem: () => {
+            throw new Error('quota');
+          },
+          removeItem: () => {},
+        },
+      ),
+    ).toBe(false);
   });
 
   it('无浏览器存储时不抛出', () => {

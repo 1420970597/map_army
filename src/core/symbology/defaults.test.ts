@@ -12,7 +12,14 @@ describe('normalizeSymbolDefaults', () => {
   });
 
   it('接受合法字段', () => {
-    expect(normalizeSymbolDefaults({ lineWeight: 4, fillColor: '#12ab34', fontSize: 18, fontFamily: 'serif' })).toEqual({
+    expect(
+      normalizeSymbolDefaults({
+        lineWeight: 4,
+        fillColor: '#12ab34',
+        fontSize: 18,
+        fontFamily: 'serif',
+      }),
+    ).toEqual({
       lineWeight: 4,
       fillColor: '#12AB34',
       fontSize: 18,
@@ -37,15 +44,21 @@ describe('normalizeSymbolDefaults', () => {
   });
 
   it('拒绝非有限线宽', () => {
-    expect(normalizeSymbolDefaults({ lineWeight: Infinity }).lineWeight).toBe(DEFAULT_SYMBOL_DEFAULTS.lineWeight);
+    expect(normalizeSymbolDefaults({ lineWeight: Infinity }).lineWeight).toBe(
+      DEFAULT_SYMBOL_DEFAULTS.lineWeight,
+    );
   });
 
   it('拒绝非有限字号', () => {
-    expect(normalizeSymbolDefaults({ fontSize: Number.NaN }).fontSize).toBe(DEFAULT_SYMBOL_DEFAULTS.fontSize);
+    expect(normalizeSymbolDefaults({ fontSize: Number.NaN }).fontSize).toBe(
+      DEFAULT_SYMBOL_DEFAULTS.fontSize,
+    );
   });
 
   it('非法颜色回退默认值', () => {
-    expect(normalizeSymbolDefaults({ fillColor: 'blue' }).fillColor).toBe(DEFAULT_SYMBOL_DEFAULTS.fillColor);
+    expect(normalizeSymbolDefaults({ fillColor: 'blue' }).fillColor).toBe(
+      DEFAULT_SYMBOL_DEFAULTS.fillColor,
+    );
   });
 
   it('接受带空白的合法颜色', () => {
@@ -53,7 +66,9 @@ describe('normalizeSymbolDefaults', () => {
   });
 
   it('拒绝未列入白名单的字体', () => {
-    expect(normalizeSymbolDefaults({ fontFamily: 'url(unsafe)' }).fontFamily).toBe(DEFAULT_SYMBOL_DEFAULTS.fontFamily);
+    expect(normalizeSymbolDefaults({ fontFamily: 'url(unsafe)' }).fontFamily).toBe(
+      DEFAULT_SYMBOL_DEFAULTS.fontFamily,
+    );
   });
 
   it('接受白名单字体并去除空白', () => {

@@ -48,15 +48,22 @@ export function normalizeSymbolDefaults(input: unknown): SymbolDefaults {
   const value = isRecord(input) ? input : {};
   const lineWeight = finiteNumber(value.lineWeight);
   const fontSize = finiteNumber(value.fontSize);
-  const fillColor = typeof value.fillColor === 'string' && HEX_COLOR.test(value.fillColor.trim())
-    ? value.fillColor.trim().toUpperCase()
-    : DEFAULT_SYMBOL_DEFAULTS.fillColor;
+  const fillColor =
+    typeof value.fillColor === 'string' && HEX_COLOR.test(value.fillColor.trim())
+      ? value.fillColor.trim().toUpperCase()
+      : DEFAULT_SYMBOL_DEFAULTS.fillColor;
   const fontFamily = normalizeFontFamily(value.fontFamily);
 
   return {
-    lineWeight: lineWeight === undefined ? DEFAULT_SYMBOL_DEFAULTS.lineWeight : clamp(lineWeight, MIN_LINE_WEIGHT, MAX_LINE_WEIGHT),
+    lineWeight:
+      lineWeight === undefined
+        ? DEFAULT_SYMBOL_DEFAULTS.lineWeight
+        : clamp(lineWeight, MIN_LINE_WEIGHT, MAX_LINE_WEIGHT),
     fillColor,
-    fontSize: fontSize === undefined ? DEFAULT_SYMBOL_DEFAULTS.fontSize : clamp(fontSize, MIN_FONT_SIZE, MAX_FONT_SIZE),
+    fontSize:
+      fontSize === undefined
+        ? DEFAULT_SYMBOL_DEFAULTS.fontSize
+        : clamp(fontSize, MIN_FONT_SIZE, MAX_FONT_SIZE),
     fontFamily,
   };
 }
