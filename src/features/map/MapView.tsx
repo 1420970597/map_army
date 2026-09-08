@@ -16,6 +16,7 @@ import { useViewStore } from '@/stores/useViewStore';
 import { DrawHandler } from '@/features/draw/DrawHandler';
 import { MapClickHandler, FeatureLayer } from './FeatureLayer';
 import { GridOverlay } from './GridOverlay';
+import { selectionAfterBlankClick, selectionAfterFeatureClick } from './mapSelection';
 import { MouseTracker } from './MouseTracker';
 
 /**
@@ -158,15 +159,20 @@ export function MapView() {
 
       <FeatureLayer
         features={orderedFeatures}
-        selectedId={selectedIds[0] ?? null}
+        selectedIds={selectedIds}
         layerOpacity={layerOpacity}
-        onSelect={(id) => {
-          select([id]);
-          useViewStore.getState().setInspectorOpen(true);
+        onSelect={(id, event) => {
+          const originalEvent = event.originalEvent;
+          const next = selectionAfterFeatureClick(selectedIds, id, {
+            ctrlKey: originalEvent?.ctrlKey,
+            metaKey: originalEvent?.metaKey,
+          });
+          select(next);
+          if (next.length > 0) useViewStore.getState().setInspectorOpen(true);
         }}
       />
 
-      <MapClickHandler onBlankClick={() => select([])} />
+      <MapClickHandler onBlankClick={() => select(selectionAfterBlankClick())} />
       <DrawHandler />
       <MouseTracker />
     </MapContainer>
