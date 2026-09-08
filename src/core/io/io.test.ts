@@ -72,6 +72,7 @@ describe('serializeMilxly / deserializeMilxly', () => {
 
   it('往返转换应保留要素的全部字段', () => {
     const original = sampleDocument();
+    original.features[1].vertexBearings = [10, 20];
     const restored = deserializeMilxly(serializeMilxly(original));
     const [point, line, area] = restored.document.features;
 
@@ -80,7 +81,9 @@ describe('serializeMilxly / deserializeMilxly', () => {
     expect(point.textFields.higherFormation).toBe('第1旅');
     expect(point.direction).toBe(45);
     expect(line.geometry.kind).toBe(GeometryKind.Line);
+    expect(line.vertexBearings).toEqual([10, 20]);
     expect(area.geometry.kind).toBe(GeometryKind.Area);
+    expect(restored.document.schemaVersion).toBe(original.schemaVersion);
   });
 
   it('输出应是带缩进的可读 JSON', () => {

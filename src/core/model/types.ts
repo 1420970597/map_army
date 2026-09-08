@@ -15,6 +15,23 @@ import type { Sidc } from '../symbology';
  */
 export type { GridType } from '../geo';
 
+/** 图层工作状态（R03） */
+export const LayerStatus = {
+  /** 草稿：正在标绘 */
+  Working: 'working',
+  /** 已核定：审校通过 */
+  Approved: 'approved',
+} as const;
+export type LayerStatus = (typeof LayerStatus)[keyof typeof LayerStatus];
+
+/** 图层种类，为图像叠加层与兵棋分组预留 */
+export const LayerKind = {
+  Feature: 'feature',
+  Image: 'image',
+  Wargame: 'wargame',
+} as const;
+export type LayerKind = (typeof LayerKind)[keyof typeof LayerKind];
+
 /** 几何类型 */
 export const GeometryKind = {
   /** 点：单个坐标，用于单位符号、装备、设施 */
@@ -102,6 +119,8 @@ export interface MapFeature {
   style?: FeatureStyle;
   /** 机动方向方位角（度），仅点要素有意义 */
   direction?: number;
+  /** 逐顶点方向，与 geometry.points 一一对应；缺省表示自动切线方向 */
+  vertexBearings?: number[];
   /** 创建时间戳（毫秒） */
   createdAt: number;
   /** 最后修改时间戳（毫秒） */
@@ -122,6 +141,12 @@ export interface Layer {
   opacity: number;
   /** 排序序号，数值越大越靠上 */
   order: number;
+  /** 工作状态，缺省视为 working（R03） */
+  status?: LayerStatus;
+  /** 图层种类，缺省视为 feature */
+  kind?: LayerKind;
+  /** 兵棋分组标识，如 red / blue */
+  group?: string;
 }
 
 /**
@@ -140,6 +165,8 @@ export interface MapDocument {
   createdAt: number;
   /** 文档最后修改时间戳 */
   updatedAt: number;
+  /** 模型结构版本，缺失视为 1 */
+  schemaVersion?: number;
 }
 
 /** 可用工具 */
@@ -156,6 +183,8 @@ export const Tool = {
   Measure: 'measure',
   /** 删除要素 */
   Delete: 'delete',
+  /** 框选（R24） */
+  BoxSelect: 'boxSelect',
 } as const;
 export type Tool = (typeof Tool)[keyof typeof Tool];
 

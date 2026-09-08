@@ -40,6 +40,8 @@ export interface ViewState {
   layerPanelOpen: boolean;
   /** 属性编辑面板是否展开 */
   inspectorOpen: boolean;
+  /** 快捷键帮助面板是否展开 */
+  shortcutHelpOpen: boolean;
   /** 光标当前所在的地理坐标，离开地图时为 null */
   cursor: LonLat | null;
 
@@ -55,6 +57,8 @@ export interface ViewState {
   toggleSymbolPanel: () => void;
   toggleLayerPanel: () => void;
   setInspectorOpen: (open: boolean) => void;
+  setShortcutHelpOpen: (open: boolean) => void;
+  toggleShortcutHelp: () => void;
 }
 
 /**
@@ -91,6 +95,7 @@ export const useViewStore = create<ViewState>((set) => ({
   symbolPanelOpen: true,
   layerPanelOpen: false,
   inspectorOpen: false,
+  shortcutHelpOpen: false,
   cursor: null,
 
   // 以下四个写入均带同值守卫：返回原状态即表示"无变化"，
@@ -109,5 +114,9 @@ export const useViewStore = create<ViewState>((set) => ({
   setPendingSidc: (pendingSidc) => set({ pendingSidc }),
   toggleSymbolPanel: () => set((state) => ({ symbolPanelOpen: !state.symbolPanelOpen })),
   toggleLayerPanel: () => set((state) => ({ layerPanelOpen: !state.layerPanelOpen })),
-  setInspectorOpen: (inspectorOpen) => set({ inspectorOpen }),
+  setInspectorOpen: (inspectorOpen) =>
+    set((state) => (state.inspectorOpen === inspectorOpen ? state : { inspectorOpen })),
+  setShortcutHelpOpen: (shortcutHelpOpen) =>
+    set((state) => (state.shortcutHelpOpen === shortcutHelpOpen ? state : { shortcutHelpOpen })),
+  toggleShortcutHelp: () => set((state) => ({ shortcutHelpOpen: !state.shortcutHelpOpen })),
 }));

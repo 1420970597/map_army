@@ -12,3 +12,4 @@ export * from './utm';
 export * from './mgrs';
 export * from './bng';
 export * from './grid';
+export * from './snap';
