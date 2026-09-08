@@ -472,7 +472,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const nextFeature: MapFeature = {
         ...feature,
         geometry,
-        vertexBearings: bearings ? [...bearings] : undefined,
+        // bearings 为 undefined 表示「本次不改动方向」，需保留要素既有手动方向；
+        // 只有显式传入数组时才整体覆盖（isValidGeometryUpdate 已保证与顶点等长）。
+        vertexBearings: bearings ? [...bearings] : feature.vertexBearings,
       };
       pendingGesture!.dirty = true;
 

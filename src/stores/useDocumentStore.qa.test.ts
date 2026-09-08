@@ -328,9 +328,9 @@ describe('QA vertexBearings 平行数组保持', () => {
     return line;
   }
 
-  // BUG-01：预览未显式给出方向数组时，应视为「不改动方向」，
-  // 而实现把它当成「清空整个方向字段」，导致拖拽任一顶点会抹掉全部手动方向。
-  it.fails('顶点拖拽未指定方向时应保留既有手动方向', () => {
+  // 回归 BUG-01：预览未显式给出方向数组时必须视为「不改动方向」。
+  // 旧实现把它当成「清空整个方向字段」，拖拽任一顶点会抹掉全部手动方向。
+  it('顶点拖拽未指定方向时应保留既有手动方向', () => {
     const line = installLineWithBearings();
 
     useDocumentStore.getState().applyGeometry(line.id, [firstPoint, movedPoint, thirdPoint]);
