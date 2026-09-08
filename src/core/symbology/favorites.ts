@@ -18,7 +18,12 @@ export function normalizeFavorites(keys: unknown, validKeys?: ReadonlySet<string
   for (const key of keys) {
     if (typeof key !== 'string') continue;
     const normalized = key.trim();
-    if (!normalized || seen.has(normalized) || (validKeys !== undefined && !validKeys.has(normalized))) continue;
+    if (
+      !normalized ||
+      seen.has(normalized) ||
+      (validKeys !== undefined && !validKeys.has(normalized))
+    )
+      continue;
     seen.add(normalized);
     result.push(normalized);
   }

@@ -101,14 +101,28 @@ describe('检索', () => {
 
   it('结果按稳定规则排序', () => {
     const entries = [
-      { key: 'x-2', category: SymbolCategory.Formations, name: '乙', nameEn: 'Bravo', symbolSet: SymbolSet.Air },
-      { key: 'x-1', category: SymbolCategory.Formations, name: '甲', nameEn: 'Alpha', symbolSet: SymbolSet.Air },
+      {
+        key: 'x-2',
+        category: SymbolCategory.Formations,
+        name: '乙',
+        nameEn: 'Bravo',
+        symbolSet: SymbolSet.Air,
+      },
+      {
+        key: 'x-1',
+        category: SymbolCategory.Formations,
+        name: '甲',
+        nameEn: 'Alpha',
+        symbolSet: SymbolSet.Air,
+      },
     ];
     expect(catalogSearch('', entries).map((entry) => entry.key)).toEqual(['x-1', 'x-2']);
   });
 
   it('重复检索保持相同排序', () => {
-    expect(catalogSearch('机').map((entry) => entry.key)).toEqual(catalogSearch('机').map((entry) => entry.key));
+    expect(catalogSearch('机').map((entry) => entry.key)).toEqual(
+      catalogSearch('机').map((entry) => entry.key),
+    );
   });
 
   it('matchesQuery 支持英文名称', () => {

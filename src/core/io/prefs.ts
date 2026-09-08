@@ -4,7 +4,11 @@
  * 偏好不属于标图文档，独立保存为本地用户设置；所有脏数据与存储错误均安全降级。
  */
 
-import { DEFAULT_SYMBOL_DEFAULTS, normalizeSymbolDefaults, type SymbolDefaults } from '../symbology/defaults';
+import {
+  DEFAULT_SYMBOL_DEFAULTS,
+  normalizeSymbolDefaults,
+  type SymbolDefaults,
+} from '../symbology/defaults';
 import { normalizeFavorites } from '../symbology/favorites';
 import type { StorageLike } from './persistence';
 

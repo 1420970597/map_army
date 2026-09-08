@@ -138,9 +138,14 @@ export function entriesInCategory(category: SymbolCategory): readonly CatalogEnt
 /**
  * 搜索目录。空查询返回全量，结果按中英文名称和稳定键排序。
  */
-export function catalogSearch(query: string, entries: readonly CatalogEntry[] = CATALOG): CatalogEntry[] {
+export function catalogSearch(
+  query: string,
+  entries: readonly CatalogEntry[] = CATALOG,
+): CatalogEntry[] {
   const normalized = normalizeQuery(query);
-  const matched = normalized ? entries.filter((entry) => matchesQuery(entry, normalized)) : [...entries];
+  const matched = normalized
+    ? entries.filter((entry) => matchesQuery(entry, normalized))
+    : [...entries];
   return matched.sort(compareEntries);
 }
 
@@ -149,10 +154,20 @@ export function matchesQuery(entry: CatalogEntry, query: string): boolean {
   const normalized = normalizeQuery(query);
   if (!normalized) return true;
 
-  const candidates = [entry.name, entry.nameEn, entry.key, entry.entity ?? '', entry.sidc ?? '', ...(entry.aliases ?? [])];
+  const candidates = [
+    entry.name,
+    entry.nameEn,
+    entry.key,
+    entry.entity ?? '',
+    entry.sidc ?? '',
+    ...(entry.aliases ?? []),
+  ];
   return candidates.some((candidate) => {
     const normalizedCandidate = normalizeQuery(candidate);
-    return normalizedCandidate.includes(normalized) || (entry.sidc !== undefined && normalizedCandidate.startsWith(normalized));
+    return (
+      normalizedCandidate.includes(normalized) ||
+      (entry.sidc !== undefined && normalizedCandidate.startsWith(normalized))
+    );
   });
 }
 
@@ -170,5 +185,9 @@ function graphicEntry(graphicType: string, name: string, nameEn: string): Catalo
 
 /** 目录稳定排序：名称、英文名称、稳定键依次比较。 */
 function compareEntries(left: CatalogEntry, right: CatalogEntry): number {
-  return left.name.localeCompare(right.name, 'zh-Hans-CN') || left.nameEn.localeCompare(right.nameEn) || left.key.localeCompare(right.key);
+  return (
+    left.name.localeCompare(right.name, 'zh-Hans-CN') ||
+    left.nameEn.localeCompare(right.nameEn) ||
+    left.key.localeCompare(right.key)
+  );
 }
