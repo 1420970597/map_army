@@ -1,19 +1,27 @@
 /**
  * 图层与要素列表面板。
  *
- * 左侧列出图层（可切换可见性、锁定、重命名、删除、拖拽排序、调整透明度），
- * 选中某个图层后，下方列出其承载的要素（可点选、删除）。
+ * 左侧列出图层（可切换可见性、锁定、状态、重命名、删除、拖拽排序、调整透明度），
+ * 选中某个图层后，下方列出其承载的要素（可多选、移动和删除）。
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, type MouseEvent } from 'react';
 
-import { GeometryKind, sortLayersByDisplay, type MapFeature } from '@/core/model';
+import { GeometryKind, rangeSelection, sortLayersByDisplay, type MapFeature } from '@/core/model';
 import { mergeFeatureText, useDocumentStore } from '@/stores/useDocumentStore';
 import { useViewStore } from '@/stores/useViewStore';
 
-/**
- * 图层面板组件。
- */
+import {
+  FEATURE_IDS_DRAG_MIME,
+  LAYER_ID_DRAG_MIME,
+  dropPayloadKind,
+  layerStatusDisplay,
+  opacityTransactionAction,
+  parseFeatureDragIds,
+  serializeFeatureDragIds,
+} from './layerPanelLogic';
+
+/** 图层面板组件。 */
 export function LayerPanel() {
   const layers = useDocumentStore((state) => state.document.layers);
   const features = useDocumentStore((state) => state.document.features);
@@ -22,31 +30,37 @@ export function LayerPanel() {
   const addLayer = useDocumentStore((state) => state.addLayer);
   const updateLayer = useDocumentStore((state) => state.updateLayer);
   const moveLayer = useDocumentStore((state) => state.moveLayer);
+  const moveFeaturesToLayer = useDocumentStore((state) => state.moveFeaturesToLayer);
   const removeLayer = useDocumentStore((state) => state.removeLayer);
+  const setLayerStatus = useDocumentStore((state) => state.setLayerStatus);
+  const beginGesture = useDocumentStore((state) => state.beginGesture);
+  const endGesture = useDocumentStore((state) => state.endGesture);
+  const previewLayer = useDocumentStore((state) => state.previewLayer);
   const selectedIds = useDocumentStore((state) => state.selectedIds);
   const select = useDocumentStore((state) => state.select);
+  const toggleSelect = useDocumentStore((state) => state.toggleSelect);
   const removeFeatures = useDocumentStore((state) => state.removeFeatures);
   const setInspectorOpen = useViewStore((state) => state.setInspectorOpen);
 
   const [newLayerName, setNewLayerName] = useState('');
-
-  // 重命名编辑态：仅允许同时编辑一个图层；draftName 保存输入框临时值
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
-
-  // 拖拽态：当前被拖动的图层与当前放置目标
   const [dragLayerId, setDragLayerId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [selectionAnchorId, setSelectionAnchorId] = useState<string | null>(null);
+  const opacityGestureActive = useRef(false);
 
-  /** 图层按 order 降序展示，与地图上的压盖顺序一致 */
   const orderedLayers = useMemo(() => sortLayersByDisplay(layers), [layers]);
-
   const activeFeatures = useMemo(
     () => features.filter((feature) => feature.layerId === activeLayerId),
     [features, activeLayerId],
   );
+  const activeFeatureIds = useMemo(
+    () => activeFeatures.map((feature) => feature.id),
+    [activeFeatures],
+  );
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
-  /** 提交重命名：trim 后为空则放弃（保留原名），否则写入 store */
   const commitRename = () => {
     const id = editingLayerId;
     setEditingLayerId(null);
@@ -55,6 +69,34 @@ export function LayerPanel() {
     if (trimmed && trimmed !== layers.find((layer) => layer.id === id)?.name) {
       updateLayer(id, { name: trimmed });
     }
+  };
+
+  const applyOpacityTransaction = (
+    event: 'pointerdown' | 'pointerup' | 'pointercancel' | 'blur' | 'keydown' | 'keyup',
+    key?: string,
+  ) => {
+    const action = opacityTransactionAction(event, key);
+    if (action === 'begin' && !opacityGestureActive.current) {
+      opacityGestureActive.current = true;
+      beginGesture();
+    } else if (action === 'end' && opacityGestureActive.current) {
+      opacityGestureActive.current = false;
+      endGesture();
+    }
+  };
+
+  const selectFeature = (featureId: string, event: MouseEvent<HTMLDivElement>) => {
+    if (event.shiftKey && selectionAnchorId) {
+      const range = rangeSelection(activeFeatureIds, selectionAnchorId, featureId);
+      if (range.length > 0) select(range);
+    } else if (event.ctrlKey || event.metaKey) {
+      toggleSelect(featureId);
+      setSelectionAnchorId(featureId);
+    } else {
+      select([featureId]);
+      setSelectionAnchorId(featureId);
+    }
+    setInspectorOpen(true);
   };
 
   return (
@@ -69,21 +111,20 @@ export function LayerPanel() {
 
           {orderedLayers.map((layer) => {
             const isEditing = editingLayerId === layer.id;
+            const status = layerStatusDisplay(layer.status);
+            const acceptsDrop = dropTargetId === layer.id;
             return (
               <div
                 key={layer.id}
                 className={
                   `layer-row${layer.id === activeLayerId ? ' is-active' : ''}` +
                   (dragLayerId === layer.id ? ' is-dragging' : '') +
-                  (dropTargetId === layer.id && dragLayerId && dragLayerId !== layer.id
-                    ? ' is-drag-over'
-                    : '')
+                  (acceptsDrop ? ' is-drag-over' : '')
                 }
-                // 编辑期间禁用整行拖拽，避免输入框与父级 draggable 互相干扰
                 draggable={!isEditing}
                 onDragStart={(event) => {
                   setDragLayerId(layer.id);
-                  // Firefox 必需 setData 才能让 drop 事件触发
+                  event.dataTransfer.setData(LAYER_ID_DRAG_MIME, layer.id);
                   event.dataTransfer.setData('text/plain', layer.id);
                   event.dataTransfer.effectAllowed = 'move';
                 }}
@@ -92,8 +133,8 @@ export function LayerPanel() {
                   setDropTargetId(null);
                 }}
                 onDragOver={(event) => {
-                  if (!dragLayerId || dragLayerId === layer.id) return;
-                  // 必须 preventDefault 才能触发 drop
+                  const kind = dropPayloadKind(Array.from(event.dataTransfer.types));
+                  if (!kind || (kind === 'layer' && dragLayerId === layer.id)) return;
                   event.preventDefault();
                   event.dataTransfer.dropEffect = 'move';
                   if (dropTargetId !== layer.id) setDropTargetId(layer.id);
@@ -103,10 +144,21 @@ export function LayerPanel() {
                 }}
                 onDrop={(event) => {
                   event.preventDefault();
-                  const sourceId = event.dataTransfer.getData('text/plain') || dragLayerId;
+                  const kind = dropPayloadKind(Array.from(event.dataTransfer.types));
                   setDragLayerId(null);
                   setDropTargetId(null);
-                  if (sourceId && sourceId !== layer.id) moveLayer(sourceId, layer.id);
+                  if (kind === 'feature') {
+                    const ids = parseFeatureDragIds(
+                      event.dataTransfer.getData(FEATURE_IDS_DRAG_MIME),
+                    );
+                    if (ids) moveFeaturesToLayer(ids, layer.id);
+                  } else if (kind === 'layer') {
+                    const sourceId =
+                      event.dataTransfer.getData(LAYER_ID_DRAG_MIME) ||
+                      event.dataTransfer.getData('text/plain') ||
+                      dragLayerId;
+                    if (sourceId && sourceId !== layer.id) moveLayer(sourceId, layer.id);
+                  }
                 }}
                 onClick={() => {
                   if (!isEditing) setActiveLayer(layer.id);
@@ -123,6 +175,19 @@ export function LayerPanel() {
                     updateLayer(layer.id, { visible: event.target.checked });
                   }}
                 />
+                <button
+                  type="button"
+                  className={`layer-status-badge is-${layer.status ?? 'working'}`}
+                  title={`当前状态：${status.label}；点击切换为${status.nextStatus === 'approved' ? '已核定' : '草稿'}`}
+                  aria-label={`图层 ${layer.name} 当前状态${status.label}，点击切换`}
+                  draggable={false}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setLayerStatus(layer.id, status.nextStatus);
+                  }}
+                >
+                  {status.label}
+                </button>
                 {isEditing ? (
                   <input
                     className="layer-name layer-name-input"
@@ -182,7 +247,6 @@ export function LayerPanel() {
                 </button>
                 <div
                   className="layer-opacity-row"
-                  // 阻止滑块上的事件冒泡触发整行的选中/拖拽
                   onClick={(event) => event.stopPropagation()}
                   onMouseDown={(event) => event.stopPropagation()}
                 >
@@ -196,8 +260,14 @@ export function LayerPanel() {
                     draggable={false}
                     title={`不透明度 ${Math.round(layer.opacity * 100)}%`}
                     aria-label={`图层 ${layer.name} 的不透明度`}
+                    onPointerDown={() => applyOpacityTransaction('pointerdown')}
+                    onPointerUp={() => applyOpacityTransaction('pointerup')}
+                    onPointerCancel={() => applyOpacityTransaction('pointercancel')}
+                    onBlur={() => applyOpacityTransaction('blur')}
+                    onKeyDown={(event) => applyOpacityTransaction('keydown', event.key)}
+                    onKeyUp={(event) => applyOpacityTransaction('keyup', event.key)}
                     onChange={(event) =>
-                      updateLayer(layer.id, { opacity: Number(event.target.value) })
+                      previewLayer(layer.id, { opacity: Number(event.target.value) })
                     }
                   />
                   <span className="layer-opacity-value">{Math.round(layer.opacity * 100)}%</span>
@@ -238,11 +308,9 @@ export function LayerPanel() {
               <FeatureRow
                 key={feature.id}
                 feature={feature}
-                selected={selectedIds.includes(feature.id)}
-                onSelect={() => {
-                  select([feature.id]);
-                  setInspectorOpen(true);
-                }}
+                selected={selectedIdSet.has(feature.id)}
+                dragIds={selectedIdSet.has(feature.id) ? selectedIds : [feature.id]}
+                onSelect={(event) => selectFeature(feature.id, event)}
                 onDelete={() => removeFeatures([feature.id])}
                 onRename={(name) => mergeFeatureText(feature.id, { uniqueDesignation: name })}
               />
@@ -254,17 +322,19 @@ export function LayerPanel() {
   );
 }
 
-/** 要素行：显示几何类型图标、名称与操作按钮 */
+/** 要素行：显示几何类型图标、名称与操作按钮。 */
 function FeatureRow({
   feature,
   selected,
+  dragIds,
   onSelect,
   onDelete,
   onRename,
 }: {
   feature: MapFeature;
   selected: boolean;
-  onSelect: () => void;
+  dragIds: readonly string[];
+  onSelect: (event: MouseEvent<HTMLDivElement>) => void;
   onDelete: () => void;
   onRename: (name: string) => void;
 }) {
@@ -276,7 +346,15 @@ function FeatureRow({
         : '面';
 
   return (
-    <div className={`feature-row${selected ? ' is-selected' : ''}`} onClick={onSelect}>
+    <div
+      className={`feature-row is-draggable${selected ? ' is-selected' : ''}`}
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.setData(FEATURE_IDS_DRAG_MIME, serializeFeatureDragIds(dragIds));
+        event.dataTransfer.effectAllowed = 'move';
+      }}
+      onClick={onSelect}
+    >
       <span className="muted" title="几何类型">
         {kindLabel}
       </span>
@@ -284,6 +362,7 @@ function FeatureRow({
         className="feature-name"
         value={feature.textFields.uniqueDesignation ?? ''}
         placeholder={feature.name || '未命名'}
+        draggable={false}
         onClick={(event) => event.stopPropagation()}
         onChange={(event) => onRename(event.target.value)}
       />
@@ -291,6 +370,7 @@ function FeatureRow({
         type="button"
         className="icon-button"
         title="删除要素"
+        draggable={false}
         onClick={(event) => {
           event.stopPropagation();
           onDelete();

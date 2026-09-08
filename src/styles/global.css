@@ -304,9 +304,31 @@ button {
 
 .layer-name {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.layer-status-badge {
+  flex: 0 0 auto;
+  padding: 2px 5px;
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--c-text-muted);
+  background: var(--c-surface-alt);
+  border: 1px solid var(--c-border);
+  border-radius: 2px;
+}
+
+.layer-status-badge.is-approved {
+  color: #1f6b42;
+  background: #e8f5ed;
+  border-color: #b7dfc4;
+}
+
+.layer-status-badge:hover {
+  border-color: var(--c-primary-light);
 }
 
 /* 编辑态下的图层名输入框：去掉浏览器默认外观，视觉与静态名一致 */
@@ -328,6 +350,7 @@ button {
 }
 
 .layer-row.is-drag-over {
+  background: #edf7fb;
   outline: 1px dashed var(--c-primary);
   outline-offset: -1px;
 }
@@ -378,6 +401,14 @@ button {
 .feature-row.is-selected {
   background: #e7f2f8;
   outline: 1px solid var(--c-primary);
+}
+
+.feature-row.is-draggable {
+  cursor: grab;
+}
+
+.feature-row.is-draggable:active {
+  cursor: grabbing;
 }
 
 .feature-name {
@@ -447,6 +478,33 @@ button {
 
 .field-row > * {
   flex: 1;
+}
+
+.inspector-batch-summary {
+  margin-bottom: 12px;
+  padding: 8px;
+  font-weight: 600;
+  color: var(--c-primary-dark);
+  background: #e7f2f8;
+  border-left: 3px solid var(--c-primary);
+}
+
+.inspector-batch-actions,
+.vertex-bearing-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.inspector-batch-button,
+.inspector-delete-button {
+  justify-content: center;
+  width: 100%;
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+}
+
+.inspector-delete-button {
+  color: var(--c-danger);
 }
 
 /* ── 状态栏 ───────────────────────────────────────────── */
