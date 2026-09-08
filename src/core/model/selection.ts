@@ -1,6 +1,91 @@
 /**
- * 多选集合的不可变操作：负责去重、顺序保持与范围选择计算。
+ * 多选集合与框选命中的纯函数：负责去重、顺序保持和几何范围判定。
  */
+
+import type { LonLat } from '../geo';
+import type { Bounds } from './geometry';
+import { GeometryKind, type MapFeature } from './types';
+
+/** 框选命中模式。 */
+export type SelectMode = 'inside' | 'intersect';
+
+/**
+ * 判断要素是否命中经纬度包围盒。
+ *
+ * 点要素按中心点判定；线和面在 `inside` 模式下要求全部顶点位于框内，
+ * 在 `intersect` 模式下允许顶点命中或要素自身包围盒与框相交。
+ *
+ * @param feature 待判定的地图要素。
+ * @param bounds 选择框，支持经纬度边界乱序。
+ * @param mode 命中模式。
+ * @returns 要素是否命中选择框。
+ */
+export function hitTestBounds(feature: MapFeature, bounds: Bounds, mode: SelectMode): boolean {
+  const normalized = normalizeBounds(bounds);
+
+  if (feature.geometry.kind === GeometryKind.Point) {
+    return pointInBounds(feature.geometry.position, normalized);
+  }
+
+  const points = feature.geometry.points;
+  if (points.length === 0) return false;
+
+  if (mode === 'inside') {
+    return points.every((point) => pointInBounds(point, normalized));
+  }
+
+  return points.some((point) => pointInBounds(point, normalized)) || boundsIntersect(points, normalized);
+}
+
+/**
+ * 返回命中选择框的要素标识，并保持输入要素顺序。
+ *
+ * @param features 待判定的地图要素。
+ * @param bounds 选择框，支持经纬度边界乱序。
+ * @param mode 命中模式。
+ * @returns 按输入顺序排列的命中要素标识。
+ */
+export function featuresInBounds(
+  features: readonly MapFeature[],
+  bounds: Bounds,
+  mode: SelectMode,
+): string[] {
+  return features.filter((feature) => hitTestBounds(feature, bounds, mode)).map((feature) => feature.id);
+}
+
+function normalizeBounds(bounds: Bounds): Bounds {
+  return {
+    minLon: Math.min(bounds.minLon, bounds.maxLon),
+    minLat: Math.min(bounds.minLat, bounds.maxLat),
+    maxLon: Math.max(bounds.minLon, bounds.maxLon),
+    maxLat: Math.max(bounds.minLat, bounds.maxLat),
+  };
+}
+
+function pointInBounds(point: LonLat, bounds: Bounds): boolean {
+  return (
+    point.lon >= bounds.minLon &&
+    point.lon <= bounds.maxLon &&
+    point.lat >= bounds.minLat &&
+    point.lat <= bounds.maxLat
+  );
+}
+
+function boundsIntersect(points: readonly LonLat[], bounds: Bounds): boolean {
+  let minLon = Infinity;
+  let minLat = Infinity;
+  let maxLon = -Infinity;
+  let maxLat = -Infinity;
+
+  for (const point of points) {
+    minLon = Math.min(minLon, point.lon);
+    minLat = Math.min(minLat, point.lat);
+    maxLon = Math.max(maxLon, point.lon);
+    maxLat = Math.max(maxLat, point.lat);
+  }
+
+  return minLon <= bounds.maxLon && maxLon >= bounds.minLon && minLat <= bounds.maxLat && maxLat >= bounds.minLat;
+}
 
 /**
  * 切换指定标识在选择集合中的状态。
