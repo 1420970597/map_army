@@ -30,6 +30,16 @@ export type { CreateFeatureParams, CreateLayerParams } from './factory';
 
 export { reorderLayers, sortLayersByDisplay } from './layerOrder';
 
+export {
+  CLIPBOARD_KIND,
+  CLIPBOARD_VERSION,
+  DEFAULT_PASTE_OFFSET_PX,
+  materializeClipboard,
+  parseClipboard,
+  serializeClipboard,
+} from './clipboard';
+export type { ClipboardPayload, MaterializeParams } from './clipboard';
+
 export { DEFAULT_SPATIAL_CELL_SIZE, createSpatialIndex, querySpatialIndex } from './spatialIndex';
 export type { SpatialIndex, SpatialPoint } from './spatialIndex';
 
