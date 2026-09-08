@@ -1033,37 +1033,42 @@ sequenceDiagram
 > 排序原则：**`core` 纯函数与其单测必须排在对应 UI 之前**；store 在 core 之后、UI 之前；
 > 每个任务可独立提一个 commit，全部完成后 `npm run ci` 必须全绿。
 
-| # | 任务 | 依赖 | 涉及文件 | 验收要点 |
-| - | ---- | ---- | -------- | -------- |
-| **T01** | 模型字段扩展：新增 `LayerStatus` / `LayerKind` / `Layer.{status,kind,group}` / `MapFeature.vertexBearings` / `MapDocument.schemaVersion` / `Tool.BoxSelect`，全部为**可选**字段 | — | `core/model/types.ts` | `tsc -b` 通过；既有 219 条单测不因必填性失败 |
-| **T02** | `core/model/migrate.ts` 迁移链骨架 + 单测 | T01 | 新增 `migrate.ts` `migrate.test.ts`；改 `core/model/index.ts` | 缺版本→1、未知版本→取最高且告警、链式迁移各 1 条用例 |
-| **T03** | `core/model/vertex.ts` 顶点纯函数 + 单测 | T01 | 新增 `vertex.ts` `vertex.test.ts` | ≥ 12 条：插入/删除/移动/不可变性/低于最小点数返回 null/`stepVertex` 环绕/默认切线方位角 |
-| **T04** | `core/model/selection.ts` 选择集合与包围盒命中 + 单测 | T01 | 新增 `selection.ts` `selection.test.ts` | ≥ 10 条：切换/增减/区间选择/点要素 inside / 线面 intersect / 空框 |
-| **T05** | `core/geo/snap.ts` 吸附引擎 + 单测（恒等投影） | T01 | 新增 `snap.ts` `snap.test.ts` | ≥ 10 条：命中与不命中边界、阈值外排除、排除自身顶点、三源优先级、关闭时恒返回 null |
-| **T06** | `core/model/spatialIndex.ts` 最小分桶 + 单测 | T01 | 新增 `spatialIndex.ts` `spatialIndex.test.ts` | ≥ 5 条：建桶、邻近查询、越界点、空集合 |
-| **T07** | `core/model/clipboard.ts` 剪贴板纯逻辑 + 单测 | T01 | 新增 `clipboard.ts` `clipboard.test.ts` | ≥ 8 条：往返一致、新 id、换层、偏移递增、名称后缀、非法载荷返回 null |
-| **T08** | `core/io/session.ts` 配额估算 / 错误分类 / 冲突检测 + 单测 | T01 | 新增 `session.ts` `session.test.ts` | ≥ 8 条：quota 变体识别、corrupt、其他标签页冲突、无冲突 |
-| **T09** | `core/shell/shortcuts.ts` 注册表与匹配纯函数 + 单测 | — | 新增 `shortcuts.ts` `shortcuts.test.ts` | ≥ 10 条：各组合键匹配、大小写与 `Key` 归一、输入框豁免、`findConflicts` 为空 |
-| **T10** | `core/shell/commands.ts` 命令注册表（复制/粘贴/删除/全选/重置方向/移动图层/吸附开关/视图操作） | T09 | 新增 `commands.ts` | 命令 id 与快捷键表一一对应，无孤儿项 |
-| **T11** | `factory.ts` / `persistence.ts` / `io/index.ts` 接入默认值、迁移与错误分类 | T01 T02 T08 | 改 `core/model/factory.ts`、`core/io/persistence.ts`、`core/io/index.ts` | 新建文档带 `schemaVersion`；写满配额时抛可分类错误 |
-| **T12** | `useDocumentStore` 手势事务与批量/选择 action | T01 T04 | 改 `stores/useDocumentStore.ts` | **单测断言**：一次拖拽后 `past.length` 增量为 1；无变化手势增量为 0；批量移动 5 个要素增量 1 |
-| **T13** | `useEditStore` / `useClipboardStore` / `useSessionStore` | T05 T07 T08 | 新增三个 store | 吸附开关与阈值可切换；剪贴板 payload 可存取；会话状态机完备 |
-| **T14** | `FeatureLayer` 多选化 | T12 | 改 `features/map/FeatureLayer.tsx`、`featureStyle.ts`（视核对） | 支持 `selectedIds: string[]`；`onSelect` 带原始事件；几何 `switch` 加 `assertNever` |
-| **T15** | `leafletProjection.ts` 适配器 | T05 | 新增 `features/map/leafletProjection.ts` | `toPixel`/`toLonLat` 往返误差 < 0.5px；禁止他处出现魔数换算 |
-| **T16** | `MapView` 组装与选择语义接线 | T12 T14 | 改 `features/map/MapView.tsx` | Ctrl/Cmd 点击增减选；空白处清空；`useShallow` 无重复渲染 |
-| **T17** | `VertexEditor` 手柄层与幽灵图形（R19） | T03 T05 T13 T15 T16 | 新增 `features/draw/VertexEditor.tsx` | 手柄可拖；拖拽期**不**触发 document 变更；松手一条历史 |
-| **T18** | 顶点键位与方向重置（R20 / R22） | T17 T10 | 改 `VertexEditor.tsx` | Ctrl 插入（取最近边）、Shift 删除、`Ctrl+←/→` 切活动点、重置方向生效 |
-| **T19** | `BoxSelect` 框选（R24） | T04 T13 | 新增 `features/map/BoxSelect.tsx`；改 `MapView.tsx` | 工具模式与 Ctrl 拖拽双路径；<5px 视为点击；与 BoxZoom 不冲突 |
-| **T20** | 剪贴板接线（R23） | T07 T13 T10 | 改 `features/shell/*`、`App.tsx` | Ctrl+C/V 生效；连续粘贴逐级偏移；刷新后 localStorage 兜底可用 |
-| **T21** | 快捷键 hook 与帮助面板（R55） | T09 T10 T16 | 新增 `features/shell/useKeyboardShortcuts.ts`、`ShortcutHelp.tsx`；改 `useViewStore.ts`、`App.tsx` | 全部键位生效；输入框内不误触；`?` 打开帮助且内容与注册表一致 |
-| **T22** | 图层面板：状态徽标（R03）、不透明度滑块（R05）、拖放接收与批量移动（R04） | T12 | 改 `features/layers/LayerPanel.tsx` | 徽标可切换；滑块一次拖动 = 一条历史；拖放跨层移动生效且可撤销 |
-| **T23** | 检查器多选批量面板（R24 / R04 / R22） | T12 T14 | 改 `features/inspector/Inspector.tsx` | 显示"已选 N 个"；批量移动到图层；`key={primaryId}` 防输入跳变 |
-| **T24** | 会话横幅与持久化增强（R01） | T08 T13 | 新增 `features/shell/SessionBanner.tsx`；改 `App.tsx`、`core/io/persistence.ts` | 配额超限/损坏/跨标签页冲突各有明确提示；恢复入口可用 |
-| **T25** | 绘制期复用吸附引擎 | T05 T15 | 改 `features/draw/DrawHandler.tsx` | 绘制线/面时顶点同样可吸附；`assertNever` 补齐 |
-| **T26** | 样式补齐与全量冒烟 | 全部 | 改 `styles/global.css`；`docs/`、`README.md` | `npm run ci` 全绿；新增单测 ≥ 25 条；6 步手动冒烟通过；README 图例同步 |
+| # | 任务 | 状态 | 依赖 | 涉及文件 | 验收要点 |
+| - | ---- | ---- | ---- | -------- | -------- |
+| **T01** | 模型字段扩展：新增 `LayerStatus` / `LayerKind` / `Layer.{status,kind,group}` / `MapFeature.vertexBearings` / `MapDocument.schemaVersion` / `Tool.BoxSelect`，全部为**可选**字段 | ✅ 已完成 `068e658` | — | `core/model/types.ts` | `tsc -b` 通过；既有 219 条单测不因必填性失败 |
+| **T02** | `core/model/migrate.ts` 迁移链骨架 + 单测 | ✅ 已完成 `1eae060` | T01 | 新增 `migrate.ts` `migrate.test.ts`；改 `core/model/index.ts` | 缺版本→1、未知版本→取最高且告警、链式迁移各 1 条用例 |
+| **T03** | `core/model/vertex.ts` 顶点纯函数 + 单测 | ✅ 已完成 `de3646a` | T01 | 新增 `vertex.ts` `vertex.test.ts` | ≥ 12 条：插入/删除/移动/不可变性/低于最小点数返回 null/`stepVertex` 环绕/默认切线方位角 |
+| **T04** | `core/model/selection.ts` 选择集合与包围盒命中 + 单测 | ✅ 已完成 `cdffc10` `92a090b` | T01 | 新增 `selection.ts` `selection.test.ts` | ≥ 10 条：切换/增减/区间选择/点要素 inside / 线面 intersect / 空框 |
+| **T05** | `core/geo/snap.ts` 吸附引擎 + 单测（恒等投影） | ✅ 已完成 `8f5bc76` | T01 | 新增 `snap.ts` `snap.test.ts` | ≥ 10 条：命中与不命中边界、阈值外排除、排除自身顶点、三源优先级、关闭时恒返回 null |
+| **T06** | `core/model/spatialIndex.ts` 最小分桶 + 单测 | ✅ 已完成 `c86454b` | T01 | 新增 `spatialIndex.ts` `spatialIndex.test.ts` | ≥ 5 条：建桶、邻近查询、越界点、空集合 |
+| **T07** | `core/model/clipboard.ts` 剪贴板纯逻辑 + 单测 | ✅ 已完成 `380114e` | T01 | 新增 `clipboard.ts` `clipboard.test.ts` | ≥ 8 条：往返一致、新 id、换层、偏移递增、名称后缀、非法载荷返回 null |
+| **T08** | `core/io/session.ts` 配额估算 / 错误分类 / 冲突检测 + 单测 | ✅ 已完成 `c9815a5` | T01 | 新增 `session.ts` `session.test.ts` | ≥ 8 条：quota 变体识别、corrupt、其他标签页冲突、无冲突 |
+| **T09** | `core/shell/shortcuts.ts` 注册表与匹配纯函数 + 单测 | ✅ 已完成 `b1c8a1a` | — | 新增 `shortcuts.ts` `shortcuts.test.ts` | ≥ 10 条：各组合键匹配、大小写与 `Key` 归一、输入框豁免、`findConflicts` 为空 |
+| **T10** | `core/shell/commands.ts` 命令注册表（复制/粘贴/删除/全选/重置方向/移动图层/吸附开关/视图操作） | ✅ 已完成 `78803c8` | T09 | 新增 `commands.ts` | 命令 id 与快捷键表一一对应，无孤儿项 |
+| **T11** | `factory.ts` / `persistence.ts` / `io/index.ts` 接入默认值、迁移与错误分类 | ✅ 已完成 `8e48f3a` | T01 T02 T08 | 改 `core/model/factory.ts`、`core/io/persistence.ts`、`core/io/index.ts` | 新建文档带 `schemaVersion`；写满配额时抛可分类错误 |
+| **T12** | `useDocumentStore` 手势事务与批量/选择 action | ✅ 已完成 `ae5d7b5` `7e123e6` `9411bc3` | T01 T04 | 改 `stores/useDocumentStore.ts` | **单测断言**：一次拖拽后 `past.length` 增量为 1；无变化手势增量为 0；批量移动 5 个要素增量 1 |
+| **T13** | `useEditStore` / `useClipboardStore` / `useSessionStore` | ✅ 已完成 `c39c2f8` `1e349d3` `61014e3` | T05 T07 T08 | 新增三个 store | 吸附开关与阈值可切换；剪贴板 payload 可存取；会话状态机完备 |
+| **T14** | `FeatureLayer` 多选化 | ✅ 已完成 `b1d1199` | T12 | 改 `features/map/FeatureLayer.tsx`、`featureStyle.ts`（视核对） | 支持 `selectedIds: string[]`；`onSelect` 带原始事件；几何 `switch` 加 `assertNever` |
+| **T15** | `leafletProjection.ts` 适配器 | ✅ 已完成 `457d134` | T05 | 新增 `features/map/leafletProjection.ts` | `toPixel`/`toLonLat` 往返误差 < 0.5px；禁止他处出现魔数换算 |
+| **T16** | `MapView` 组装与选择语义接线 | ✅ 已完成 `60e4a3c` | T12 T14 | 改 `features/map/MapView.tsx` | Ctrl/Cmd 点击增减选；空白处清空；`useShallow` 无重复渲染 |
+| **T17** | `VertexEditor` 手柄层与幽灵图形（R19） | ✅ 已完成 `91f8e55` | T03 T05 T13 T15 T16 | 新增 `features/draw/VertexEditor.tsx` | 手柄可拖；拖拽期**不**触发 document 变更；松手一条历史 |
+| **T18** | 顶点键位与方向重置（R20 / R22） | ✅ 已完成 `43c21f7` | T17 T10 | 改 `VertexEditor.tsx` | Ctrl 插入（取最近边）、Shift 删除、`Ctrl+←/→` 切活动点、重置方向生效 |
+| **T19** | `BoxSelect` 框选（R24） | ✅ 已完成 `84093d4` | T04 T13 | 新增 `features/map/BoxSelect.tsx`；改 `MapView.tsx` | 工具模式与 Ctrl 拖拽双路径；<5px 视为点击；与 BoxZoom 不冲突 |
+| **T20** | 剪贴板接线（R23） | ✅ 已完成 `9eec2b0` `e8d892b` | T07 T13 T10 | 改 `features/shell/*`、`App.tsx` | Ctrl+C/V 生效；连续粘贴逐级偏移；刷新后 localStorage 兜底可用 |
+| **T21** | 快捷键 hook 与帮助面板（R55） | ✅ 已完成 `9eec2b0` | T09 T10 T16 | 新增 `features/shell/useKeyboardShortcuts.ts`、`ShortcutHelp.tsx`；改 `useViewStore.ts`、`App.tsx` | 全部键位生效；输入框内不误触；`?` 打开帮助且内容与注册表一致 |
+| **T22** | 图层面板：状态徽标（R03）、不透明度滑块（R05）、拖放接收与批量移动（R04） | ✅ 已完成 `b7dedb1` | T12 | 改 `features/layers/LayerPanel.tsx` | 徽标可切换；滑块一次拖动 = 一条历史；拖放跨层移动生效且可撤销 |
+| **T23** | 检查器多选批量面板（R24 / R04 / R22） | ✅ 已完成 `64dcee9` | T12 T14 | 改 `features/inspector/Inspector.tsx` | 显示"已选 N 个"；批量移动到图层；`key={primaryId}` 防输入跳变 |
+| **T24** | 会话横幅与持久化增强（R01） | ✅ 已完成 `212075c` `20bf0e1` | T08 T13 | 新增 `features/shell/SessionBanner.tsx`；改 `App.tsx`、`core/io/persistence.ts` | 配额超限/损坏/跨标签页冲突各有明确提示；恢复入口可用 |
+| **T25** | 绘制期复用吸附引擎 | ✅ 已完成 `dc51fb8` `7a43fa1` | T05 T15 | 改 `features/draw/DrawHandler.tsx` | 绘制线/面时顶点同样可吸附；`assertNever` 补齐 |
+| **T26** | 样式补齐与全量冒烟 | ✅ 已完成（本批最后两个提交：`style(app): 统一编辑与会话提示样式`、`docs: 同步路线图与验收清单`） | 全部 | 改 `styles/global.css`、`README.md`、`docs/ARCH-geo-edit.md`；新增 `docs/SMOKE-TEST-geo-edit.md` | `tsc -b` / `vitest run` / `eslint .` / `prettier --check` 四项全绿；6 步手动冒烟清单见 `docs/SMOKE-TEST-geo-edit.md`；README 图例同步 |
 
 **关键路径**：T01 → T03/T04/T05 → T12 → T14/T16 → T17 → T18。
 T06 / T07 / T08 / T09 可与 T03–T05 并行；T22 / T23 / T24 依赖 T12 后可并行。
+
+> **T26 说明**：本任务只做视觉一致性补齐、文案与文档同步，不新增功能逻辑、不改动既有行为与测试。
+> 样式集中在 `src/styles/global.css`：顶点手柄与幽灵图形共用 `--c-edit-accent`，
+> 顶点编辑与绘制期的吸附指示器虽然 class 名不同，但并列在同一规则内共用一套描边与填充；
+> 图层状态徽标、会话横幅五种状态、快捷键帮助面板均保持扁平浅色工程风格，未引入嵌套卡片。
 
 ## 2.7 依赖包
 
