@@ -7,10 +7,32 @@
  */
 
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 
 import type { LonLat } from '@/core/geo';
-import { createDocument, createLayer, minVertexCountOf, reorderLayers } from '@/core/model';
-import type { FeatureStyle, FeatureTextFields, Layer, MapDocument, MapFeature } from '@/core/model';
+import {
+  addToSelection as addSelectionIds,
+  createDocument,
+  createLayer,
+  deleteVertex,
+  featuresInBounds,
+  insertVertex,
+  minVertexCountOf,
+  removeFromSelection as removeSelectionIds,
+  reorderLayers,
+  resetAllBearings,
+  resetBearing,
+  toggleInSelection,
+} from '@/core/model';
+import type {
+  Bounds,
+  FeatureStyle,
+  FeatureTextFields,
+  Layer,
+  MapDocument,
+  MapFeature,
+  SelectMode,
+} from '@/core/model';
 
 /** 撤销栈的最大深度，防止长时间编辑后内存无界增长 */
 const MAX_HISTORY = 100;
@@ -33,6 +55,14 @@ export interface DocumentState {
   updateFeature: (id: string, patch: Partial<MapFeature>) => void;
   removeFeatures: (ids: string[]) => void;
   moveFeatureToLayer: (featureId: string, layerId: string) => void;
+  /** 批量将实际可移动的要素迁移至未锁定目标图层。 */
+  moveFeaturesToLayer: (ids: string[], layerId: string) => void;
+  /** 在非点要素的指定位置插入一个顶点。 */
+  insertVertexAt: (id: string, index: number, point: LonLat) => void;
+  /** 删除非点要素的指定顶点，且不得低于几何最小点数。 */
+  deleteVertexAt: (id: string, index: number) => void;
+  /** 重置一个或全部顶点的手动方向。 */
+  resetVertexBearing: (id: string, index?: number) => void;
 
   // ── 图层操作 ─────────────────────────────────────────────
   addLayer: (name: string) => string;
@@ -47,6 +77,8 @@ export interface DocumentState {
    * {@link reorderLayers}，使其可在单测中独立验证。
    */
   moveLayer: (sourceId: string, targetId: string) => void;
+  /** 设置图层状态，状态未变化时不产生历史。 */
+  setLayerStatus: (id: string, status: NonNullable<Layer['status']>) => void;
 
   // ── 手势事务与几何预览 ────────────────────────────────────
   /** 开启一次手势事务；嵌套调用保留最初的快照。 */
@@ -62,6 +94,18 @@ export interface DocumentState {
 
   // ── 选择与文档级操作 ──────────────────────────────────────
   select: (ids: string[]) => void;
+  /** 切换一个要素的选中状态。 */
+  toggleSelect: (id: string) => void;
+  /** 向当前选择追加要素标识。 */
+  addToSelection: (ids: string[]) => void;
+  /** 从当前选择移除要素标识。 */
+  removeFromSelection: (ids: string[]) => void;
+  /** 清空当前选择。 */
+  clearSelection: () => void;
+  /** 选择指定图层内全部要素，保持文档要素顺序。 */
+  selectAllInLayer: (layerId: string) => void;
+  /** 以框选命中结果替换当前选择。 */
+  selectInBounds: (bounds: Bounds, mode: SelectMode) => void;
   renameDocument: (name: string) => void;
   replaceDocument: (document: MapDocument) => void;
   clear: () => void;
@@ -206,6 +250,98 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       }),
     ),
 
+  moveFeaturesToLayer: (ids, layerId) =>
+    set((state) => {
+      const targetLayer = state.document.layers.find((layer) => layer.id === layerId);
+      if (!targetLayer || targetLayer.locked) return state;
+
+      const requestedIds = new Set(ids);
+      const movedIds = state.document.features
+        .filter((feature) => requestedIds.has(feature.id) && feature.layerId !== layerId)
+        .map((feature) => feature.id);
+      if (movedIds.length === 0) return state;
+
+      const movedIdSet = new Set(movedIds);
+      const now = Date.now();
+      return {
+        ...commit(state, {
+          ...state.document,
+          features: state.document.features.map((feature) =>
+            movedIdSet.has(feature.id) ? { ...feature, layerId, updatedAt: now } : feature,
+          ),
+        }),
+        selectedIds: movedIds,
+      };
+    }),
+
+  insertVertexAt: (id, index, point) =>
+    set((state) => {
+      const feature = state.document.features.find((item) => item.id === id);
+      if (!feature || feature.geometry.kind === 'point') return state;
+
+      const result = insertVertex(feature.geometry.points, index, point, feature.vertexBearings);
+      const nextFeature: MapFeature = {
+        ...feature,
+        geometry: { ...feature.geometry, points: result.points },
+        vertexBearings: result.bearings,
+        updatedAt: Date.now(),
+      };
+      return commit(state, {
+        ...state.document,
+        features: state.document.features.map((item) => (item.id === id ? nextFeature : item)),
+      });
+    }),
+
+  deleteVertexAt: (id, index) =>
+    set((state) => {
+      const feature = state.document.features.find((item) => item.id === id);
+      if (!feature || feature.geometry.kind === 'point') return state;
+
+      const points = deleteVertex(
+        feature.geometry.points,
+        index,
+        minVertexCountOf(feature.geometry.kind),
+      );
+      if (points === null) return state;
+
+      const bearings =
+        feature.vertexBearings === undefined
+          ? undefined
+          : [...feature.vertexBearings.slice(0, index), ...feature.vertexBearings.slice(index + 1)];
+      const nextFeature: MapFeature = {
+        ...feature,
+        geometry: { ...feature.geometry, points },
+        vertexBearings: bearings,
+        updatedAt: Date.now(),
+      };
+      return commit(state, {
+        ...state.document,
+        features: state.document.features.map((item) => (item.id === id ? nextFeature : item)),
+      });
+    }),
+
+  resetVertexBearing: (id, index) =>
+    set((state) => {
+      const feature = state.document.features.find((item) => item.id === id);
+      if (!feature || feature.geometry.kind === 'point') return state;
+
+      const bearings =
+        index === undefined
+          ? resetAllBearings(feature.vertexBearings)
+          : resetBearing(feature.vertexBearings, index);
+      if (bearings === feature.vertexBearings) return state;
+
+      const nextFeature: MapFeature = {
+        ...feature,
+        vertexBearings: bearings,
+        updatedAt: Date.now(),
+      };
+      return commit(state, {
+        ...state.document,
+        features: state.document.features.map((item) => (item.id === id ? nextFeature : item)),
+      });
+    }),
+
   addLayer: (name) => {
     const layer = createLayer({
       name,
@@ -258,6 +394,16 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const next = reorderLayers(state.document.layers, sourceId, targetId);
       if (next === state.document.layers) return state;
       return commit(state, { ...state.document, layers: next });
+    }),
+
+  setLayerStatus: (id, status) =>
+    set((state) => {
+      const layer = state.document.layers.find((item) => item.id === id);
+      if (!layer || layer.status === status) return state;
+      return commit(state, {
+        ...state.document,
+        layers: state.document.layers.map((item) => (item.id === id ? { ...item, status } : item)),
+      });
     }),
 
   beginGesture: () => {
@@ -345,7 +491,27 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (ownsGesture) get().endGesture();
   },
 
-  select: (ids) => set({ selectedIds: ids }),
+  select: (ids) => set({ selectedIds: [...new Set(ids)] }),
+
+  toggleSelect: (id) => set((state) => ({ selectedIds: toggleInSelection(state.selectedIds, id) })),
+
+  addToSelection: (ids) =>
+    set((state) => ({ selectedIds: addSelectionIds(state.selectedIds, ids) })),
+
+  removeFromSelection: (ids) =>
+    set((state) => ({ selectedIds: removeSelectionIds(state.selectedIds, ids) })),
+
+  clearSelection: () => set({ selectedIds: [] }),
+
+  selectAllInLayer: (layerId) =>
+    set((state) => ({
+      selectedIds: state.document.features
+        .filter((feature) => feature.layerId === layerId)
+        .map((feature) => feature.id),
+    })),
+
+  selectInBounds: (bounds, mode) =>
+    set((state) => ({ selectedIds: featuresInBounds(state.document.features, bounds, mode) })),
 
   renameDocument: (name) => set((state) => commit(state, { ...state.document, name })),
 
@@ -399,14 +565,37 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   canRedo: () => get().future.length > 0,
 }));
 
-/** 选中单个要素时读取其完整对象，未选中时返回 null */
-export function useSelectedFeature(): MapFeature | null {
+/** 返回当前主选要素，即选择队列末位仍存在的要素。 */
+export function usePrimaryFeature(): MapFeature | null {
   return useDocumentStore((state) => {
-    const id = state.selectedIds[0];
+    const id = state.selectedIds[state.selectedIds.length - 1];
     if (!id) return null;
     return state.document.features.find((feature) => feature.id === id) ?? null;
   });
 }
+
+/** 返回全部已选要素，按选择队列顺序过滤缺失项和重复项。 */
+export function useSelectedFeatures(): MapFeature[] {
+  return useDocumentStore(
+    useShallow((state) => {
+      const featuresById = new Map(state.document.features.map((feature) => [feature.id, feature]));
+      const seenIds = new Set<string>();
+      const selected: MapFeature[] = [];
+
+      for (const id of state.selectedIds) {
+        if (seenIds.has(id)) continue;
+        seenIds.add(id);
+        const feature = featuresById.get(id);
+        if (feature) selected.push(feature);
+      }
+
+      return selected;
+    }),
+  );
+}
+
+/** @deprecated 请使用 usePrimaryFeature。 */
+export const useSelectedFeature = usePrimaryFeature;
 
 /** 按图层取出其下的要素，返回时已按创建时间升序 */
 export function selectFeaturesOfLayer(document: MapDocument, layerId: string): MapFeature[] {

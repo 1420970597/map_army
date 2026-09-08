@@ -1,14 +1,17 @@
 /**
- * 文档 store 的手势事务单测。
+ * 文档 store 的手势事务与批量操作单测。
  *
- * 验证预览阶段不污染撤销栈，结束手势时仅提交一次起始快照。
+ * 验证预览阶段不污染撤销栈，结束手势时仅提交一次起始快照，
+ * 并覆盖多选、批量图层迁移与顶点编辑操作的历史边界。
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  createAreaGeometry,
   createDocument,
   createFeature,
+  createLayer,
   createLineGeometry,
   createPointGeometry,
 } from '@/core/model';
@@ -57,6 +60,59 @@ function geometryOf(id: string): MapFeature['geometry'] {
   return feature.geometry;
 }
 
+function featureOf(id: string): MapFeature {
+  const feature = useDocumentStore.getState().document.features.find((item) => item.id === id);
+  if (!feature) throw new Error(`找不到要素 ${id}`);
+  return feature;
+}
+
+function prepareMultiLayerFixture(): {
+  sourceLayerId: string;
+  targetLayerId: string;
+  lockedLayerId: string;
+  features: MapFeature[];
+} {
+  const document = createDocument('批量操作');
+  const sourceLayerId = document.layers[0].id;
+  const targetLayer = createLayer({ name: '目标图层', order: 1 });
+  const lockedLayer = { ...createLayer({ name: '锁定图层', order: 2 }), locked: true };
+  const features = [
+    createFeature({
+      layerId: sourceLayerId,
+      sidc: 'SFGPUCI----K---',
+      geometry: createPointGeometry(0, 0),
+    }),
+    createFeature({
+      layerId: sourceLayerId,
+      sidc: 'SFGPUCI----K---',
+      geometry: createPointGeometry(1, 1),
+    }),
+    createFeature({
+      layerId: sourceLayerId,
+      sidc: 'SFGPUCI----K---',
+      geometry: createPointGeometry(2, 2),
+    }),
+    createFeature({
+      layerId: targetLayer.id,
+      sidc: 'SFGPUCI----K---',
+      geometry: createPointGeometry(3, 3),
+    }),
+    createFeature({
+      layerId: sourceLayerId,
+      sidc: 'SFGPUCI----K---',
+      geometry: createPointGeometry(4, 4),
+    }),
+  ];
+  useDocumentStore.setState({
+    document: { ...document, layers: [document.layers[0], targetLayer, lockedLayer], features },
+    activeLayerId: sourceLayerId,
+    selectedIds: [],
+    past: [],
+    future: [],
+  });
+  return { sourceLayerId, targetLayerId: targetLayer.id, lockedLayerId: lockedLayer.id, features };
+}
+
 describe('useDocumentStore 手势事务', () => {
   beforeEach(() => {
     resetStore();
@@ -73,10 +129,7 @@ describe('useDocumentStore 手势事务', () => {
 
     expect(useDocumentStore.getState().past).toHaveLength(1);
     expect(geometryOf(line.id)).toEqual({ kind: 'line', points: [firstPoint, thirdPoint] });
-    expect(
-      useDocumentStore.getState().document.features.find((item) => item.id === line.id)
-        ?.vertexBearings,
-    ).toEqual([45, 90]);
+    expect(featureOf(line.id).vertexBearings).toEqual([45, 90]);
   });
 
   it('没有预览的手势不会提交历史', () => {
@@ -233,5 +286,266 @@ describe('useDocumentStore 手势事务', () => {
 
     expect(useDocumentStore.getState().past).toHaveLength(0);
     expect(geometryOf(line.id)).toEqual({ kind: 'line', points: [firstPoint, secondPoint] });
+  });
+});
+
+describe('useDocumentStore 多选操作', () => {
+  beforeEach(() => {
+    resetStore();
+  });
+
+  it('toggleSelect 追加和移除选择，末位为主选且不进入历史', () => {
+    const { line, point } = resetStore();
+    const store = useDocumentStore.getState();
+
+    store.toggleSelect(line.id);
+    store.toggleSelect(point.id);
+    expect(useDocumentStore.getState().selectedIds).toEqual([line.id, point.id]);
+    expect(useDocumentStore.getState().selectedIds.at(-1)).toBe(point.id);
+    store.toggleSelect(line.id);
+
+    expect(useDocumentStore.getState().selectedIds).toEqual([point.id]);
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+  });
+
+  it('add、remove 和 clear 维护稳定去重顺序且不进入历史', () => {
+    const { line, point } = resetStore();
+    const store = useDocumentStore.getState();
+
+    store.addToSelection([line.id, point.id, line.id]);
+    expect(useDocumentStore.getState().selectedIds).toEqual([line.id, point.id]);
+    store.removeFromSelection([line.id]);
+    expect(useDocumentStore.getState().selectedIds).toEqual([point.id]);
+    store.clearSelection();
+
+    expect(useDocumentStore.getState().selectedIds).toEqual([]);
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+  });
+
+  it('selectAllInLayer 按文档要素顺序替换选择，缺失图层返回空集', () => {
+    const { document, line, point } = resetStore();
+    const otherLayer = createLayer({ name: '其他', order: 1 });
+    const other = createFeature({
+      layerId: otherLayer.id,
+      sidc: 'SFGPUCI----K---',
+      geometry: createPointGeometry(4, 4),
+    });
+    useDocumentStore.setState({
+      document: {
+        ...document,
+        layers: [...document.layers, otherLayer],
+        features: [point, other, line],
+      },
+    });
+
+    useDocumentStore.getState().selectAllInLayer(document.layers[0].id);
+    expect(useDocumentStore.getState().selectedIds).toEqual([point.id, line.id]);
+    useDocumentStore.getState().selectAllInLayer('missing');
+    expect(useDocumentStore.getState().selectedIds).toEqual([]);
+  });
+
+  it('selectInBounds 以点线命中结果替换选择', () => {
+    const { document, line, point } = resetStore();
+    const outside = createFeature({
+      layerId: document.layers[0].id,
+      sidc: 'SFGPUCI----K---',
+      geometry: createPointGeometry(150, 60),
+    });
+    useDocumentStore.setState({ document: { ...document, features: [line, point, outside] } });
+
+    useDocumentStore
+      .getState()
+      .selectInBounds({ minLon: 99, minLat: 29, maxLon: 102, maxLat: 32 }, 'intersect');
+
+    expect(useDocumentStore.getState().selectedIds).toEqual([line.id, point.id]);
+  });
+
+  it('主选与已选 selector 保持选择顺序、过滤缺失与重复项', () => {
+    const { line, point } = resetStore();
+    useDocumentStore.setState({ selectedIds: [point.id, 'missing', line.id, point.id] });
+
+    const state = useDocumentStore.getState();
+    const featuresById = new Map(state.document.features.map((feature) => [feature.id, feature]));
+    const selected = [...new Set(state.selectedIds)]
+      .map((id) => featuresById.get(id))
+      .filter((feature): feature is MapFeature => feature !== undefined);
+
+    expect(featuresById.get(state.selectedIds.at(-1) ?? '')).toBe(point);
+    expect(selected).toEqual([point, line]);
+  });
+
+  it('select 也会去重且不进入历史', () => {
+    const { line, point } = resetStore();
+
+    useDocumentStore.getState().select([line.id, point.id, line.id]);
+
+    expect(useDocumentStore.getState().selectedIds).toEqual([line.id, point.id]);
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+  });
+
+  it('selectInBounds 的 inside 模式会排除部分落入范围的线', () => {
+    const { line } = resetStore();
+
+    useDocumentStore
+      .getState()
+      .selectInBounds({ minLon: 99, minLat: 29, maxLon: 100.5, maxLat: 30.5 }, 'inside');
+
+    expect(useDocumentStore.getState().selectedIds).not.toContain(line.id);
+  });
+});
+
+describe('useDocumentStore 批量图层与顶点操作', () => {
+  beforeEach(() => {
+    resetStore();
+  });
+
+  it('批量移动五个要素只提交一次、选择实际移动项并支持 undo', () => {
+    const { sourceLayerId, targetLayerId, features } = prepareMultiLayerFixture();
+    const store = useDocumentStore.getState();
+
+    store.moveFeaturesToLayer(
+      [features[2].id, features[0].id, features[2].id, 'missing', features[3].id],
+      targetLayerId,
+    );
+
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+    expect(useDocumentStore.getState().selectedIds).toEqual([features[0].id, features[2].id]);
+    expect(featureOf(features[0].id).layerId).toBe(targetLayerId);
+    expect(featureOf(features[2].id).layerId).toBe(targetLayerId);
+    expect(featureOf(features[1].id).layerId).toBe(sourceLayerId);
+
+    store.undo();
+    expect(featureOf(features[0].id).layerId).toBe(sourceLayerId);
+    expect(featureOf(features[2].id).layerId).toBe(sourceLayerId);
+  });
+
+  it('锁定目标、无有效项和原地移动均不提交历史', () => {
+    const { targetLayerId, lockedLayerId, features } = prepareMultiLayerFixture();
+    const store = useDocumentStore.getState();
+
+    store.moveFeaturesToLayer([features[0].id], lockedLayerId);
+    store.moveFeaturesToLayer(['missing'], targetLayerId);
+    store.moveFeaturesToLayer([features[3].id], targetLayerId);
+
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+  });
+
+  it('setLayerStatus 仅在状态变化时提交一次历史', () => {
+    const { document } = resetStore();
+    const layerId = document.layers[0].id;
+    const store = useDocumentStore.getState();
+
+    store.setLayerStatus(layerId, 'approved');
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+    expect(useDocumentStore.getState().document.layers[0].status).toBe('approved');
+    store.setLayerStatus(layerId, 'approved');
+
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+  });
+
+  it('insertVertexAt 插入顶点并对齐方向数组，Point 和无效要素不提交历史', () => {
+    const { line, point } = resetStore();
+    useDocumentStore.setState({
+      document: {
+        ...useDocumentStore.getState().document,
+        features: [{ ...line, vertexBearings: [45, 90] }, point],
+      },
+    });
+    const store = useDocumentStore.getState();
+
+    store.insertVertexAt(line.id, 1, thirdPoint);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+    expect(geometryOf(line.id)).toEqual({
+      kind: 'line',
+      points: [firstPoint, thirdPoint, secondPoint],
+    });
+    expect(featureOf(line.id).vertexBearings).toEqual([45, undefined, 90]);
+    store.insertVertexAt(point.id, 0, movedPoint);
+    store.insertVertexAt('missing', 0, movedPoint);
+
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+  });
+
+  it('deleteVertexAt 合法删除一次，删除到下限时拒绝', () => {
+    const { document, line } = resetStore();
+    const editable = {
+      ...line,
+      geometry: createLineGeometry([firstPoint, secondPoint, thirdPoint]),
+      vertexBearings: [45, 90, 135],
+    };
+    useDocumentStore.setState({ document: { ...document, features: [editable] } });
+    const store = useDocumentStore.getState();
+
+    store.deleteVertexAt(line.id, 1);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+    expect(geometryOf(line.id)).toEqual({ kind: 'line', points: [firstPoint, thirdPoint] });
+    expect(featureOf(line.id).vertexBearings).toEqual([45, 135]);
+    store.deleteVertexAt(line.id, 0);
+
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+  });
+
+  it('resetVertexBearing 单点保留稀疏对齐，全部重置移除字段，无效不提交', () => {
+    const { document, line } = resetStore();
+    useDocumentStore.setState({
+      document: {
+        ...document,
+        features: [{ ...line, vertexBearings: [45, 90] }],
+      },
+    });
+    const store = useDocumentStore.getState();
+
+    store.resetVertexBearing(line.id, 1);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+    expect(featureOf(line.id).vertexBearings).toEqual([45, undefined]);
+    store.resetVertexBearing(line.id);
+    expect(useDocumentStore.getState().past).toHaveLength(2);
+    expect(featureOf(line.id).vertexBearings).toBeUndefined();
+    store.resetVertexBearing(line.id, 0);
+
+    expect(useDocumentStore.getState().past).toHaveLength(2);
+  });
+
+  it('面积顶点插入与删除使用面积最小点数', () => {
+    const { document } = resetStore();
+    const area = createFeature({
+      layerId: document.layers[0].id,
+      sidc: 'SFGPUCI----K---',
+      geometry: createAreaGeometry([firstPoint, secondPoint, thirdPoint]),
+    });
+    useDocumentStore.setState({ document: { ...document, features: [area] } });
+    const store = useDocumentStore.getState();
+
+    store.deleteVertexAt(area.id, 0);
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+    store.insertVertexAt(area.id, 1, movedPoint);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+  });
+
+  it('批量移动会刷新实际移动要素的更新时间', () => {
+    const { targetLayerId, features } = prepareMultiLayerFixture();
+    const previous = features[0].updatedAt;
+
+    useDocumentStore.getState().moveFeaturesToLayer([features[0].id], targetLayerId);
+
+    expect(featureOf(features[0].id).updatedAt).toBeGreaterThanOrEqual(previous);
+  });
+
+  it('resetVertexBearing 对不存在要素和 Point 保持无历史', () => {
+    const { point } = resetStore();
+    const store = useDocumentStore.getState();
+
+    store.resetVertexBearing('missing', 0);
+    store.resetVertexBearing(point.id, 0);
+
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+  });
+
+  it('deleteVertexAt 非法索引不提交历史', () => {
+    const { line } = resetStore();
+
+    useDocumentStore.getState().deleteVertexAt(line.id, 9);
+
+    expect(useDocumentStore.getState().past).toHaveLength(0);
   });
 });
