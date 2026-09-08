@@ -657,7 +657,9 @@ button {
   transform: scale(1.15);
 }
 
-.vertex-editor-snap-indicator {
+/* 编辑器与绘制共用的吸附指示器：仅作视觉提示，不参与命中 */
+.vertex-editor-snap-indicator,
+.draw-snap-indicator {
   pointer-events: none;
 }
 
