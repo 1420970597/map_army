@@ -18,6 +18,17 @@ export type { GeoJsonFeature, GeoJsonFeatureCollection, GeoJsonGeometry } from '
 export { autoSave, clearDocument, loadDocument, saveDocument } from './persistence';
 
 export {
+  classifyError,
+  estimateBytes,
+  isConflict,
+  CONFLICT_WINDOW_MS,
+  QUOTA_WARN_BYTES,
+  STORAGE_KEY,
+  URL_PAYLOAD_VERSION,
+} from './session';
+export type { SessionErrorKind, SessionMeta } from './session';
+
+export {
   downloadBytes,
   downloadText,
   pickBinaryFile,
