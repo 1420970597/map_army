@@ -531,9 +531,9 @@ describe('QA 隐藏与锁定图层的边界', () => {
 
   const coveringBounds = { minLon: -10, minLat: -10, maxLon: 10, maxLat: 20 };
 
-  // BUG-03：`selectInBounds` 直接使用全部文档要素做命中判定，
+  // 回归 BUG-03：`selectInBounds` 曾直接使用全部文档要素做命中判定，
   // 未过滤隐藏图层——用户看不见的要素会被框选选中，后续删除/移动会静默作用于它们。
-  it.fails('框选不应命中隐藏图层上的要素', () => {
+  it('框选不应命中隐藏图层上的要素', () => {
     const { visible, hidden } = installLayerVisibilityFixture();
 
     useDocumentStore.getState().selectInBounds(coveringBounds, 'intersect');

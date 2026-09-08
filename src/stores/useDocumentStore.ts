@@ -203,6 +203,18 @@ function sameDocument(first: MapDocument, second: MapDocument): boolean {
   return JSON.stringify(first) === JSON.stringify(second);
 }
 
+/**
+ * 取出文档中可见的要素，并保持文档原有顺序。
+ *
+ * 口径与 MapView 的渲染过滤一致：隐藏图层下的要素不渲染，因此也不应被框选命中，
+ * 否则会出现「看不见却能选中」、随后的删除/批量移动静默作用于不可见要素的问题。
+ * 锁定只限制编辑、不限制选择，故此处不剔除锁定图层。
+ */
+export function visibleFeatures(document: MapDocument): MapFeature[] {
+  const byId = new Map(document.layers.map((layer) => [layer.id, layer]));
+  return document.features.filter((feature) => byId.get(feature.layerId)?.visible !== false);
+}
+
 /** 手势事务只存在 store 闭包中，绝不写入文档或持久化状态。 */
 let pendingGesture: { snapshot: MapDocument; dirty: boolean } | null = null;
 
@@ -542,7 +554,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     })),
 
   selectInBounds: (bounds, mode) =>
-    set((state) => ({ selectedIds: featuresInBounds(state.document.features, bounds, mode) })),
+    set((state) => ({
+      selectedIds: featuresInBounds(visibleFeatures(state.document), bounds, mode),
+    })),
 
   renameDocument: (name) => set((state) => commit(state, { ...state.document, name })),
 

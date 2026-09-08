@@ -11,7 +11,7 @@ import { useMap } from 'react-leaflet';
 
 import type { LonLat, Pixel } from '@/core/geo';
 import { featuresInBounds, Tool } from '@/core/model';
-import { useDocumentStore } from '@/stores/useDocumentStore';
+import { useDocumentStore, visibleFeatures } from '@/stores/useDocumentStore';
 import { useEditStore } from '@/stores/useEditStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { isBoxSelectDrag, lonLatBoundsFromCorners } from './boxSelectLogic';
@@ -70,7 +70,8 @@ export function BoxSelect() {
       const end = toLonLat(map.containerPointToLatLng(endPixel));
       const bounds = lonLatBoundsFromCorners(session.start, end);
       const documentStore = useDocumentStore.getState();
-      const hitIds = featuresInBounds(documentStore.document.features, bounds, 'intersect');
+      // 与地图渲染口径一致：隐藏图层上的要素不可见，也不应被框选命中。
+      const hitIds = featuresInBounds(visibleFeatures(documentStore.document), bounds, 'intersect');
       if (session.append) documentStore.addToSelection(hitIds);
       else documentStore.selectInBounds(bounds, 'intersect');
     };
