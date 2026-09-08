@@ -494,8 +494,69 @@ const SEA_SUBSURFACE: SymbolDefinition[] = [
   },
 ];
 
+/** 地面装备图标（符号集 15）。 */
+const LAND_EQUIPMENT: SymbolDefinition[] = [
+  { name: '主战坦克', nameEn: 'Main Battle Tank', symbolSet: SymbolSet.LandEquipment, entity: '110100', paths: [{ d: 'M18,62 L82,62 L74,78 L26,78 Z' }, { d: 'M34,62 L42,46 L62,46 L70,62' }, { d: 'M58,46 L86,34' }] },
+  { name: '步兵战车', nameEn: 'Infantry Fighting Vehicle', symbolSet: SymbolSet.LandEquipment, entity: '110200', paths: [{ d: 'M16,62 L78,62 L72,78 L24,78 Z' }, { d: 'M34,62 L42,48 L62,48 L68,62' }, { d: 'M62,48 L82,42' }] },
+  { name: '装甲输送车', nameEn: 'Armored Personnel Carrier', symbolSet: SymbolSet.LandEquipment, entity: '110300', paths: [{ d: 'M16,60 L80,60 L74,76 L22,76 Z' }, { d: 'M30,60 L38,46 L64,46 L72,60' }] },
+  { name: '自行火炮', nameEn: 'Self-Propelled Howitzer', symbolSet: SymbolSet.LandEquipment, entity: '120100', paths: [{ d: 'M18,64 L80,64 L74,78 L24,78 Z' }, { d: 'M34,64 L40,48 L62,48 L70,64' }, { d: 'M54,48 L88,22' }] },
+  { name: '牵引火炮', nameEn: 'Towed Howitzer', symbolSet: SymbolSet.LandEquipment, entity: '120200', paths: [{ d: 'M22,68 L76,68' }, { d: 'M48,68 L74,30 L86,24' }, { d: 'M30,68 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0 M66,68 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0' }] },
+  { name: '多管火箭炮', nameEn: 'Multiple Rocket Launcher', symbolSet: SymbolSet.LandEquipment, entity: '120300', paths: [{ d: 'M18,66 L82,66 L74,80 L26,80 Z' }, { d: 'M30,58 L66,40 L72,54 L36,72 Z' }, { d: 'M38,55 L66,41 M42,62 L70,48' }] },
+  { name: '地对空导弹发射车', nameEn: 'Surface-to-Air Missile Launcher', symbolSet: SymbolSet.LandEquipment, entity: '130100', paths: [{ d: 'M18,68 L82,68 L74,82 L26,82 Z' }, { d: 'M42,60 L54,24 L62,60 Z' }] },
+  { name: '反坦克导弹车', nameEn: 'Antitank Missile Vehicle', symbolSet: SymbolSet.LandEquipment, entity: '130200', paths: [{ d: 'M18,68 L82,68 L74,82 L26,82 Z' }, { d: 'M42,60 L62,34 L68,42 L48,68 Z' }, { d: 'M68,42 L84,30' }] },
+  { name: '迫击炮', nameEn: 'Mortar', symbolSet: SymbolSet.LandEquipment, entity: '120400', paths: [{ d: 'M34,76 L66,76 M50,76 L36,34 L44,30 M56,76 L72,58' }] },
+  { name: '雷达车', nameEn: 'Radar Vehicle', symbolSet: SymbolSet.LandEquipment, entity: '140100', paths: [{ d: 'M18,68 L82,68 L74,82 L26,82 Z' }, { d: 'M50,62 L50,30 M28,38 Q50,14 72,38 M34,48 Q50,30 66,48' }] },
+  { name: '通信车', nameEn: 'Communications Vehicle', symbolSet: SymbolSet.LandEquipment, entity: '140200', paths: [{ d: 'M18,68 L82,68 L74,82 L26,82 Z' }, { d: 'M50,66 L50,24 M32,36 Q50,18 68,36 M38,46 Q50,34 62,46' }] },
+  { name: '电子干扰车', nameEn: 'Electronic Warfare Vehicle', symbolSet: SymbolSet.LandEquipment, entity: '140300', paths: [{ d: 'M18,68 L82,68 L74,82 L26,82 Z' }, { d: 'M50,64 L50,34 M24,34 Q36,18 48,34 T72,34 M24,48 Q36,32 48,48 T72,48' }] },
+  { name: '工程车', nameEn: 'Engineer Vehicle', symbolSet: SymbolSet.LandEquipment, entity: '150100', paths: [{ d: 'M18,68 L82,68 L74,82 L26,82 Z' }, { d: 'M36,68 L48,42 L60,68 M42,54 L64,36 L74,44' }] },
+  { name: '装甲抢修车', nameEn: 'Armored Recovery Vehicle', symbolSet: SymbolSet.LandEquipment, entity: '150200', paths: [{ d: 'M18,68 L82,68 L74,82 L26,82 Z' }, { d: 'M36,68 L50,42 L64,68 M50,42 L74,28 L80,36' }] },
+  { name: '架桥车', nameEn: 'Armored Vehicle-Launched Bridge', symbolSet: SymbolSet.LandEquipment, entity: '150300', paths: [{ d: 'M18,70 L82,70 L74,82 L26,82 Z' }, { d: 'M20,54 L80,54 L72,42 L28,42 Z' }, { d: 'M32,54 L40,42 M68,54 L60,42' }] },
+  { name: '军用卡车', nameEn: 'Cargo Truck', symbolSet: SymbolSet.LandEquipment, entity: '160100', paths: [{ d: 'M16,64 L84,64 L84,76 L16,76 Z' }, { d: 'M24,64 L24,42 L62,42 L62,64 M62,48 L76,48 L84,64' }, { d: 'M30,76 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 M70,76 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0' }] },
+  { name: '油料车', nameEn: 'Fuel Truck', symbolSet: SymbolSet.LandEquipment, entity: '160200', paths: [{ d: 'M16,66 L84,66 L84,78 L16,78 Z' }, { d: 'M24,66 L24,42 L60,42 L60,66 M42,54 m-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0' }] },
+  { name: '救护车', nameEn: 'Ambulance', symbolSet: SymbolSet.LandEquipment, entity: '160300', paths: [{ d: 'M16,66 L84,66 L84,78 L16,78 Z' }, { d: 'M24,66 L24,42 L60,42 L60,66 M42,48 L42,56 M38,52 L46,52' }] },
+  { name: '无人地面车辆', nameEn: 'Unmanned Ground Vehicle', symbolSet: SymbolSet.LandEquipment, entity: '170100', paths: [{ d: 'M22,62 L78,62 L72,76 L28,76 Z' }, { d: 'M40,62 L46,48 L60,48 L66,62 M50,48 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0' }] },
+  { name: '地面传感器', nameEn: 'Ground Sensor', symbolSet: SymbolSet.LandEquipment, entity: '170200', paths: [{ d: 'M50,78 L50,42 M32,54 Q50,30 68,54 M38,64 Q50,48 62,64 M36,78 L64,78' }] },
+];
+
+/** 地面设施、点状控制措施和功能专项图标。 */
+const EXTRA_DEFINITIONS: SymbolDefinition[] = [
+  { name: '指挥所', nameEn: 'Command Post', symbolSet: SymbolSet.LandInstallation, entity: '110100', paths: [{ d: 'M20,28 L80,28 L80,76 L20,76 Z M36,76 L36,50 L64,50 L64,76 M50,28 L50,14' }] },
+  { name: '机场', nameEn: 'Airfield', symbolSet: SymbolSet.LandInstallation, entity: '110200', paths: [{ d: 'M18,72 L82,28 M30,64 L42,72 M48,50 L60,58 M66,36 L78,44 M42,42 L58,58 M58,42 L42,58' }] },
+  { name: '港口', nameEn: 'Port', symbolSet: SymbolSet.LandInstallation, entity: '110300', paths: [{ d: 'M20,30 L80,30 L80,72 L20,72 Z M50,30 L50,58 M36,58 Q50,72 64,58 M30,80 Q40,72 50,80 T70,80' }] },
+  { name: '弹药库', nameEn: 'Ammunition Supply Point', symbolSet: SymbolSet.LandInstallation, entity: '120100', paths: [{ d: 'M22,34 L78,34 L78,78 L22,78 Z M22,34 L50,18 L78,34 M42,42 L58,42 L58,64 L50,70 L42,64 Z' }] },
+  { name: '油料库', nameEn: 'Fuel Supply Point', symbolSet: SymbolSet.LandInstallation, entity: '120200', paths: [{ d: 'M22,36 L78,36 L78,78 L22,78 Z M50,68 C32,52 40,34 50,20 C60,34 68,52 50,68 Z' }] },
+  { name: '野战医院', nameEn: 'Field Hospital', symbolSet: SymbolSet.LandInstallation, entity: '120300', paths: [{ d: 'M20,36 L80,36 L80,78 L20,78 Z M42,46 L58,46 L58,54 L66,54 L66,70 L58,70 L58,78 L42,78 L42,70 L34,70 L34,54 L42,54 Z', filled: true }] },
+  { name: '补给站', nameEn: 'Supply Point', symbolSet: SymbolSet.LandInstallation, entity: '120400', paths: [{ d: 'M20,38 L80,38 L80,78 L20,78 Z M20,38 L50,20 L80,38 M34,54 L66,54 M34,66 L66,66' }] },
+  { name: '维修站', nameEn: 'Maintenance Facility', symbolSet: SymbolSet.LandInstallation, entity: '120500', paths: [{ d: 'M20,34 L80,34 L80,78 L20,78 Z M34,60 L46,48 L58,60 L70,48 M50,34 L50,22' }] },
+  { name: '桥梁', nameEn: 'Bridge', symbolSet: SymbolSet.LandInstallation, entity: '130100', paths: [{ d: 'M14,68 L86,68 M24,68 Q50,30 76,68 M34,68 L42,52 M66,68 L58,52' }] },
+  { name: '渡场', nameEn: 'Crossing Site', symbolSet: SymbolSet.LandInstallation, entity: '130200', paths: [{ d: 'M16,34 L84,34 M16,66 L84,66 M36,30 L64,70 M60,62 L64,70 L56,68' }] },
+  { name: '雷达站', nameEn: 'Radar Site', symbolSet: SymbolSet.LandInstallation, entity: '140100', paths: [{ d: 'M50,78 L50,48 M24,48 Q50,16 76,48 M32,58 Q50,34 68,58 M30,78 L70,78' }] },
+  { name: '通信站', nameEn: 'Communications Site', symbolSet: SymbolSet.LandInstallation, entity: '140200', paths: [{ d: 'M50,78 L50,24 M36,78 L64,78 M28,34 Q50,12 72,34 M34,44 Q50,28 66,44' }] },
+  { name: '检查点', nameEn: 'Checkpoint', symbolSet: SymbolSet.ControlMeasure, entity: '110100', paths: [{ d: 'M50,16 L84,50 L50,84 L16,50 Z M32,50 L68,50' }] },
+  { name: '目标点', nameEn: 'Target Reference Point', symbolSet: SymbolSet.ControlMeasure, entity: '110200', paths: [{ d: 'M50,16 m-26,0 a26,26 0 1,0 52,0 a26,26 0 1,0 -52,0 M50,34 L50,66 M34,50 L66,50' }] },
+  { name: '集结点', nameEn: 'Assembly Point', symbolSet: SymbolSet.ControlMeasure, entity: '110300', paths: [{ d: 'M50,18 L78,76 L22,76 Z M50,34 L50,62 M36,48 L64,48' }] },
+  { name: '突破口', nameEn: 'Breach Point', symbolSet: SymbolSet.ControlMeasure, entity: '110400', paths: [{ d: 'M22,30 L78,30 M22,70 L78,70 M34,50 L66,50 M58,42 L66,50 L58,58' }] },
+  { name: '接触线', nameEn: 'Line of Contact', symbolSet: SymbolSet.ControlMeasure, entity: '120100', paths: [{ d: 'M16,50 L84,50 M30,42 L38,50 L30,58 M70,42 L62,50 L70,58' }] },
+  { name: '火力协调点', nameEn: 'Fire Support Coordination Point', symbolSet: SymbolSet.ControlMeasure, entity: '120200', paths: [{ d: 'M50,18 L80,50 L50,82 L20,50 Z M50,32 L50,68 M32,50 L68,50' }] },
+  { name: '补给集散点', nameEn: 'Logistics Release Point', symbolSet: SymbolSet.ControlMeasure, entity: '120300', paths: [{ d: 'M24,24 L76,24 L76,76 L24,76 Z M32,50 L68,50 M50,32 L50,68' }] },
+  { name: '禁入区', nameEn: 'Restricted Area', symbolSet: SymbolSet.ControlMeasure, entity: '120400', paths: [{ d: 'M50,16 m-30,0 a30,30 0 1,0 60,0 a30,30 0 1,0 -60,0 M28,72 L72,28' }] },
+  { name: '警戒点', nameEn: 'Security Point', symbolSet: SymbolSet.ControlMeasure, entity: '130100', paths: [{ d: 'M50,16 L82,38 L70,78 L30,78 L18,38 Z M50,34 L50,60' }] },
+  { name: '交接点', nameEn: 'Linkup Point', symbolSet: SymbolSet.ControlMeasure, entity: '130200', paths: [{ d: 'M22,50 L78,50 M38,34 L22,50 L38,66 M62,34 L78,50 L62,66' }] },
+  { name: '紧急事件', nameEn: 'Emergency Event', symbolSet: SymbolSet.Activities, entity: '110100', paths: [{ d: 'M50,14 L84,78 L16,78 Z M50,34 L50,58 M50,68 L50,70' }] },
+  { name: '人道救援', nameEn: 'Humanitarian Assistance', symbolSet: SymbolSet.Activities, entity: '110200', paths: [{ d: 'M50,80 C20,62 24,32 38,32 C46,32 50,38 50,42 C50,38 54,32 62,32 C76,32 80,62 50,80 Z M50,42 L50,64 M40,53 L60,53' }] },
+  { name: '医疗后送', nameEn: 'Medical Evacuation', symbolSet: SymbolSet.Activities, entity: '110300', paths: [{ d: 'M20,50 L72,50 M64,40 L76,50 L64,60 M32,38 L32,62 M22,50 L42,50' }] },
+  { name: '爆炸物处理', nameEn: 'Explosive Ordnance Disposal', symbolSet: SymbolSet.Activities, entity: '110400', paths: [{ d: 'M50,18 m-22,0 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0 M50,40 L50,58 M42,50 L58,50 M50,18 L50,10' }] },
+];
+
 /** 全量符号表 */
-const DEFINITIONS: SymbolDefinition[] = [...LAND_UNIT, ...AIR, ...SEA_SURFACE, ...SEA_SUBSURFACE];
+const DEFINITIONS: SymbolDefinition[] = [
+  ...LAND_UNIT,
+  ...AIR,
+  ...SEA_SURFACE,
+  ...SEA_SUBSURFACE,
+  ...LAND_EQUIPMENT,
+  ...EXTRA_DEFINITIONS,
+];
 
 /** 主键到定义的索引 */
 const INDEX: Map<string, SymbolDefinition> = new Map(
