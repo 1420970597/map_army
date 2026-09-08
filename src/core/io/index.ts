@@ -15,7 +15,23 @@ export type { MilxlyFile } from './milxly';
 export { documentToGeoJson, geoJsonToDocument } from './geojson';
 export type { GeoJsonFeature, GeoJsonFeatureCollection, GeoJsonGeometry } from './geojson';
 
-export { autoSave, clearDocument, loadDocument, saveDocument } from './persistence';
+export {
+  autoSave,
+  clearDocument,
+  getLastSaveResult,
+  loadDocument,
+  loadDocumentResult,
+  saveDocument,
+  trySaveDocument,
+  CORRUPT_BACKUP_STORAGE_KEY,
+  LEGACY_STORAGE_KEY,
+} from './persistence';
+export type {
+  PersistenceError,
+  PersistenceLoadResult,
+  PersistenceSaveResult,
+  StorageLike,
+} from './persistence';
 
 export {
   classifyError,

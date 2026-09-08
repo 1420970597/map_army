@@ -14,7 +14,10 @@ import type { MapDocument } from './types';
 /** 构造指定 schema 版本的最小有效文档。 */
 function makeDocument(schemaVersion?: number): MapDocument {
   const document = createDocument('迁移测试');
-  return schemaVersion === undefined ? document : { ...document, schemaVersion };
+  if (schemaVersion !== undefined) return { ...document, schemaVersion };
+
+  const { schemaVersion: _schemaVersion, ...legacyDocument } = document;
+  return legacyDocument;
 }
 
 describe('migrateDocument', () => {

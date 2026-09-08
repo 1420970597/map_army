@@ -12,8 +12,8 @@
  * 保证未来可以做格式迁移。
  */
 
-import type { MapDocument, MapFeature } from '../model';
-import { createDocument } from '../model';
+import { createDocument } from '../model/factory';
+import { LayerKind, LayerStatus, type MapDocument, type MapFeature } from '../model/types';
 
 /** 文件格式标识 */
 export const MILXLY_FORMAT = 'milxly';
@@ -105,10 +105,14 @@ export function deserializeMilxly(text: string): {
       locked: layer.locked === true,
       opacity: typeof layer.opacity === 'number' ? layer.opacity : 1,
       order: typeof layer.order === 'number' ? layer.order : index,
+      status: layer.status === LayerStatus.Approved ? LayerStatus.Approved : LayerStatus.Working,
+      kind: isLayerKind(layer.kind) ? layer.kind : LayerKind.Feature,
+      group: typeof layer.group === 'string' ? layer.group : undefined,
     })),
     features,
     createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now(),
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
+    schemaVersion: typeof raw.schemaVersion === 'number' ? raw.schemaVersion : undefined,
   };
 
   // 文件中没有任何图层时补一个默认图层，否则要素将无处安放
@@ -154,6 +158,7 @@ function reviveFeature(item: unknown): MapFeature | null {
       textFields: reviveTextFields(item.textFields),
       style: isRecord(item.style) ? (item.style as MapFeature['style']) : undefined,
       direction: typeof item.direction === 'number' ? item.direction : undefined,
+      vertexBearings: reviveVertexBearings(item.vertexBearings),
       createdAt: typeof item.createdAt === 'number' ? item.createdAt : now,
       updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : now,
     };
@@ -178,9 +183,24 @@ function reviveFeature(item: unknown): MapFeature | null {
     textFields: reviveTextFields(item.textFields),
     style: isRecord(item.style) ? (item.style as MapFeature['style']) : undefined,
     direction: typeof item.direction === 'number' ? item.direction : undefined,
+    vertexBearings: reviveVertexBearings(item.vertexBearings),
     createdAt: typeof item.createdAt === 'number' ? item.createdAt : now,
     updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : now,
   };
+}
+
+/** 判断值是否为已知图层种类。 */
+function isLayerKind(value: unknown): value is LayerKind {
+  return value === LayerKind.Feature || value === LayerKind.Image || value === LayerKind.Wargame;
+}
+
+/** 恢复顶点方向数组，只保留有限数值。 */
+function reviveVertexBearings(value: unknown): number[] | undefined {
+  if (!Array.isArray(value) || !value.every((bearing) => typeof bearing === 'number')) {
+    return undefined;
+  }
+
+  return [...value];
 }
 
 /** 恢复文本修饰符，只保留字符串字段 */

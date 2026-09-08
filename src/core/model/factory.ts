@@ -9,6 +9,8 @@ import { formatSidc } from '../symbology';
 import type { Sidc } from '../symbology';
 import {
   GeometryKind,
+  LayerKind,
+  LayerStatus,
   type AreaGeometry,
   type FeatureGeometry,
   type FeatureStyle,
@@ -19,6 +21,7 @@ import {
   type MapFeature,
   type PointGeometry,
 } from './types';
+import { CURRENT_SCHEMA_VERSION } from './migrate';
 
 /** id 前缀，便于在调试时区分对象类型 */
 const ID_PREFIX = {
@@ -104,6 +107,12 @@ export interface CreateLayerParams {
   visible?: boolean;
   /** 不透明度，默认 1 */
   opacity?: number;
+  /** 图层工作状态，默认正在标绘 */
+  status?: Layer['status'];
+  /** 图层种类，默认要素图层 */
+  kind?: Layer['kind'];
+  /** 兵棋分组标识 */
+  group?: string;
 }
 
 /** 创建图层 */
@@ -115,6 +124,9 @@ export function createLayer(params: CreateLayerParams): Layer {
     locked: false,
     opacity: params.opacity ?? 1,
     order: params.order ?? 0,
+    status: params.status ?? LayerStatus.Working,
+    kind: params.kind ?? LayerKind.Feature,
+    group: params.group,
   };
 }
 
@@ -133,6 +145,7 @@ export function createDocument(name = '未命名标图'): MapDocument {
     features: [],
     createdAt: now,
     updatedAt: now,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
   };
 }
 
@@ -144,11 +157,25 @@ export function createDocument(name = '未命名标图'): MapDocument {
  */
 export function cloneFeature(feature: MapFeature, overrides: Partial<MapFeature> = {}): MapFeature {
   const now = Date.now();
+  const source = { ...feature, ...overrides };
+
   return {
-    ...feature,
-    ...overrides,
+    ...source,
+    geometry: cloneGeometry(source.geometry),
+    textFields: { ...source.textFields },
+    style: source.style ? { ...source.style } : undefined,
+    vertexBearings: source.vertexBearings ? [...source.vertexBearings] : undefined,
     id: createId(ID_PREFIX.feature),
     createdAt: now,
     updatedAt: now,
   };
+}
+
+/** 深复制几何中的全部可变坐标，避免副本与源要素共享嵌套引用。 */
+function cloneGeometry(geometry: FeatureGeometry): FeatureGeometry {
+  if (geometry.kind === GeometryKind.Point) {
+    return { ...geometry, position: { ...geometry.position } };
+  }
+
+  return { ...geometry, points: geometry.points.map((point) => ({ ...point })) };
 }
