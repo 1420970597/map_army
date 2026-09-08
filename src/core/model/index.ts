@@ -28,6 +28,8 @@ export {
 } from './factory';
 export type { CreateFeatureParams, CreateLayerParams } from './factory';
 
+export { reorderLayers, sortLayersByDisplay } from './layerOrder';
+
 export {
   anchorOf,
   bearingOf,

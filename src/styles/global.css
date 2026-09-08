@@ -309,6 +309,59 @@ button {
   white-space: nowrap;
 }
 
+/* 编辑态下的图层名输入框：去掉浏览器默认外观，视觉与静态名一致 */
+.layer-name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 2px;
+  font: inherit;
+  color: inherit;
+  background: var(--c-surface);
+  border: 1px solid var(--c-primary);
+  border-radius: 2px;
+  outline: none;
+}
+
+/* 拖拽中的源行半透明，落下目标行显示虚线轮廓 */
+.layer-row.is-dragging {
+  opacity: 0.5;
+}
+
+.layer-row.is-drag-over {
+  outline: 1px dashed var(--c-primary);
+  outline-offset: -1px;
+}
+
+/* 整行允许子元素换行，让不透明度滑块独占第二行，避免在 280px 面板里挤掉名称 */
+.layer-row {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+/* 不透明度控件行：占满一整行，向右缩进与名称起点对齐 */
+.layer-opacity-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-basis: 100%;
+  padding-left: 22px;
+}
+
+.layer-opacity {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--c-primary);
+  cursor: pointer;
+}
+
+.layer-opacity-value {
+  min-width: 32px;
+  font-size: 11px;
+  color: var(--c-text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .feature-row {
   display: flex;
   gap: 6px;
