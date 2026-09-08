@@ -15,11 +15,14 @@ import {
   type FeatureGeometry,
   type FeatureStyle,
   type FeatureTextFields,
+  type GraphicParams,
   type Layer,
   type LineGeometry,
   type MapDocument,
   type MapFeature,
   type PointGeometry,
+  type SymbolKind,
+  type TacticalGraphicType,
 } from './types';
 import { CURRENT_SCHEMA_VERSION } from './migrate';
 
@@ -72,6 +75,12 @@ export interface CreateFeatureParams {
   style?: FeatureStyle;
   /** 机动方向方位角 */
   direction?: number;
+  /** 符号形态 */
+  symbolKind?: SymbolKind;
+  /** 战术图形种类 */
+  graphicType?: TacticalGraphicType;
+  /** 战术图形参数 */
+  graphicParams?: GraphicParams;
 }
 
 /**
@@ -92,6 +101,9 @@ export function createFeature(params: CreateFeatureParams): MapFeature {
     textFields: params.textFields ?? {},
     style: params.style,
     direction: params.direction,
+    symbolKind: params.symbolKind,
+    graphicType: params.graphicType,
+    graphicParams: params.graphicParams === undefined ? undefined : { ...params.graphicParams },
     createdAt: now,
     updatedAt: now,
   };
@@ -165,6 +177,7 @@ export function cloneFeature(feature: MapFeature, overrides: Partial<MapFeature>
     textFields: { ...source.textFields },
     style: source.style ? { ...source.style } : undefined,
     vertexBearings: source.vertexBearings ? [...source.vertexBearings] : undefined,
+    graphicParams: source.graphicParams ? { ...source.graphicParams } : undefined,
     id: createId(ID_PREFIX.feature),
     createdAt: now,
     updatedAt: now,

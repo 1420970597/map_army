@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Projection } from '../geo';
-import { GeometryKind, type MapFeature } from './types';
+import { GeometryKind, SymbolKind, TacticalGraphicType, type MapFeature } from './types';
 import {
   CLIPBOARD_KIND,
   CLIPBOARD_VERSION,
@@ -63,6 +63,40 @@ describe('serializeClipboard', () => {
     expect(feature.geometry).toEqual({ kind: GeometryKind.Point, position: { lon: 1, lat: 2 } });
     expect(layerNames['source-layer']).toBe('源图层');
     expect(anchor).toEqual({ lon: 0, lat: 0 });
+  });
+});
+
+describe('战术图形剪贴板字段', () => {
+  it('序列化、解析和实例化保留字段并隔离参数对象', () => {
+    const source = pointFeature({
+      symbolKind: SymbolKind.MultiPoint,
+      graphicType: TacticalGraphicType.AxisOfAdvance,
+      graphicParams: { headRatio: 0.2, smooth: true },
+    });
+    const serialized = payload([source]);
+    const parsed = parseClipboard(JSON.stringify(serialized));
+    const materialized = materializeClipboard(parsed!, {
+      targetLayerId: 'target',
+      projection: identityProjection,
+    })[0];
+
+    materialized.graphicParams!.headRatio = 0.4;
+    expect(parsed?.features[0]).toMatchObject({
+      symbolKind: SymbolKind.MultiPoint,
+      graphicType: TacticalGraphicType.AxisOfAdvance,
+      graphicParams: { headRatio: 0.2, smooth: true },
+    });
+    expect(source.graphicParams).toEqual({ headRatio: 0.2, smooth: true });
+  });
+
+  it('脏图形类型或参数拒绝解析', () => {
+    const invalid = payload([
+      pointFeature({
+        graphicType: 'unknown' as TacticalGraphicType,
+        graphicParams: { headRatio: Number.NaN },
+      }),
+    ]);
+    expect(parseClipboard(JSON.stringify(invalid))).toBeNull();
   });
 });
 
