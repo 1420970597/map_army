@@ -37,12 +37,27 @@ describe('符号目录', () => {
     }
   });
 
-  it('当前图标均归入编组单位', () => {
-    expect(entriesInCategory(SymbolCategory.Formations)).toHaveLength(listSymbols().length);
+  it('新增符号按默认分区归类', () => {
+    expect(entriesInCategory(SymbolCategory.Equipment).length).toBeGreaterThanOrEqual(32);
+    expect(entriesInCategory(SymbolCategory.TacticalGraphics).length).toBeGreaterThanOrEqual(17);
+    expect(entriesInCategory(SymbolCategory.FunctionSpecific).length).toBeGreaterThanOrEqual(4);
   });
 
-  it('战术图形占位条目存在', () => {
-    expect(entriesInCategory(SymbolCategory.TacticalGraphics)).toHaveLength(7);
+  it('目录总量至少为九十', () => {
+    expect(listCatalog().length).toBeGreaterThanOrEqual(90);
+  });
+
+  it('每个图标目录条目都有精确渲染定义', () => {
+    for (const definition of listSymbols()) {
+      const resolved = listSymbols(definition.symbolSet).find(
+        (candidate) => candidate.entity === definition.entity,
+      );
+      expect(resolved).toBe(definition);
+    }
+  });
+
+  it('战术图形含多点图形与点状控制措施', () => {
+    expect(entriesInCategory(SymbolCategory.TacticalGraphics)).toHaveLength(17);
   });
 
   it('气象海洋分类保留空条目', () => {
