@@ -7,6 +7,8 @@
 
 import type { Vec2 } from '../geo';
 
+export type { Vec2 } from '../geo';
+
 const EPSILON = 1e-9;
 
 /** 两个向量相加。 */
