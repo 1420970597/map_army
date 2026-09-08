@@ -14,6 +14,8 @@ import {
   createLineGeometry,
   createPointGeometry,
   GeometryKind,
+  SymbolKind,
+  TacticalGraphicType,
   type MapDocument,
 } from '../model';
 import { deserializeMilxly, serializeMilxly } from './milxly';
@@ -73,6 +75,9 @@ describe('serializeMilxly / deserializeMilxly', () => {
   it('往返转换应保留要素的全部字段', () => {
     const original = sampleDocument();
     original.features[1].vertexBearings = [10, 20];
+    original.features[1].symbolKind = SymbolKind.MultiPoint;
+    original.features[1].graphicType = TacticalGraphicType.AxisOfAdvance;
+    original.features[1].graphicParams = { headRatio: 0.2, smooth: true };
     const restored = deserializeMilxly(serializeMilxly(original));
     const [point, line, area] = restored.document.features;
 
@@ -82,8 +87,42 @@ describe('serializeMilxly / deserializeMilxly', () => {
     expect(point.direction).toBe(45);
     expect(line.geometry.kind).toBe(GeometryKind.Line);
     expect(line.vertexBearings).toEqual([10, 20]);
+    expect(line.symbolKind).toBe(SymbolKind.MultiPoint);
+    expect(line.graphicType).toBe(TacticalGraphicType.AxisOfAdvance);
+    expect(line.graphicParams).toEqual({ headRatio: 0.2, smooth: true });
     expect(area.geometry.kind).toBe(GeometryKind.Area);
     expect(restored.document.schemaVersion).toBe(original.schemaVersion);
+  });
+
+  it('脏战术图形字段不会阻断 MilX 导入', () => {
+    const text = JSON.stringify({
+      format: 'milxly',
+      version: 1,
+      document: {
+        features: [
+          {
+            id: 'f1',
+            sidc: '10062500001101000000',
+            geometry: {
+              kind: 'line',
+              points: [
+                { lon: 1, lat: 2 },
+                { lon: 3, lat: 4 },
+              ],
+            },
+            symbolKind: 'unexpected',
+            graphicType: 'unexpected',
+            graphicParams: { headRatio: 'bad', arbitrary: 1 },
+          },
+        ],
+      },
+    });
+    const result = deserializeMilxly(text);
+
+    expect(result.skipped).toBe(0);
+    expect(result.document.features[0].symbolKind).toBeUndefined();
+    expect(result.document.features[0].graphicType).toBeUndefined();
+    expect(result.document.features[0].graphicParams).toBeUndefined();
   });
 
   it('输出应是带缩进的可读 JSON', () => {
@@ -180,6 +219,44 @@ describe('documentToGeoJson', () => {
     // 原始 3 个顶点，闭合后应为 4 个
     expect(ring).toHaveLength(4);
     expect(ring[0]).toEqual(ring[3]);
+  });
+});
+
+describe('战术图形 GeoJSON 属性', () => {
+  it('往返保留战术图形字段和参数', () => {
+    const original = sampleDocument();
+    original.features[1].symbolKind = SymbolKind.MultiPoint;
+    original.features[1].graphicType = TacticalGraphicType.AxisOfAdvance;
+    original.features[1].graphicParams = { headRatio: 0.25, smooth: true };
+    const result = geoJsonToDocument(documentToGeoJson(original), '还原', 'lyr_default');
+
+    expect(result.document.features[1]).toMatchObject({
+      symbolKind: SymbolKind.MultiPoint,
+      graphicType: TacticalGraphicType.AxisOfAdvance,
+      graphicParams: { headRatio: 0.25, smooth: true },
+    });
+  });
+
+  it('脏 GeoJSON 图形字段被安全忽略', () => {
+    const result = geoJsonToDocument(
+      {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [10, 20] },
+            properties: {
+              graphicType: 'unknown',
+              graphicParams: { headRatio: 'bad', arbitrary: 1 },
+            },
+          },
+        ],
+      },
+      '脏字段',
+      'lyr_default',
+    );
+    expect(result.document.features[0].graphicType).toBeUndefined();
+    expect(result.document.features[0].graphicParams).toBeUndefined();
   });
 });
 
