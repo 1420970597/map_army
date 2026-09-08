@@ -488,6 +488,38 @@ button {
   border-top-color: var(--c-primary);
 }
 
+/* ── 顶点编辑器 ───────────────────────────────────────── */
+
+.vertex-editor-ghost {
+  pointer-events: none;
+}
+
+.vertex-editor-handle-icon {
+  width: 12px;
+  height: 12px;
+  background: transparent;
+  border: none;
+}
+
+.vertex-editor-handle-dot {
+  display: block;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 2px solid #0a7fb8;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 40%);
+}
+
+.vertex-editor-handle-icon:hover .vertex-editor-handle-dot {
+  border-color: #f59e0b;
+  transform: scale(1.15);
+}
+
+.vertex-editor-snap-indicator {
+  pointer-events: none;
+}
+
 /* ── 通用工具 ─────────────────────────────────────────── */
 
 .empty-hint {

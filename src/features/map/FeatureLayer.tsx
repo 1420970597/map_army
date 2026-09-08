@@ -33,6 +33,8 @@ export interface FeatureLayerProps {
    * 在渲染时被叠加到要素自身样式上，使调整面板滑块时地图立即变化。
    */
   layerOpacity?: Record<string, number>;
+  /** 编辑器接管渲染的要素标识，避免与幽灵几何重复绘制。 */
+  hiddenIds?: readonly string[];
 }
 
 /** 缺省图层不透明度，避免热路径每次创建对象字面量 */
@@ -41,20 +43,29 @@ const DEFAULT_LAYER_OPACITY = 1;
 /**
  * 要素渲染层组件。
  */
-export function FeatureLayer({ features, onSelect, selectedIds, layerOpacity }: FeatureLayerProps) {
+export function FeatureLayer({
+  features,
+  onSelect,
+  selectedIds,
+  layerOpacity,
+  hiddenIds,
+}: FeatureLayerProps) {
   const selectedIdSet = useMemo(() => selectedIdSetOf(selectedIds), [selectedIds]);
+  const hiddenIdSet = useMemo(() => new Set(hiddenIds), [hiddenIds]);
 
   return (
     <>
-      {features.map((feature) => (
-        <FeatureShape
-          key={feature.id}
-          feature={feature}
-          selected={selectedIdSet.has(feature.id)}
-          onSelect={onSelect}
-          opacity={layerOpacity?.[feature.layerId] ?? DEFAULT_LAYER_OPACITY}
-        />
-      ))}
+      {features
+        .filter((feature) => !hiddenIdSet.has(feature.id))
+        .map((feature) => (
+          <FeatureShape
+            key={feature.id}
+            feature={feature}
+            selected={selectedIdSet.has(feature.id)}
+            onSelect={onSelect}
+            opacity={layerOpacity?.[feature.layerId] ?? DEFAULT_LAYER_OPACITY}
+          />
+        ))}
     </>
   );
 }

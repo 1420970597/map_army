@@ -14,6 +14,8 @@ import { BaseMapType, Tool } from '@/core/model';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { DrawHandler } from '@/features/draw/DrawHandler';
+import { VertexEditor } from '@/features/draw/VertexEditor';
+import { isVertexEditorEligible } from '@/features/draw/vertexEditorLogic';
 import { MapClickHandler, FeatureLayer } from './FeatureLayer';
 import { GridOverlay } from './GridOverlay';
 import { selectionAfterBlankClick, selectionAfterFeatureClick } from './mapSelection';
@@ -138,6 +140,20 @@ export function MapView() {
     return map;
   }, [layers]);
 
+  const primaryFeature = useMemo(() => {
+    const primaryId = selectedIds[selectedIds.length - 1];
+    return primaryId === undefined
+      ? null
+      : (features.find((feature) => feature.id === primaryId) ?? null);
+  }, [features, selectedIds]);
+
+  const vertexEditing = isVertexEditorEligible({
+    activeTool,
+    selectedIds,
+    feature: primaryFeature,
+    layers,
+  });
+  const hiddenIds = vertexEditing && primaryFeature !== null ? [primaryFeature.id] : [];
   const tile = TILE_SOURCES[baseMap];
 
   return (
@@ -161,6 +177,7 @@ export function MapView() {
         features={orderedFeatures}
         selectedIds={selectedIds}
         layerOpacity={layerOpacity}
+        hiddenIds={hiddenIds}
         onSelect={(id, event) => {
           const originalEvent = event.originalEvent;
           const next = selectionAfterFeatureClick(selectedIds, id, {
@@ -173,6 +190,13 @@ export function MapView() {
       />
 
       <MapClickHandler onBlankClick={() => select(selectionAfterBlankClick())} />
+      <VertexEditor
+        activeTool={activeTool}
+        selectedIds={selectedIds}
+        feature={primaryFeature}
+        visibleFeatures={orderedFeatures}
+        layers={layers}
+      />
       <DrawHandler />
       <MouseTracker />
     </MapContainer>
