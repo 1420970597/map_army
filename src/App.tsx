@@ -11,10 +11,11 @@ import { autoSave, loadDocument } from '@/core/io';
 import { Inspector } from '@/features/inspector/Inspector';
 import { LayerPanel } from '@/features/layers/LayerPanel';
 import { MapView } from '@/features/map/MapView';
+import { ShortcutHelp } from '@/features/shell/ShortcutHelp';
+import { useKeyboardShortcuts } from '@/features/shell/useKeyboardShortcuts';
 import { StatusBar } from '@/features/statusbar/StatusBar';
 import { SymbolPanel } from '@/features/symbol/SymbolPanel';
 import { Toolbar } from '@/features/toolbar/Toolbar';
-import { Tool } from '@/core/model';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useViewStore } from '@/stores/useViewStore';
 
@@ -36,44 +37,7 @@ export function App() {
     return stopAutoSave;
   }, []);
 
-  // 全局快捷键：撤销、重做、删除选中要素
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      const target = event.target as HTMLElement | null;
-      // 在输入框内不拦截快捷键，避免影响文本编辑
-      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
-
-      const documentStore = useDocumentStore.getState();
-      const viewStore = useViewStore.getState();
-      const isMac = navigator.platform.toUpperCase().includes('MAC');
-      const accel = isMac ? event.metaKey : event.ctrlKey;
-
-      if (accel && event.key.toLowerCase() === 'z') {
-        event.preventDefault();
-        if (event.shiftKey) documentStore.redo();
-        else documentStore.undo();
-        return;
-      }
-      if (accel && event.key.toLowerCase() === 'y') {
-        event.preventDefault();
-        documentStore.redo();
-        return;
-      }
-      if (event.key === 'Delete' || event.key === 'Backspace') {
-        if (documentStore.selectedIds.length === 0) return;
-        event.preventDefault();
-        documentStore.removeFeatures(documentStore.selectedIds);
-        return;
-      }
-      if (event.key === 'Escape') {
-        documentStore.select([]);
-        viewStore.setActiveTool(Tool.Select);
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  useKeyboardShortcuts();
 
   return (
     <div className="app">
@@ -86,6 +50,7 @@ export function App() {
       </div>
 
       <Inspector />
+      <ShortcutHelp />
       <StatusBar />
     </div>
   );

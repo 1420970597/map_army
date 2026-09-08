@@ -101,11 +101,10 @@ export function DrawHandler() {
     [addFeature, activeLayerId, pendingSidc, reset],
   );
 
-  // 键盘控制：Enter 结束绘制，Esc 放弃
+  // 本地 Enter/Esc 与全局快捷键命令桥共用同一提交/取消路径。
   useEffect(() => {
-    if (!isDrawing) return;
-
     const onKeyDown = (event: KeyboardEvent): void => {
+      if (!isDrawing) return;
       if (event.key === 'Enter') {
         event.preventDefault();
         commitDraft(false);
@@ -113,9 +112,21 @@ export function DrawHandler() {
         reset();
       }
     };
+    const confirm = (): void => {
+      if (isDrawing) commitDraft(false);
+    };
+    const cancel = (): void => {
+      if (isDrawing) reset();
+    };
 
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener('map-army:confirm-draw', confirm);
+    window.addEventListener('map-army:cancel-draw', cancel);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('map-army:confirm-draw', confirm);
+      window.removeEventListener('map-army:cancel-draw', cancel);
+    };
   }, [isDrawing, commitDraft, reset]);
 
   // 切换工具时丢弃未完成的草稿，避免残留顶点混入下一次绘制

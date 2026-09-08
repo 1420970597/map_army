@@ -21,6 +21,7 @@ import { MapClickHandler, FeatureLayer } from './FeatureLayer';
 import { GridOverlay } from './GridOverlay';
 import { selectionAfterBlankClick, selectionAfterFeatureClick } from './mapSelection';
 import { MouseTracker } from './MouseTracker';
+import { MapCommandHandler } from './MapCommandHandler';
 
 /**
  * 底图瓦片源配置。
@@ -171,6 +172,7 @@ export function MapView() {
 
       {/* 视图双向同步：替代会引发更新死循环的内联 ref 回调 */}
       <ViewSync />
+      <MapCommandHandler />
 
       <GridOverlay type={grid} showLabels={gridLabels} />
 
