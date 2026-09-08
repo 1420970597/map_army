@@ -36,6 +36,9 @@ export {
 } from './factory';
 export type { CreateFeatureParams, CreateLayerParams } from './factory';
 
+export { mergeStyleWithDefaults, styleFromSymbolDefaults } from './style';
+export type { SymbolStyleDefaults } from './style';
+
 export { reorderLayers, sortLayersByDisplay } from './layerOrder';
 
 export {
