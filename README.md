@@ -239,15 +239,36 @@ docker compose down
 
 ### 不在复刻范围（依赖原站服务端或属商业能力）
 
-- Pro 时间轴与单位动画（按计划路线播放）
-- Blue Force Tracking（BFT）实时位置共享
-- 外部 GPS / SIM 追踪器接入
-- 用户管理与登录（多用户、角色权限）
-- 自定义 WMTS / WMS 底图（含私有与本地瓦片服务）
-- 口令保护的分享链接
-- 封闭网络 / 本地化部署
-- Military Symbol Service（MSS）托管符号服务 —— 本项目以自绘符号引擎替代
-- 用户论坛与社区作品征集
+本节是路线图的**范围边界**，不是“入口待补齐”列表。2026-09-09 对照官方
+[`llms.txt`](https://www.map.army/doc/en/llms.txt)、[`Free vs Pro`](https://www.map.army/doc/en/about/pro-vs-free/)、
+[`FAQ`](https://www.map.army/doc/en/about/faq/) 及相关数据交换页面复核后，当前共有 **9 项**：
+
+| 编号   | 能力                         | 原站真实行为与证据                                                                                                                                                                                                                                                                                                         | 当前实现事实                                                                                                                   | 排除原因与边界                                                                                                                              |
+| ------ | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| OOS-01 | Pro 时间轴与单位动画         | Pro 才支持单位沿航路点自动移动、播放控制；免费版不提供。[Free vs Pro](https://www.map.army/doc/en/about/pro-vs-free/)                                                                                                                                                                                                      | `src/features/map/Map3DView.tsx` 明确关闭 Cesium timeline/animation；模型没有时间轴、航路和回放状态                            | **Pro 能力**，需要时间序列项目数据、服务端保存/协作和动画状态同步；不纳入免费版复刻。                                                       |
+| OOS-02 | Blue Force Tracking（BFT）   | Pro 才支持参与单位的实时位置共享；免费版仅能显示当前浏览器自己的位置，且不会转发给他人。[FAQ](https://www.map.army/doc/en/about/faq/)、[Free vs Pro](https://www.map.army/doc/en/about/pro-vs-free/)                                                                                                                       | `src/features/toolbar/Toolbar.tsx` 只有 `navigator.geolocation` 的本机定位；没有 WebSocket、位置广播、订阅或轨迹存储           | **Pro 实时协作能力**，需要身份、位置服务、推送通道和权限控制；本机定位继续属于复刻范围。                                                    |
+| OOS-03 | 外部 GPS / SIM 追踪器        | Pro 支持硬件 beacon 推送位置；免费版不能接入 SIM tracker、硬件信标或把位置推送到地图。[FAQ](https://www.map.army/doc/en/about/faq/)                                                                                                                                                                                        | 当前没有串口、蓝牙、NMEA、HTTP tracker 或设备注册协议，仅使用浏览器 Geolocation API                                            | **商业项目集成能力**，依赖设备协议、网关、鉴权和后端接入；不以浏览器定位冒充完成。                                                          |
+| OOS-04 | 用户管理与登录               | Pro 提供多用户、登录和基于角色的权限；免费托管版无账号、无登录、无用户级持久化。[Free vs Pro](https://www.map.army/doc/en/about/pro-vs-free/)、[FAQ](https://www.map.army/doc/en/about/faq/)                                                                                                                               | 当前没有用户表、会话认证、登录页面或角色模型；`server/index.mjs` 的 Bearer token 只保护分享更新，不代表用户身份                | **Pro 服务端身份能力**，需要账号目录、会话、角色/审计和持久化；分享令牌保持资源级编辑令牌语义。                                             |
+| OOS-05 | 自定义 WMTS / WMS 底图       | Pro 可配置地图提供商，包含私有和本地瓦片服务器；免费版只提供官方预置样式。[Free vs Pro](https://www.map.army/doc/en/about/pro-vs-free/)、[Map display settings](https://www.map.army/doc/en/options/map_settings/)                                                                                                         | `src/features/map/tileSources.ts` 是固定公开源目录；虽支持图像/在线图层 URL，但没有用户自定义 WMTS/WMS、服务能力探测或私有凭据 | **Pro GIS/部署能力**。公开无密钥底图、图像叠加和在线图层仍可继续完善，但不实现任意 WMTS/WMS 管理。                                          |
+| OOS-06 | 口令保护的分享链接           | Pro/项目部署可提供非公开访问控制；免费分享链接是无密码、持有链接即可访问。[Create a Share](https://www.map.army/doc/en/data-exchange/create-a-share/)、[Free vs Pro](https://www.map.army/doc/en/about/pro-vs-free/)                                                                                                       | 当前 `GET /api/shares/:id` 以随机 ID 读取；随机 Bearer token 和 `If-Match` 只用于编辑更新，未实现密码校验、登录或访问过期策略  | **商业安全能力**，需要认证、密钥生命周期、限流和访问审计；随机分享 ID 不得描述为口令保护。                                                  |
+| OOS-07 | 封闭网络 / 完整本地化部署    | FAQ 说明可按项目把 Web 应用及 MSS/MilX 后端部署到无互联网网络，并按 Active Directory、GIS、WMTS/WMS 等环境定制。[FAQ](https://www.map.army/doc/en/about/faq/)                                                                                                                                                              | `docker-compose.yml` 只提供本项目静态前端和 Share API；前端仍引用外部瓦片，未包含原站 MSS/MilX 后端、账号体系或离线数据供应链  | **项目交付/部署能力**。Docker Compose 是本项目开发和可自托管部署方式，不等同于原站 Pro 的闭网交付；闭网全套依赖不纳入。                     |
+| OOS-08 | gs-soft MSS 托管符号服务/API | 原站由 MSS（Military Symbol Service）提供超过 3500 个符号和战术图形，map.army 通过 REST/SOAP 后端使用；完整规格需联系 gs-soft。[MSS 产品页](https://www.gs-soft.com/CMS/en/products/mssstick-mss-and-milx/mss)、[FAQ](https://www.map.army/doc/en/about/faq/)、[MilX 格式](https://www.map.army/doc/en/about/milx-format/) | 本项目在 `src/core/symbology/` 使用本地目录和自绘渲染，未调用 `symbol.army`/MSS Web API；仅实现已审计的本地兼容子集            | **不是免费版功能排除，而是实现依赖替代/兼容限制**。复刻可见符号功能与交换格式，但不复制闭源 MSS 服务、完整专有目录、服务端 API 或商业授权。 |
+| OOS-09 | 用户论坛与社区作品征集/托管  | 原站 FAQ 页提供 Google Group User Forum；社区作品、示例精选和投稿流程依赖外部社区/站点运营，而非地图编辑器本身。[FAQ](https://www.map.army/doc/en/about/faq/)、[官方首页](https://www.map.army/)                                                                                                                           | `site/` 仅生成静态关于、示例和文档页，没有账号、投稿接口、审核队列、评论、社区存储或运营后台                                   | **外部社区服务能力**，需要论坛平台、投稿审核、内容存储和运营流程；本项目最多提供静态说明或外链，不实现社区后台。                            |
+
+#### 范围统计与判定
+
+- **9 项总计**：OOS-01 至 OOS-09；其中 OOS-01～OOS-07 与 OOS-09 是严格排除项，OOS-08 是本地替代引擎的兼容边界。
+- **7 项 Pro 专属**：OOS-01～OOS-07，官方 `Free vs Pro` 明确将其列为免费版没有、Pro 提供的能力。
+- **1 项专有服务依赖**：OOS-08，MSS/MilX 服务由 gs-soft 维护，完整 schema、目录和授权不公开；本项目保留本地符号功能，但不宣称与原站服务完全等价。
+- **1 项外部社区能力**：OOS-09，依赖 Google Group/站点运营和内容审核。
+- **严格排除 8 项**：7 项 Pro 专属 + 1 项论坛/社区后端；OOS-08 不删除符号功能，只排除对原站闭源服务的直接依赖。
+- **当前替代状态**：OOS-02 保留“本机浏览器定位”这一免费能力；OOS-05 保留预置公开底图和在线图层；OOS-07 提供开发者 Docker Compose。上述替代均不扩大为原站 Pro 功能。
+- **明确不误判**：本项目自有 Share API、localStorage、Docker Compose 和本地符号渲染是复刻实现手段，不代表已实现原站用户账号、口令分享、MSS 服务或闭网 Pro 交付。
+
+原站与当前实现的完整逐项范围审计、抓取日期和后续可纳入 ToDo 见
+[`docs/RESEARCH-out-of-scope-2026-09.md`](docs/RESEARCH-out-of-scope-2026-09.md)、
+[`docs/RESEARCH-original-site-2026-09-v2.md`](docs/RESEARCH-original-site-2026-09-v2.md) 与
+[`docs/TODO-original-site-audit-2026-09.md`](docs/TODO-original-site-audit-2026-09.md)。
 
 ## 许可证
 
