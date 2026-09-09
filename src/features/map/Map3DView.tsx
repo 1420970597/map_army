@@ -1,6 +1,12 @@
 /** 只读三维地球：复用文档数据，并提供航向、俯仰与高度控制。 */
 import { useEffect, useRef, useState } from 'react';
-import type { TerrainProvider, Viewer } from 'cesium';
+import type {
+  CustomHeightmapTerrainProvider,
+  ImageryLayer as CesiumImageryLayer,
+  TerrainProvider,
+  UrlTemplateImageryProvider as CesiumUrlTemplateImageryProvider,
+  Viewer,
+} from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useViewStore } from '@/stores/useViewStore';
@@ -8,6 +14,31 @@ import { buildGraphic, GRAPHIC_META } from '@/core/graphics';
 import { militarySvg } from '@/core/symbology/military';
 import { useAccessStore } from '@/stores/useAccessStore';
 import { useCustomSymbolStore } from '@/stores/useCustomSymbolStore';
+import { offlineHeightmap, OFFLINE_TERRAIN_SIZE } from './offlineTerrain';
+
+function createOfflineTerrain(Provider: typeof CustomHeightmapTerrainProvider): TerrainProvider {
+  return new Provider({
+    width: OFFLINE_TERRAIN_SIZE,
+    height: OFFLINE_TERRAIN_SIZE,
+    callback: (tileX, tileY, level) => offlineHeightmap(tileX, tileY, level),
+    credit: '内置离线地形基线',
+  });
+}
+
+function createImageryLayer(
+  ImageryLayer: typeof CesiumImageryLayer,
+  UrlTemplateImageryProvider: typeof CesiumUrlTemplateImageryProvider,
+  url: string | undefined,
+): CesiumImageryLayer | false {
+  if (!url) return false;
+  return new ImageryLayer(
+    new UrlTemplateImageryProvider({
+      url,
+      credit: '配置的离线或内网影像服务',
+      maximumLevel: 19,
+    }),
+  );
+}
 
 export function Map3DView() {
   const host = useRef<HTMLDivElement>(null);
@@ -16,7 +47,7 @@ export function Map3DView() {
   const [height, setHeight] = useState(0);
   const [heading, setHeading] = useState(0);
   const [pitch, setPitch] = useState(-60);
-  const [terrainStatus, setTerrainStatus] = useState<'loading' | 'ready' | 'fallback'>('loading');
+  const [terrainStatus, setTerrainStatus] = useState<'loading' | 'ready' | 'offline'>('loading');
   const layers = useDocumentStore((s) => s.document.layers);
   const features = useDocumentStore((s) => s.document.features);
   const updateLayer = useDocumentStore((s) => s.updateLayer);
@@ -28,7 +59,7 @@ export function Map3DView() {
         async ({
           Viewer,
           Cartesian3,
-          EllipsoidTerrainProvider,
+          CustomHeightmapTerrainProvider,
           CesiumTerrainProvider,
           Ion,
           createWorldTerrainAsync,
@@ -49,13 +80,12 @@ export function Map3DView() {
               });
               setTerrainStatus('ready');
             } catch {
-              terrainProvider = new EllipsoidTerrainProvider();
-              setTerrainStatus('fallback');
+              terrainProvider = createOfflineTerrain(CustomHeightmapTerrainProvider);
+              setTerrainStatus('offline');
             }
           } else if (!terrainUrl) {
-            // 未配置可用的 Cesium terrain 服务时使用椭球，避免请求失效地址破坏三维视图。
-            terrainProvider = new EllipsoidTerrainProvider();
-            setTerrainStatus('fallback');
+            terrainProvider = createOfflineTerrain(CustomHeightmapTerrainProvider);
+            setTerrainStatus('offline');
           } else {
             try {
               terrainProvider = await CesiumTerrainProvider.fromUrl(terrainUrl, {
@@ -64,8 +94,8 @@ export function Map3DView() {
               });
               setTerrainStatus('ready');
             } catch {
-              terrainProvider = new EllipsoidTerrainProvider();
-              setTerrainStatus('fallback');
+              terrainProvider = createOfflineTerrain(CustomHeightmapTerrainProvider);
+              setTerrainStatus('offline');
             }
           }
           if (disposed || !host.current) return;
@@ -78,12 +108,10 @@ export function Map3DView() {
             sceneModePicker: false,
             navigationHelpButton: false,
             fullscreenButton: false,
-            baseLayer: new ImageryLayer(
-              new UrlTemplateImageryProvider({
-                url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                credit: '© OpenStreetMap contributors',
-                maximumLevel: 19,
-              }),
+            baseLayer: createImageryLayer(
+              ImageryLayer,
+              UrlTemplateImageryProvider,
+              import.meta.env.VITE_CESIUM_IMAGERY_URL?.trim(),
             ),
             terrainProvider,
             requestRenderMode: true,
@@ -217,7 +245,7 @@ export function Map3DView() {
             ? 'DEM 已加载'
             : terrainStatus === 'loading'
               ? 'DEM 加载中'
-              : '椭球回退（未配置 DEM）'}
+              : '内置离线地形'}
         </span>
         <div className="map-3d-layers" aria-label="三维图层控制">
           {layers.map((layer) => (
