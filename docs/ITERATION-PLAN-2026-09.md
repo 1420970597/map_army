@@ -47,3 +47,10 @@ Compose 前端首页和 `/api/health` 均正常，两个容器 healthy。PR 推�
 - `data-exchange/load-milx-layer-using-url-parameter`：`d413f266727ad0daaf94298697d02dd41711ace64053e1f55ee8086363cbc55b`
 
 复核确认原生 MilX 差异已关闭；在线图层 URL 元数据与 Share 权限闭环进入第三轮。
+
+### 第 3 轮：Share 协作闭环
+
+本轮完成空分享、图层选择更新、版本固定链接、If-Match 冲突提示、在线图层 URL 说明和 iframe 预览，
+并新增服务端独立副本接口。离线快照继续保持纯前端权限边界，编辑副本通过独立 ID 和令牌隔离。
+
+本轮完成后重新核对 Share、iframe、在线图层和版本跟踪页面，再进入符号编辑器轮次。

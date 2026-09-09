@@ -69,3 +69,33 @@ test('允许先创建空分享，再在后续版本加入图层', async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('编辑副本创建独立分享标识并可独立更新', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'map-army-copy-share-'));
+  const server = createShareServer({ directory });
+  await new Promise((done) => server.listen(0, '127.0.0.1', done));
+  const request = (path, options = {}) =>
+    fetch(`http://127.0.0.1:${server.address().port}${path}`, options);
+  try {
+    const created = await request('/api/shares', {
+      method: 'POST',
+      body: JSON.stringify({ document: { name: '原始', layers: [], features: [] } }),
+    });
+    const source = await created.json();
+    const copied = await request(`/api/shares/${source.id}/copy`, { method: 'POST' });
+    assert.equal(copied.status, 201);
+    const copy = await copied.json();
+    assert.notEqual(copy.id, source.id);
+    const updated = await request(`/api/shares/${copy.id}`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${copy.token}`, 'If-Match': '1' },
+      body: JSON.stringify({ document: { name: '副本', layers: [], features: [] } }),
+    });
+    assert.equal(updated.status, 200);
+    assert.equal((await (await request(`/api/shares/${source.id}`)).json()).document.name, '原始');
+    assert.equal((await (await request(`/api/shares/${copy.id}`)).json()).document.name, '副本');
+  } finally {
+    await new Promise((done) => server.close(done));
+    await rm(directory, { recursive: true, force: true });
+  }
+});

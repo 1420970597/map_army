@@ -11,27 +11,29 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [inline, setInline] = useState(false);
+  const [preview, setPreview] = useState(false);
   // 原站新建分享默认为空，必须由用户明确选择要发布的图层。
   const [selected, setSelected] = useState<string[]>([]);
   const doc = useDocumentStore((s) => s.document);
   const shared = useAccessStore((s) => s.shared);
-  const buildUrl = (id: string, token?: string) => {
+  const buildUrl = (id: string, token?: string, requestedMode = mode) => {
     const link = new URL(window.location.href);
     link.search = '';
     link.hash = '';
     link.searchParams.set('share', id);
-    link.searchParams.set('mode', mode);
-    if (mode === 'edit' && token) link.hash = `edit=${token}`;
+    link.searchParams.set('mode', requestedMode);
+    if (requestedMode === 'edit' && token) link.hash = `edit=${token}`;
     return link.toString();
   };
+  const selectedDocument = () => ({
+    ...doc,
+    layers: doc.layers.filter((layer) => selected.includes(layer.id)),
+    features: doc.features.filter((feature) => selected.includes(feature.layerId)),
+  });
   const create = async () => {
     setBusy(true);
     setMessage('');
-    const document = {
-      ...doc,
-      layers: doc.layers.filter((l) => selected.includes(l.id)),
-      features: doc.features.filter((f) => selected.includes(f.layerId)),
-    };
+    const document = selectedDocument();
     try {
       if (inline) {
         setUrl(createShareUrl(document, mode === 'view' ? 'view' : 'copy'));
@@ -52,6 +54,25 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
       setBusy(false);
     }
   };
+  const createCopy = async () => {
+    if (!shared) return;
+    setBusy(true);
+    setMessage('');
+    try {
+      const response = await fetch(`/api/shares/${shared.id}/copy`, { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      const next = { id: data.id, token: data.token, version: data.version };
+      useAccessStore.getState().setShared(next);
+      setMode('edit');
+      setUrl(buildUrl(data.id, data.token, 'edit'));
+      setMessage(`已创建独立编辑副本 ${data.id}`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '创建编辑副本失败');
+    } finally {
+      setBusy(false);
+    }
+  };
   const update = async () => {
     if (!shared?.token) return;
     setBusy(true);
@@ -63,10 +84,16 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
           Authorization: `Bearer ${shared.token}`,
           'If-Match': String(shared.version),
         },
-        body: JSON.stringify({ document: doc }),
+        body: JSON.stringify({ document: selectedDocument() }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      if (!response.ok) {
+        if (response.status === 409 && typeof result.version === 'number') {
+          useAccessStore.getState().setShared({ ...shared, version: result.version });
+          throw new Error(`检测到版本冲突，服务端当前为 v${result.version}，请先加载最新版本`);
+        }
+        throw new Error(result.error);
+      }
       useAccessStore.getState().setShared({ ...shared, version: result.version });
       setMessage(`已更新至版本 ${result.version}`);
     } catch (error) {
@@ -89,6 +116,7 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
     useDocumentStore.getState().replaceDocument(loaded.document);
     useAccessStore.getState().setReadOnly(wasReadOnly);
     useAccessStore.getState().setShared({ ...shared, version: data.version });
+    setSelected(loaded.document.layers.map((layer) => layer.id));
     setMessage(`已加载版本 ${data.version}`);
   };
   const copy = async (value: string) => {
@@ -127,7 +155,7 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
             </select>
           </label>
           <div className="field">
-            分享图层（新建分享默认为空，请明确选择）
+            分享图层（新建分享默认为空；更新时取消勾选即可移除）
             {doc.layers.map((l) => (
               <label key={l.id}>
                 <input
@@ -143,6 +171,12 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
               </label>
             ))}
           </div>
+          {doc.layers.some((layer) => selected.includes(layer.id) && layer.sourceUrl) && (
+            <p className="field-hint" role="status">
+              在线图层仅分享 URL，接收方打开时会重新请求源地址；源地址不可用或未允许 CORS
+              时不会嵌入快照。
+            </p>
+          )}
           <label className="field-row">
             <input
               type="checkbox"
@@ -162,6 +196,9 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
               <span>当前分享 · 版本 {shared.version}</span>
               <button disabled={busy || !shared.token} onClick={() => void update()}>
                 更新当前分享
+              </button>
+              <button disabled={busy} onClick={() => void createCopy()}>
+                创建独立编辑副本
               </button>
               <button onClick={() => void reload()}>加载最新版本</button>
               <button onClick={() => setUrl(buildUrl(shared.id, shared.token))}>
@@ -190,6 +227,9 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
                 rows={3}
               />
               <button onClick={() => void copy(url)}>复制链接</button>
+              <button onClick={() => setPreview((value) => !value)}>
+                {preview ? '隐藏 iframe 预览' : '预览 iframe'}
+              </button>
               <button
                 onClick={() =>
                   void copy(
@@ -199,6 +239,15 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
               >
                 复制 iframe 代码
               </button>
+              {preview && (
+                <iframe
+                  title="分享 iframe 预览"
+                  src={url}
+                  sandbox="allow-scripts allow-same-origin"
+                  loading="lazy"
+                  style={{ width: '100%', minHeight: 240, border: '1px solid var(--c-border)' }}
+                />
+              )}
             </>
           )}
           <p role="status">{message}</p>

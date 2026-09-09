@@ -76,13 +76,33 @@ export function createShareServer({
         json(res, 201, { id, token, version: 1 });
         return;
       }
-      const match = url.pathname.match(/^\/api\/shares\/([a-f0-9]{32})$/);
+      const match = url.pathname.match(/^\/api\/shares\/([a-f0-9]{32})(?:\/copy)?$/);
       if (!match) {
         json(res, 404, { error: '分享地址不存在' });
         return;
       }
       const id = match[1],
         path = join(root, id);
+      if (req.method === 'POST' && url.pathname.endsWith('/copy')) {
+        const sourceMeta = JSON.parse(await readFile(join(path, 'meta.json'), 'utf8'));
+        const source = JSON.parse(await readFile(join(path, `${sourceMeta.version}.json`), 'utf8'));
+        if ((await readdir(root)).length >= limit) {
+          json(res, 507, { error: '分享存储已满' });
+          return;
+        }
+        const copyId = randomBytes(16).toString('hex');
+        const token = randomBytes(32).toString('base64url');
+        const copyPath = join(root, copyId);
+        await mkdir(copyPath);
+        await atomic(join(copyPath, '1.json'), {
+          document: source.document,
+          version: 1,
+          updatedAt: Date.now(),
+        });
+        await atomic(join(copyPath, 'meta.json'), { tokenHash: digest(token), version: 1 });
+        json(res, 201, { id: copyId, token, version: 1, copiedFrom: id });
+        return;
+      }
       if (req.method === 'GET') {
         const meta = JSON.parse(await readFile(join(path, 'meta.json'), 'utf8'));
         const version = Number(url.searchParams.get('version') || meta.version);
