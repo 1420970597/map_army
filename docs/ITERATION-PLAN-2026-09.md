@@ -19,3 +19,12 @@
 本轮目标是让图层操作与原站的编辑边界一致：用户能够定位全部或单层内容、过滤当前图层要素、从图层行导出、把导入数据放入指定图层；锁定图层的更新、删除、移动、顶点编辑和草稿预览均不写入文档历史。
 
 验收证据在本轮提交中记录；完成后将本节标记为已关闭，并在同一 PR 后追加原站差异复核。
+
+本轮已关闭（提交 `def539b`）：`npm run ci` 通过（60 个测试文件、966 个测试），
+Compose 前端首页和 `/api/health` 均正常，两个容器 healthy。PR 推送后重新读取原站页面：
+
+- `layers/edit_layer`：`cd873ee85bdb22a4b4680ab3b141d3faa880d80e2a449da5ea51392bd7242e55`
+- `map-tools/coordinate-search`：`20d3fcca1e9e8d43de4ada00bf4db2b8011ea9a4607911fe02f80b064e5c6639`
+- `export-and-prints/create-export`：`021d81dde25ac787572bc921afd9631786c46d4bc58615361c89b745e6dd7bcc`
+
+复核确认图层闭环差异已关闭；下一轮聚焦 MilX V3.1 字段与官方样例往返。
