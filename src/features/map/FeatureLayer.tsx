@@ -20,6 +20,7 @@ import {
   type RenderStyle,
 } from './featureStyle';
 import { iconPartsOf, symbolIcon } from './symbolIcon';
+import { useCustomSymbolStore } from '@/stores/useCustomSymbolStore';
 
 /** 组件属性 */
 export interface FeatureLayerProps {
@@ -170,6 +171,11 @@ function PointFeature({
   opacity: number;
   approved?: boolean;
 }) {
+  const customSvg = useCustomSymbolStore(
+    (state) =>
+      feature.customSymbolSvg ??
+      state.symbols.find((symbol) => symbol.id === feature.customSymbolId)?.svg,
+  );
   // 图标构造成本较高，按要素内容缓存；选中态通过 CSS 类切换而非重建图标
   const icon = useMemo(
     () =>
@@ -183,8 +189,17 @@ function PointFeature({
           feature.style?.fontFamily,
         ),
         approved,
+        customSvg,
       }),
-    [feature.sidc, feature.textFields, feature.direction, feature.style, selected, approved],
+    [
+      feature.sidc,
+      customSvg,
+      feature.textFields,
+      feature.direction,
+      feature.style,
+      selected,
+      approved,
+    ],
   );
 
   return (

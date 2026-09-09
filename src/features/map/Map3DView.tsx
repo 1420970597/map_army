@@ -1,12 +1,13 @@
 /** 只读三维地球：复用文档数据，并提供航向、俯仰与高度控制。 */
 import { useEffect, useRef, useState } from 'react';
-import type { Viewer } from 'cesium';
+import type { TerrainProvider, Viewer } from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { buildGraphic, GRAPHIC_META } from '@/core/graphics';
 import { militarySvg } from '@/core/symbology/military';
 import { useAccessStore } from '@/stores/useAccessStore';
+import { useCustomSymbolStore } from '@/stores/useCustomSymbolStore';
 
 export function Map3DView() {
   const host = useRef<HTMLDivElement>(null);
@@ -15,21 +16,37 @@ export function Map3DView() {
   const [height, setHeight] = useState(0);
   const [heading, setHeading] = useState(0);
   const [pitch, setPitch] = useState(-60);
+  const [terrainStatus, setTerrainStatus] = useState<'loading' | 'ready' | 'fallback'>('loading');
   const layers = useDocumentStore((s) => s.document.layers);
   const features = useDocumentStore((s) => s.document.features);
   const updateLayer = useDocumentStore((s) => s.updateLayer);
+  const customSymbols = useCustomSymbolStore((s) => s.symbols);
   useEffect(() => {
     let disposed = false;
     void import('cesium')
       .then(
-        ({
+        async ({
           Viewer,
           Cartesian3,
           EllipsoidTerrainProvider,
+          CesiumTerrainProvider,
           ImageryLayer,
           UrlTemplateImageryProvider,
           Math: CMath,
         }) => {
+          if (disposed || !host.current) return;
+          let terrainProvider: TerrainProvider;
+          try {
+            // AWS 公共地形服务提供全球 quantized-mesh DEM，无需 Cesium Ion 密钥。
+            terrainProvider = await CesiumTerrainProvider.fromUrl(
+              'https://s3.amazonaws.com/elevation-tiles-prod/skadi/',
+              { requestVertexNormals: true, requestWaterMask: true },
+            );
+            setTerrainStatus('ready');
+          } catch {
+            terrainProvider = new EllipsoidTerrainProvider();
+            setTerrainStatus('fallback');
+          }
           if (disposed || !host.current) return;
           const instance = new Viewer(host.current, {
             animation: false,
@@ -47,7 +64,7 @@ export function Map3DView() {
                 maximumLevel: 19,
               }),
             ),
-            terrainProvider: new EllipsoidTerrainProvider(),
+            terrainProvider,
             requestRenderMode: true,
           });
           viewer.current = instance;
@@ -107,7 +124,7 @@ export function Map3DView() {
             name: feature.name,
             position: Cartesian3.fromDegrees(p.lon, p.lat),
             billboard: {
-              image: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(militarySvg(feature.sidc, { ...feature.textFields, size: 32, monoColor: layer.status === 'approved' ? '#111111' : undefined }))}`,
+              image: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(feature.customSymbolSvg ?? customSymbols.find((symbol) => symbol.id === feature.customSymbolId)?.svg ?? militarySvg(feature.sidc, { ...feature.textFields, size: 32, monoColor: layer.status === 'approved' ? '#111111' : undefined }))}`,
               color: Color.WHITE.withAlpha(layer.opacity),
               heightReference: HeightReference.CLAMP_TO_GROUND,
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
@@ -157,7 +174,7 @@ export function Map3DView() {
     return () => {
       cancelled = true;
     };
-  }, [ready, features, layers]);
+  }, [ready, features, layers, customSymbols]);
   const rotate = async (h: number, p: number) => {
     const map = viewer.current;
     if (!map) return;
@@ -173,7 +190,14 @@ export function Map3DView() {
     <div className="map-3d">
       <div ref={host} className="cesium-container" aria-label="三维只读地球视图" />
       <div className="map-tools-overlay">
-        <span>三维只读 · 高度 {height.toLocaleString()} m</span>
+        <span>
+          三维只读 · 高度 {height.toLocaleString()} m · 地形{' '}
+          {terrainStatus === 'ready'
+            ? 'DEM 已加载'
+            : terrainStatus === 'loading'
+              ? 'DEM 加载中'
+              : '椭球回退'}
+        </span>
         <div className="map-3d-layers" aria-label="三维图层控制">
           {layers.map((layer) => (
             <label className="field-row" key={layer.id}>

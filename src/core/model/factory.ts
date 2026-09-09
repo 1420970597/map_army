@@ -65,6 +65,10 @@ export interface CreateFeatureParams {
   layerId: string;
   /** 符号标识，可传结构化对象或 20 位字符串 */
   sidc: Sidc | string;
+  /** 可选的自定义军标目录标识。 */
+  customSymbolId?: string;
+  /** 自定义军标 SVG 快照。 */
+  customSymbolSvg?: string;
   /** 显示名称，省略时取符号的中文名 */
   name?: string;
   /** 几何 */
@@ -96,6 +100,8 @@ export function createFeature(params: CreateFeatureParams): MapFeature {
     id: createId(ID_PREFIX.feature),
     layerId: params.layerId,
     sidc,
+    customSymbolId: params.customSymbolId,
+    customSymbolSvg: params.customSymbolSvg,
     name: params.name ?? '',
     geometry: params.geometry,
     textFields: params.textFields ?? {},
@@ -176,6 +182,8 @@ export function cloneFeature(feature: MapFeature, overrides: Partial<MapFeature>
     geometry: cloneGeometry(source.geometry),
     textFields: { ...source.textFields },
     style: source.style ? { ...source.style } : undefined,
+    customSymbolId: source.customSymbolId,
+    customSymbolSvg: source.customSymbolSvg,
     vertexBearings: source.vertexBearings ? [...source.vertexBearings] : undefined,
     rangeRings: source.rangeRings ? [...source.rangeRings] : undefined,
     graphicParams: source.graphicParams ? { ...source.graphicParams } : undefined,

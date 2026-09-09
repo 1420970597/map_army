@@ -36,6 +36,8 @@ export interface ViewState {
   activeTool: Tool;
   /** 待放置符号的 SIDC，切换到符号工具后点击地图即放置 */
   pendingSidc: string;
+  /** 待放置的自定义军标目录标识。 */
+  pendingCustomSymbolId?: string;
   /** 左侧符号面板是否展开 */
   symbolPanelOpen: boolean;
   /** 右侧图层面板是否展开 */
@@ -57,6 +59,7 @@ export interface ViewState {
   setActiveTool: (tool: Tool) => void;
   toggle3d: () => void;
   setPendingSidc: (sidc: string) => void;
+  setPendingCustomSymbolId: (id: string | undefined) => void;
   toggleSymbolPanel: () => void;
   toggleLayerPanel: () => void;
   setInspectorOpen: (open: boolean) => void;
@@ -96,6 +99,7 @@ export const useViewStore = create<ViewState>((set) => ({
   is3d: false,
   activeTool: Tool.Select,
   pendingSidc: '10031000001211000000',
+  pendingCustomSymbolId: undefined,
   symbolPanelOpen: true,
   layerPanelOpen: false,
   inspectorOpen: false,
@@ -117,6 +121,7 @@ export const useViewStore = create<ViewState>((set) => ({
   setActiveTool: (activeTool) => set({ activeTool }),
   toggle3d: () => set((state) => ({ is3d: !state.is3d })),
   setPendingSidc: (pendingSidc) => set({ pendingSidc }),
+  setPendingCustomSymbolId: (pendingCustomSymbolId) => set({ pendingCustomSymbolId }),
   toggleSymbolPanel: () => set((state) => ({ symbolPanelOpen: !state.symbolPanelOpen })),
   toggleLayerPanel: () => set((state) => ({ layerPanelOpen: !state.layerPanelOpen })),
   setInspectorOpen: (inspectorOpen) =>
