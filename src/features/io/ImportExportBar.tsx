@@ -1,5 +1,5 @@
 /** 文件与分享入口。导入默认追加图层；导出可限制为当前活动图层。 */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   downloadText,
   downloadBytes,
@@ -20,6 +20,7 @@ import { ShareDialog } from './ShareDialog';
 export function ImportExportBar() {
   const doc = useDocumentStore((s) => s.document);
   const activeLayerId = useDocumentStore((s) => s.activeLayerId);
+  const setActiveLayer = useDocumentStore((s) => s.setActiveLayer);
   const readOnly = useAccessStore((s) => s.readOnly);
   const fileInput = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -28,16 +29,19 @@ export function ImportExportBar() {
   const [print, setPrint] = useState(false);
   const [format, setFormat] = useState('milxlyz');
   const [scope, setScope] = useState('all');
-  const [importMode, setImportMode] = useState<'append' | 'replace' | 'active'>('append');
+  const [importMode, setImportMode] = useState<'append' | 'replace' | 'active' | 'target'>(
+    'append',
+  );
+  const [targetLayerId, setTargetLayerId] = useState(activeLayerId);
   const [message, setMessage] = useState('');
-  const exportFile = () => {
+  const exportFile = (layerId = activeLayerId) => {
     const output =
       scope === 'all'
         ? doc
         : {
             ...doc,
-            layers: doc.layers.filter((l) => l.id === activeLayerId),
-            features: doc.features.filter((f) => f.layerId === activeLayerId),
+            layers: doc.layers.filter((l) => l.id === layerId),
+            features: doc.features.filter((f) => f.layerId === layerId),
           };
     if (format === 'milxlyz')
       downloadBytes(exportMilxArchive(output), {
@@ -61,6 +65,16 @@ export function ImportExportBar() {
     }
     setMessage('文件已导出');
   };
+  useEffect(() => {
+    const onLayerExport = (event: Event) => {
+      const layerId = (event as CustomEvent<{ layerId?: string }>).detail?.layerId;
+      if (layerId && doc.layers.some((layer) => layer.id === layerId)) {
+        exportFile(layerId);
+      }
+    };
+    window.addEventListener('map-army:export-layer', onLayerExport);
+    return () => window.removeEventListener('map-army:export-layer', onLayerExport);
+  });
   return (
     <div className="toolbar-group">
       <button className="tb-button" onClick={() => setOpen(!open)}>
@@ -82,7 +96,7 @@ export function ImportExportBar() {
           if (!file) return;
           try {
             const result = parseMapFile(new Uint8Array(await file.arrayBuffer()), file.name);
-            applyImportedDocument(result.document, importMode);
+            applyImportedDocument(result.document, importMode, targetLayerId);
             setMessage(
               `已导入 ${result.document.features.length} 个要素${result.skipped ? `，跳过 ${result.skipped} 个不支持的要素` : ''}`,
             );
@@ -110,9 +124,29 @@ export function ImportExportBar() {
                 >
                   <option value="append">追加为新图层</option>
                   <option value="active">合并到活动图层</option>
+                  <option value="target">导入到指定图层</option>
                   <option value="replace">替换文档（可撤销）</option>
                 </select>
               </label>
+              {importMode === 'target' && (
+                <label className="field">
+                  目标图层
+                  <select
+                    value={targetLayerId}
+                    onChange={(event) => {
+                      setTargetLayerId(event.target.value);
+                      setActiveLayer(event.target.value);
+                    }}
+                  >
+                    {doc.layers.map((layer) => (
+                      <option key={layer.id} value={layer.id} disabled={layer.locked}>
+                        {layer.name}
+                        {layer.locked ? '（已锁定）' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <button disabled={readOnly} onClick={() => fileInput.current?.click()}>
                 选择文件导入
               </button>
@@ -144,7 +178,7 @@ export function ImportExportBar() {
                   <option value="json">项目备份 JSON</option>
                 </select>
               </label>
-              <button onClick={exportFile}>下载文件</button>
+              <button onClick={() => exportFile()}>下载文件</button>
               <p role="status">{message}</p>
             </div>
           </section>

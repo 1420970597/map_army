@@ -562,15 +562,13 @@ describe('QA 隐藏与锁定图层的边界', () => {
     expect(featureOf(visible.id).layerId).not.toBe(locked.layerId);
   });
 
-  it('删除操作当前不区分图层锁定状态（需求待确认，见报告 OBS-2）', () => {
+  it('锁定图层上的要素不可删除且不产生历史', () => {
     const { locked } = installLayerVisibilityFixture();
 
     useDocumentStore.getState().removeFeatures([locked.id]);
 
-    // 该用例记录当前实现：锁定图层上的要素仍可被删除。
-    // 若产品确认"锁定图层不可删除"，请把断言改为断言要素仍存在且不产生历史。
-    expect(useDocumentStore.getState().document.features).toHaveLength(2);
-    expect(useDocumentStore.getState().past).toHaveLength(1);
+    expect(useDocumentStore.getState().document.features).toHaveLength(3);
+    expect(useDocumentStore.getState().past).toHaveLength(0);
   });
 
   // 回归 BUG-04：`removeFeatures` 曾无条件提交历史，即使一个要素都没删掉。

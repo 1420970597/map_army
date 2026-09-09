@@ -275,19 +275,27 @@ export const useDocumentStore = create<DocumentState>((rawSet, get) => {
       }),
 
     updateFeature: (id, patch) =>
-      set((state) =>
-        commit(state, {
+      set((state) => {
+        const feature = state.document.features.find((item) => item.id === id);
+        const layer = feature && state.document.layers.find((item) => item.id === feature.layerId);
+        if (!feature || layer?.locked) return state;
+        return commit(state, {
           ...state.document,
           features: state.document.features.map((feature) =>
             feature.id === id ? { ...feature, ...patch, updatedAt: Date.now() } : feature,
           ),
-        }),
-      ),
+        });
+      }),
 
     removeFeatures: (ids) =>
       set((state) => {
         const target = new Set(ids);
-        const remaining = state.document.features.filter((feature) => !target.has(feature.id));
+        const editable = new Set(
+          state.document.layers.filter((layer) => !layer.locked).map((layer) => layer.id),
+        );
+        const remaining = state.document.features.filter(
+          (feature) => !target.has(feature.id) || !editable.has(feature.layerId),
+        );
         // 一个都没删掉时不提交历史，避免出现「按一次 Ctrl+Z 什么都没发生」的空记录。
         if (remaining.length === state.document.features.length) return state;
 
@@ -295,14 +303,26 @@ export const useDocumentStore = create<DocumentState>((rawSet, get) => {
       }),
 
     moveFeatureToLayer: (featureId, layerId) =>
-      set((state) =>
-        commit(state, {
+      set((state) => {
+        const feature = state.document.features.find((item) => item.id === featureId);
+        const source = feature && state.document.layers.find((item) => item.id === feature.layerId);
+        const target = state.document.layers.find((item) => item.id === layerId);
+        if (
+          !feature ||
+          !source ||
+          source.locked ||
+          !target ||
+          target.locked ||
+          feature.layerId === layerId
+        )
+          return state;
+        return commit(state, {
           ...state.document,
           features: state.document.features.map((feature) =>
             feature.id === featureId ? { ...feature, layerId, updatedAt: Date.now() } : feature,
           ),
-        }),
-      ),
+        });
+      }),
 
     moveFeaturesToLayer: (ids, layerId) =>
       set((state) => {
@@ -315,7 +335,14 @@ export const useDocumentStore = create<DocumentState>((rawSet, get) => {
         );
         const movedIds = requestedIds.filter((id) => {
           const feature = featuresById.get(id);
-          return feature !== undefined && feature.layerId !== layerId;
+          const source =
+            feature && state.document.layers.find((layer) => layer.id === feature.layerId);
+          return (
+            feature !== undefined &&
+            source !== undefined &&
+            !source.locked &&
+            feature.layerId !== layerId
+          );
         });
         if (movedIds.length === 0) return state;
 
@@ -335,7 +362,8 @@ export const useDocumentStore = create<DocumentState>((rawSet, get) => {
     insertVertexAt: (id, index, point) =>
       set((state) => {
         const feature = state.document.features.find((item) => item.id === id);
-        if (!feature || feature.geometry.kind === 'point') return state;
+        const layer = feature && state.document.layers.find((item) => item.id === feature.layerId);
+        if (!feature || layer?.locked || feature.geometry.kind === 'point') return state;
 
         const result = insertVertex(feature.geometry.points, index, point, feature.vertexBearings);
         const nextFeature: MapFeature = {
@@ -353,7 +381,8 @@ export const useDocumentStore = create<DocumentState>((rawSet, get) => {
     deleteVertexAt: (id, index) =>
       set((state) => {
         const feature = state.document.features.find((item) => item.id === id);
-        if (!feature || feature.geometry.kind === 'point') return state;
+        const layer = feature && state.document.layers.find((item) => item.id === feature.layerId);
+        if (!feature || layer?.locked || feature.geometry.kind === 'point') return state;
 
         const points = deleteVertex(
           feature.geometry.points,
@@ -384,7 +413,8 @@ export const useDocumentStore = create<DocumentState>((rawSet, get) => {
     resetVertexBearing: (id, index) =>
       set((state) => {
         const feature = state.document.features.find((item) => item.id === id);
-        if (!feature || feature.geometry.kind === 'point') return state;
+        const layer = feature && state.document.layers.find((item) => item.id === feature.layerId);
+        if (!feature || layer?.locked || feature.geometry.kind === 'point') return state;
 
         const bearings =
           index === undefined || index === 'all'
@@ -502,7 +532,9 @@ export const useDocumentStore = create<DocumentState>((rawSet, get) => {
 
       set((state) => {
         const feature = state.document.features.find((item) => item.id === id);
-        if (!feature || !isValidGeometryUpdate(feature, points, bearings)) return state;
+        const layer = feature && state.document.layers.find((item) => item.id === feature.layerId);
+        if (!feature || layer?.locked || !isValidGeometryUpdate(feature, points, bearings))
+          return state;
 
         const currentPoints =
           feature.geometry.kind === 'point' ? [feature.geometry.position] : feature.geometry.points;

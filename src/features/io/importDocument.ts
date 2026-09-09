@@ -5,7 +5,8 @@ import { useAccessStore } from '@/stores/useAccessStore';
 
 export function applyImportedDocument(
   imported: MapDocument,
-  mode: 'append' | 'replace' | 'active' = 'append',
+  mode: 'append' | 'replace' | 'active' | 'target' = 'append',
+  targetLayerId?: string,
 ): void {
   if (useAccessStore.getState().readOnly) throw new Error('当前为只读分享，请先打开编辑副本');
   const state = useDocumentStore.getState();
@@ -13,15 +14,20 @@ export function applyImportedDocument(
     state.replaceDocument(imported);
     return;
   }
-  const active = state.document.layers.find((l) => l.id === state.activeLayerId);
-  if (mode === 'active' && (!active || active.locked)) throw new Error('活动图层不可编辑');
+  const destinationId = mode === 'target' ? targetLayerId : state.activeLayerId;
+  const active = state.document.layers.find((l) => l.id === destinationId);
+  if ((mode === 'active' || mode === 'target') && (!active || active.locked))
+    throw new Error('目标图层不可编辑');
   const ids = new Map(
-    imported.layers.map((l) => [l.id, mode === 'active' ? state.activeLayerId : createId('lyr')]),
+    imported.layers.map((l) => [
+      l.id,
+      mode === 'active' || mode === 'target' ? destinationId! : createId('lyr'),
+    ]),
   );
   state.replaceDocument({
     ...state.document,
     layers:
-      mode === 'active'
+      mode === 'active' || mode === 'target'
         ? state.document.layers
         : [
             ...state.document.layers,
@@ -36,7 +42,7 @@ export function applyImportedDocument(
       ...imported.features.map((f) => ({
         ...f,
         id: createId('ft'),
-        layerId: ids.get(f.layerId) ?? state.activeLayerId,
+        layerId: ids.get(f.layerId) ?? destinationId ?? state.activeLayerId,
       })),
     ],
   });

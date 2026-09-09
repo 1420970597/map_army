@@ -612,6 +612,31 @@ describe('useDocumentStore 批量图层与顶点操作', () => {
     expect(useDocumentStore.getState().past).toHaveLength(0);
   });
 
+  it('锁定源图层后所有要素编辑入口均保持只读且不写历史', () => {
+    const { sourceLayerId, features } = prepareMultiLayerFixture();
+    const locked = useDocumentStore
+      .getState()
+      .document.layers.map((layer) =>
+        layer.id === sourceLayerId ? { ...layer, locked: true } : layer,
+      );
+    useDocumentStore.setState({
+      document: { ...useDocumentStore.getState().document, layers: locked },
+    });
+    const store = useDocumentStore.getState();
+    store.updateFeature(features[0].id, { name: '不应写入' });
+    store.removeFeatures([features[0].id]);
+    store.insertVertexAt(features[0].id, 0, movedPoint);
+    store.deleteVertexAt(features[0].id, 0);
+    store.resetVertexBearing(features[0].id, 'all');
+    store.beginGesture();
+    store.previewFeatureGeometry(features[0].id, [movedPoint]);
+    store.endGesture();
+
+    expect(featureOf(features[0].id).name).not.toBe('不应写入');
+    expect(featureOf(features[0].id)).toBeDefined();
+    expect(useDocumentStore.getState().past).toHaveLength(0);
+  });
+
   it('setLayerStatus 将缺省状态视为 working，仅在实际变化时提交历史', () => {
     const { document } = resetStore();
     const layerId = document.layers[0].id;
