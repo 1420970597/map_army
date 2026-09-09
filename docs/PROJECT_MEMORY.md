@@ -49,6 +49,7 @@ PR 合并后重复一次差异复核。若发现本轮条目并未达到完成�
 ## 当前权威资料
 
 - 原站行为复核：[docs/RESEARCH-original-site-2026-09-v2.md](RESEARCH-original-site-2026-09-v2.md)
+- 范围边界审计：[docs/RESEARCH-out-of-scope-2026-09.md](RESEARCH-out-of-scope-2026-09.md)
 - 当前迭代清单：[docs/TODO-original-site-audit-2026-09.md](TODO-original-site-audit-2026-09.md)
 - 原始路线图：[README.md](../README.md)
 - 本地服务入口：`http://localhost:8080`；健康检查：`http://localhost:8080/api/health`
