@@ -16,6 +16,7 @@ export const SymbolCategory = {
   TacticalGraphics: 'tacticalGraphics',
   FunctionSpecific: 'functionSpecific',
   Metoc: 'metoc',
+  Custom: 'custom',
 } as const;
 export type SymbolCategory = (typeof SymbolCategory)[keyof typeof SymbolCategory];
 
@@ -106,6 +107,8 @@ export function categoryLabelOf(category: SymbolCategory): string {
       return '功能专项';
     case SymbolCategory.Metoc:
       return '气象海洋';
+    case SymbolCategory.Custom:
+      return '自定义军标';
   }
 }
 
@@ -132,6 +135,7 @@ export function findCatalogEntry(key: string): CatalogEntry | undefined {
 /** 返回指定分区中的条目。收藏分区由上层根据收藏键动态计算，因此固定为空。 */
 export function entriesInCategory(category: SymbolCategory): readonly CatalogEntry[] {
   if (category === SymbolCategory.Favorites) return [];
+  if (category === SymbolCategory.Custom) return [];
   return CATALOG.filter((entry) => entry.category === category);
 }
 

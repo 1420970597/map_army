@@ -62,6 +62,22 @@ function sampleDocument(): MapDocument {
 }
 
 describe('serializeMilxly / deserializeMilxly', () => {
+  it('往返保留自定义军标快照', () => {
+    const original = {
+      ...sampleDocument(),
+      features: [
+        {
+          ...sampleDocument().features[0],
+          customSymbolId: 'custom_demo',
+          customSymbolSvg: '<svg/>',
+        },
+      ],
+    };
+    expect(deserializeMilxly(serializeMilxly(original)).document.features[0]).toMatchObject({
+      customSymbolId: 'custom_demo',
+      customSymbolSvg: '<svg/>',
+    });
+  });
   it('往返转换应完整保留文档内容', () => {
     const original = sampleDocument();
     const restored = deserializeMilxly(serializeMilxly(original));

@@ -51,6 +51,8 @@ const PROP_KEYS = {
   symbolKind: 'symbolKind',
   graphicType: 'graphicType',
   graphicParams: 'graphicParams',
+  customSymbolId: 'customSymbolId',
+  customSymbolSvg: 'customSymbolSvg',
 } as const;
 
 /**
@@ -85,6 +87,8 @@ function toGeoJsonFeature(feature: MapFeature, layerNames: Map<string, string>):
     geometry: geoGeometry,
     properties: {
       [PROP_KEYS.sidc]: feature.sidc,
+      ...(feature.customSymbolId ? { [PROP_KEYS.customSymbolId]: feature.customSymbolId } : {}),
+      ...(feature.customSymbolSvg ? { [PROP_KEYS.customSymbolSvg]: feature.customSymbolSvg } : {}),
       [PROP_KEYS.name]: feature.name,
       [PROP_KEYS.layer]: layerNames.get(feature.layerId) ?? '',
       ...(feature.textFields.uniqueDesignation
@@ -194,6 +198,14 @@ function fromGeoJsonFeature(item: GeoJsonFeature, defaultLayerId: string): MapFe
   return createFeature({
     layerId: defaultLayerId,
     sidc: resolvedSidc,
+    customSymbolId:
+      typeof props[PROP_KEYS.customSymbolId] === 'string'
+        ? (props[PROP_KEYS.customSymbolId] as string)
+        : undefined,
+    customSymbolSvg:
+      typeof props[PROP_KEYS.customSymbolSvg] === 'string'
+        ? (props[PROP_KEYS.customSymbolSvg] as string)
+        : undefined,
     name,
     geometry: featureGeometry,
     textFields: {

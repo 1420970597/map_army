@@ -71,6 +71,8 @@ export {
   DEFAULT_CATEGORY_BY_SYMBOL_SET,
 } from './catalog';
 export type { CatalogEntry, SymbolCategory as SymbolCategoryValue } from './catalog';
+export { createCustomSymbol, customSymbolMatches, sanitizeCustomSvg } from './custom';
+export type { CustomSymbolDefinition } from './custom';
 export { aliasesOf, SYMBOL_ALIASES } from './aliases';
 
 // ── 收藏 ──

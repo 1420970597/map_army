@@ -25,6 +25,7 @@ interface IconKeyParts extends FeatureTextFields {
   uniqueDesignation?: string;
   fontSize?: number;
   fontFamily?: string;
+  customSvg?: string;
 }
 
 /**
@@ -82,9 +83,10 @@ function buildIcon(parts: IconKeyParts): L.DivIcon {
     fontfamily: fontFamily,
     monoColor: parts.approved ? '#111111' : undefined,
   });
+  const customSvg = parts.customSvg;
 
   return L.divIcon({
-    html: `<img alt="" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}" style="height:${size}px;max-width:none" />`,
+    html: `<img alt="" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(customSvg ?? svg)}" style="height:${size}px;max-width:none" />`,
     // 图标锚点取几何中心，使标记尖端正对经纬度
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],

@@ -186,6 +186,10 @@ export interface MapFeature {
   layerId: string;
   /** 20 位 SIDC 字符串 */
   sidc: string;
+  /** 自定义军标目录标识；存在时优先使用本地 SVG 渲染。 */
+  customSymbolId?: string;
+  /** 自定义军标 SVG 快照，确保分享和导出不依赖接收方本地目录。 */
+  customSymbolSvg?: string;
   /** 显示名称 */
   name: string;
   /** 几何 */

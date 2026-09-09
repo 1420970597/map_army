@@ -42,6 +42,7 @@ import { useEditStore } from '@/stores/useEditStore';
 import { useViewStore } from '@/stores/useViewStore';
 
 import { useSymbolStore } from '@/stores/useSymbolStore';
+import { useCustomSymbolStore } from '@/stores/useCustomSymbolStore';
 import { GRAPHIC_META } from '@/core/graphics';
 import { TacticalGraphic } from '@/features/map/TacticalGraphic';
 import { styleFromSymbolDefaults } from '@/core/model/style';
@@ -72,6 +73,10 @@ export function DrawHandler() {
   const map = useMap();
   const activeTool = useViewStore((state) => state.activeTool);
   const pendingSidc = useViewStore((state) => state.pendingSidc);
+  const pendingCustomSymbolId = useViewStore((state) => state.pendingCustomSymbolId);
+  const pendingCustomSymbolSvg = useCustomSymbolStore(
+    (state) => state.symbols.find((symbol) => symbol.id === pendingCustomSymbolId)?.svg,
+  );
   const setActiveTool = useViewStore((state) => state.setActiveTool);
 
   const addFeature = useDocumentStore((state) => state.addFeature);
@@ -219,6 +224,8 @@ export function DrawHandler() {
           createFeature({
             layerId: activeLayerId,
             sidc: pendingSidc,
+            customSymbolId: pendingCustomSymbolId,
+            customSymbolSvg: pendingCustomSymbolSvg,
             name: GRAPHIC_META[symbol.graphicType].name,
             geometry: createLineGeometry(points),
             symbolKind: 'multiPoint',
@@ -235,6 +242,8 @@ export function DrawHandler() {
           createFeature({
             layerId: activeLayerId,
             sidc: pendingSidc,
+            customSymbolId: pendingCustomSymbolId,
+            customSymbolSvg: pendingCustomSymbolSvg,
             geometry: createLineGeometry(points),
           }),
         );
@@ -243,6 +252,8 @@ export function DrawHandler() {
           createFeature({
             layerId: activeLayerId,
             sidc: pendingSidc,
+            customSymbolId: pendingCustomSymbolId,
+            customSymbolSvg: pendingCustomSymbolSvg,
             geometry: createAreaGeometry(points),
           }),
         );
@@ -250,7 +261,7 @@ export function DrawHandler() {
       // 原站量测是临时工具，结束后清空草稿，不把结果写进标图文档。
       reset();
     },
-    [addFeature, activeLayerId, pendingSidc, reset],
+    [addFeature, activeLayerId, pendingSidc, pendingCustomSymbolId, pendingCustomSymbolSvg, reset],
   );
 
   // 本地 Enter/Esc 与全局快捷键命令桥共用同一提交/取消路径。
@@ -305,6 +316,8 @@ export function DrawHandler() {
         ...createFeature({
           layerId: activeLayerId,
           sidc: pendingSidc,
+          customSymbolId: pendingCustomSymbolId,
+          customSymbolSvg: pendingCustomSymbolSvg,
           name: '距离环',
           geometry: createPointGeometry(raw.lon, raw.lat),
         }),
@@ -318,6 +331,7 @@ export function DrawHandler() {
         createFeature({
           layerId: activeLayerId,
           sidc: pendingSidc,
+          customSymbolId: pendingCustomSymbolId,
           geometry: createPointGeometry(raw.lon, raw.lat),
         }),
       );
@@ -377,6 +391,8 @@ export function DrawHandler() {
           feature={createFeature({
             layerId: activeLayerId,
             sidc: pendingSidc,
+            customSymbolId: pendingCustomSymbolId,
+            customSymbolSvg: pendingCustomSymbolSvg,
             geometry: createLineGeometry(draft),
             graphicType: useSymbolStore.getState().graphicType ?? undefined,
           })}
