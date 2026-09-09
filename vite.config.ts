@@ -11,7 +11,16 @@ import { fileURLToPath, URL } from 'node:url';
  * 不依赖任何后端接口；因此构建产物可以直接托管到任意静态服务器。
  */
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'remove-same-origin-crossorigin',
+      transformIndexHtml(html) {
+        // 资源均由同一 Nginx 提供，移除 crossorigin 可避免通过 IP 访问时触发浏览器 PNA 检查。
+        return html.replace(/\s+crossorigin(?:="[^"]*")?/g, '');
+      },
+    },
+  ],
   define: { CESIUM_BASE_URL: JSON.stringify('/cesium/') },
   resolve: {
     alias: {
