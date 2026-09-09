@@ -66,4 +66,4 @@ export {
 } from './download';
 export type { DownloadOptions } from './download';
 
-export { documentToMilxXml, milxXmlToDocument } from './milxNative';
+export { documentToMilxXml, milxExportWarnings, milxXmlToDocument } from './milxNative';

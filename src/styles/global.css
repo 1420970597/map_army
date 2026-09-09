@@ -155,6 +155,18 @@ button {
   filter: var(--map-tile-filter, none);
 }
 
+.native-sidc-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-inline-size: 0;
+}
+
+.native-format-warning {
+  color: var(--c-warning, #b45309);
+  font-size: 0.82rem;
+}
+
 /* ── 顶栏 ─────────────────────────────────────────────── */
 
 .toolbar {

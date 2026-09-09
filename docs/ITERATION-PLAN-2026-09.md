@@ -28,3 +28,12 @@ Compose 前端首页和 `/api/health` 均正常，两个容器 healthy。PR 推�
 - `export-and-prints/create-export`：`021d81dde25ac787572bc921afd9631786c46d4bc58615361c89b745e6dd7bcc`
 
 复核确认图层闭环差异已关闭；下一轮聚焦 MilX V3.1 字段与官方样例往返。
+
+### 第 2 轮：原生 MilX 互操作
+
+本轮将原生 XML 的坐标系、图层可见性、MSS 字段和 15 位 SIDC 作为独立边界处理；内部 20 位 SIDC
+只在导出时映射并显示警告，图像/在线层不伪装为已嵌入。非 15 位外部符号计入跳过报告，官方样例结构和 ZIP
+容器均进行往返测试。
+
+本轮完成后必须重新读取 `about/milx-format`、`data-exchange/import` 和 `data-exchange/create-a-share`，
+再建立第三轮 Share ToDo。

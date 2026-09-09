@@ -46,11 +46,17 @@
 - [ ] **分享工作流**：新建分享选择图层、固定版本 URL、编辑覆盖冲突提示、在线图层链接和 iframe 预览信息；
       明确纯前端离线快照与服务端分享的权限差异。
 
-## 下一轮 ToDo（Iteration 2026-09-B）
+## 已完成迭代（Iteration 2026-09-B）
 
-- [ ] 严格读取和生成 MilX V3.1 的 `MilXDocument_Layer`、15 位 SIDC、MSS Attribute、CoordSystemType 与 ZIP；
-      对外部字段保留提示，并用官方样例完成 XML/ZIP 往返测试。
-- [ ] 明确导出时排除图像/在线图层的原站兼容边界，提供字段丢失报告和可下载测试样例。
+- [x] 严格读取和生成 MilX V3.1 的 `MilXDocument_Layer`、15 位 SIDC、MSS Attribute、CoordSystemType 与 ZIP；
+      对外部字段保留原始 MSS，非 15 位 SIDC 计入跳过报告，并用官方样例结构完成 XML/ZIP 往返测试。
+- [x] 明确导出时排除图像/在线图层的原站兼容边界；导出界面显示 SIDC 映射和外部图层字段丢失报告。
+
+## 下一轮 ToDo（Iteration 2026-09-C）
+
+- [ ] Share 新建保持空图层，提供图层加入/移除和拖拽语义；Edit & Copy 创建独立副本标识。
+- [ ] 固定版本 URL、If-Match 冲突提示、在线图层 URL 元数据和 iframe 预览信息全部可验收；
+      明确离线快照与服务端分享的权限差异。
 
 ## 后续 ToDo（本轮不伪装完成）
 

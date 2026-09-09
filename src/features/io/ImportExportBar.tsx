@@ -8,6 +8,7 @@ import {
   documentToGeoJson,
   documentToKml,
   documentToMilxXml,
+  milxExportWarnings,
 } from '@/core/io';
 import { parseMapFile, exportMilxArchive } from '@/core/io/files';
 import { useDocumentStore } from '@/stores/useDocumentStore';
@@ -63,7 +64,8 @@ export function ImportExportBar() {
           format === 'json' || format === 'geojson' ? 'application/json' : 'application/xml',
       });
     }
-    setMessage('文件已导出');
+    const warnings = format === 'milxly' || format === 'milx' ? milxExportWarnings(output) : [];
+    setMessage(warnings.length ? `文件已导出；${warnings.join('；')}` : '文件已导出');
   };
   useEffect(() => {
     const onLayerExport = (event: Event) => {

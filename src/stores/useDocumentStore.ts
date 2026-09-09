@@ -735,7 +735,10 @@ export function mergeFeatureText(id: string, patch: FeatureTextFields): void {
   const state = useDocumentStore.getState();
   const feature = state.document.features.find((item) => item.id === id);
   if (!feature) return;
-  state.updateFeature(id, { textFields: { ...feature.textFields, ...patch } });
+  state.updateFeature(id, {
+    textFields: { ...feature.textFields, ...patch },
+    nativeMss: undefined,
+  });
 }
 
 /** 合并式更新要素的样式 */
@@ -743,5 +746,8 @@ export function mergeFeatureStyle(id: string, patch: FeatureStyle): void {
   const state = useDocumentStore.getState();
   const feature = state.document.features.find((item) => item.id === id);
   if (!feature) return;
-  state.updateFeature(id, { style: { ...feature.style, ...patch } });
+  state.updateFeature(id, {
+    style: { ...feature.style, ...patch },
+    nativeMss: undefined,
+  });
 }

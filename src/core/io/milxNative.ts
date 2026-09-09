@@ -50,13 +50,20 @@ export function milxXmlToDocument(
     layer.status = /approved/i.test(xmlText(raw.LayerType)) ? 'approved' : 'working';
     doc.layers.push(layer);
     const coordinateSystem = xmlText(raw.CoordSystemType ?? root.CoordSystemType);
+    layer.nativeMetadata = {
+      ...(layer.nativeMetadata ?? {}),
+      milxVersion: '3.1',
+      coordSystemType: coordinateSystem || 'WGS84',
+      layerType: xmlText(raw.LayerType) || 'Normal',
+    };
     for (const item of list(record(raw.GraphicList).MilXGraphic)) {
       try {
         const graphic = record(item);
         const mss = xmlText(graphic.MssStringXML);
         const symbol = record(parseXml(mss).Symbol);
         const sidc = xmlText(symbol['@_ID']);
-        if (!sidc) {
+        // 原生 MilX 的 MSS Symbol ID 必须是 15 位，内部 20 位 SIDC 不可直接冒充。
+        if (!isNativeSidc(sidc)) {
           skipped++;
           continue;
         }
@@ -64,9 +71,10 @@ export function milxXmlToDocument(
           const p = record(point),
             x = Number(p.X),
             y = Number(p.Y);
-          return /SwissLv03/i.test(coordinateSystem) || Math.abs(x) > 180
-            ? swissToLonLat({ x, y }, 'LV03')
-            : { lon: x, lat: y };
+          if (/SwissLv95|LV95/i.test(coordinateSystem)) return swissToLonLat({ x, y }, 'LV95');
+          if (/SwissLv03|LV03/i.test(coordinateSystem) || Math.abs(x) > 180)
+            return swissToLonLat({ x, y }, 'LV03');
+          return { lon: x, lat: y };
         });
         if (
           !points.length ||
@@ -138,7 +146,7 @@ export function documentToMilxXml(doc: MapDocument): string {
   return `<?xml version="1.0" encoding="UTF-8"?><MilXDocument_Layer xmlns="http://gs-soft.com/MilX/V3.1" xmlns:maparmy="https://map-army.local/schema/1"><MssLibraryVersionTag>2019.10.01</MssLibraryVersionTag>${doc.layers
     .map(
       (layer) =>
-        `<MilXLayer><Name>${escapeXml(layer.name)}</Name><LayerType>${layer.status === 'approved' ? 'Approved' : 'Normal'}</LayerType><CoordSystemType>WGS84</CoordSystemType><GraphicList>${doc.features
+        `<MilXLayer><Name>${escapeXml(layer.name)}</Name><Visible>${layer.visible}</Visible><LayerType>${layer.status === 'approved' ? 'Approved' : 'Normal'}</LayerType><CoordSystemType>${escapeXml(String(layer.nativeMetadata?.coordSystemType ?? 'WGS84'))}</CoordSystemType><GraphicList>${doc.features
           .filter((f) => f.layerId === layer.id)
           .map((f) => {
             const mss = `<Symbol ID="${escapeXml(cSidc(f))}"><Attribute ID="G">${escapeXml(f.textFields.uniqueDesignation)}</Attribute><Attribute ID="H">${escapeXml(f.textFields.higherFormation)}</Attribute></Symbol>`;
@@ -150,4 +158,23 @@ export function documentToMilxXml(doc: MapDocument): string {
     .join(
       '',
     )}<maparmy:MapArmyDocument>${escapeXml(serializeMilxly(doc))}</maparmy:MapArmyDocument></MilXDocument_Layer>`;
+}
+
+/** 返回原生 MilX 导出时需要向用户说明的字段降级或排除项。 */
+export function milxExportWarnings(doc: MapDocument): string[] {
+  const warnings: string[] = [];
+  const sidcCount = doc.features.filter((feature) => feature.sidc.length !== 15).length;
+  if (sidcCount > 0)
+    warnings.push(`${sidcCount} 个内部 20 位 SIDC 将映射为 15 位原生 SIDC，请复核符号身份`);
+  const externalLayers = doc.layers.filter((layer) => layer.image || layer.sourceUrl);
+  if (externalLayers.length > 0)
+    warnings.push(
+      `${externalLayers.length} 个图像/在线图层不会嵌入 MilX，请保留原始 URL 或旁车文件`,
+    );
+  return warnings;
+}
+
+/** 原生 MilX MSS 的 Symbol ID 固定为 15 个字符。 */
+function isNativeSidc(value: string): boolean {
+  return value.length === 15 && !/[<>]/.test(value);
 }

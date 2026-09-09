@@ -5,7 +5,7 @@ import { createDocument, createFeature, createLayer } from '../model';
 import { documentToKml, kmlToDocument } from './kml';
 import { serializeMilxly } from './milxly';
 import { parseMapFile, exportMilxArchive, nvgToDocument } from './files';
-import { milxXmlToDocument } from './milxNative';
+import { milxExportWarnings, milxXmlToDocument } from './milxNative';
 
 function example() {
   const doc = createDocument('中文 & 图层');
@@ -56,6 +56,14 @@ describe('跨格式交换', () => {
       ]),
     ).toEqual(doc.features.map((f) => [f.geometry, f.textFields, f.graphicType]));
   });
+  it('原生导出报告 20 位 SIDC 和在线层排除项', () => {
+    const doc = example();
+    doc.layers[0].sourceUrl = 'https://example.test/layer.geojson';
+    expect(milxExportWarnings(doc)).toEqual([
+      '2 个内部 20 位 SIDC 将映射为 15 位原生 SIDC，请复核符号身份',
+      '1 个图像/在线图层不会嵌入 MilX，请保留原始 URL 或旁车文件',
+    ]);
+  });
   it('继续读取旧 gzip JSON 文件', () =>
     expect(
       parseMapFile(gzipSync(strToU8(serializeMilxly(example()))), 'old.milxlyz').document.features,
@@ -70,6 +78,20 @@ describe('跨格式交换', () => {
       textFields: { uniqueDesignation: '一连' },
       geometry: { kind: 'point', position: { lon: 8.5, lat: 47.4 } },
     });
+  });
+  it('跳过非 15 位原生 SIDC，并保留图层坐标系元数据', () => {
+    const input =
+      '<MilXDocument_Layer xmlns="http://gs-soft.com/MilX/V3.1"><MilXLayer><Name>LV95</Name><CoordSystemType>SwissLv95</CoordSystemType><GraphicList>' +
+      '<MilXGraphic><MssStringXML>&lt;Symbol ID="SFG-UCI----J---"/&gt;</MssStringXML><PointList><Point><X>2600000</X><Y>1200000</Y></Point></PointList></MilXGraphic>' +
+      '<MilXGraphic><MssStringXML>&lt;Symbol ID="10031000001211000000"/&gt;</MssStringXML><PointList><Point><X>8</X><Y>47</Y></Point></PointList></MilXGraphic>' +
+      '</GraphicList></MilXLayer></MilXDocument_Layer>';
+    const loaded = milxXmlToDocument(input, 'LV95');
+    expect(loaded.skipped).toBe(1);
+    expect(loaded.document.features).toHaveLength(1);
+    expect(loaded.document.layers[0].nativeMetadata).toMatchObject({
+      coordSystemType: 'SwissLv95',
+    });
+    expect(loaded.document.features[0].geometry).toMatchObject({ kind: 'point' });
   });
   it('KML 非闭合外环不能丢失最后一个点', () =>
     expect(
