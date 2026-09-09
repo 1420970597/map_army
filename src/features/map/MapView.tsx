@@ -10,12 +10,16 @@ import { useEffect, useMemo } from 'react';
 import { latLng } from 'leaflet';
 import { MapContainer, TileLayer, ZoomControl, useMap } from 'react-leaflet';
 
-import { BaseMapType, Tool } from '@/core/model';
-import { useDocumentStore } from '@/stores/useDocumentStore';
+import { TILE_SOURCES } from './tileSources';
+import { ImageLayers } from './ImageLayers';
+import { MapTools } from './MapTools';
+import { usePreferencesStore } from '@/stores/usePreferencesStore';
+import { useDocumentStore, usePrimaryFeature } from '@/stores/useDocumentStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { DrawHandler } from '@/features/draw/DrawHandler';
 import { VertexEditor } from '@/features/draw/VertexEditor';
 import { isVertexEditorEligible } from '@/features/draw/vertexEditorLogic';
+import { Map3DView } from './Map3DView';
 import { BoxSelect } from './BoxSelect';
 import { MapClickHandler, FeatureLayer } from './FeatureLayer';
 import { GridOverlay } from './GridOverlay';
@@ -28,23 +32,6 @@ import { MapCommandHandler } from './MapCommandHandler';
  *
  * 均选用无需密钥即可访问的公开服务，保证克隆仓库后开箱可用。
  */
-const TILE_SOURCES: Record<BaseMapType, { url: string; attribution: string; maxZoom: number }> = {
-  [BaseMapType.Streets]: {
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; OpenStreetMap 贡献者',
-    maxZoom: 19,
-  },
-  [BaseMapType.Topo]: {
-    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; OpenStreetMap 贡献者, SRTM | 地图样式 &copy; OpenTopoMap (CC-BY-SA)',
-    maxZoom: 17,
-  },
-  [BaseMapType.Satellite]: {
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri',
-    maxZoom: 18,
-  },
-};
 
 /**
  * 视图双向同步器。
@@ -105,8 +92,10 @@ function ViewSync() {
  * 地图主视图组件。
  */
 export function MapView() {
+  const is3d = useViewStore((state) => state.is3d);
   const center = useViewStore((state) => state.center);
   const zoom = useViewStore((state) => state.zoom);
+  const hillshade = usePreferencesStore((state) => state.hillshade);
   const baseMap = useViewStore((state) => state.baseMap);
   const grid = useViewStore((state) => state.grid);
   const gridLabels = useViewStore((state) => state.gridLabels);
@@ -136,18 +125,18 @@ export function MapView() {
    * 传给要素渲染层后，会被叠加到要素自身的描边/填充透明度上，
    * 使面板上的不透明度滑块能直接驱动地图表现。
    */
+  const approvedLayerIds = useMemo(
+    () => layers.filter((layer) => layer.status === 'approved').map((layer) => layer.id),
+    [layers],
+  );
+
   const layerOpacity = useMemo(() => {
     const map: Record<string, number> = {};
     for (const layer of layers) map[layer.id] = layer.opacity;
     return map;
   }, [layers]);
 
-  const primaryFeature = useMemo(() => {
-    const primaryId = selectedIds[selectedIds.length - 1];
-    return primaryId === undefined
-      ? null
-      : (features.find((feature) => feature.id === primaryId) ?? null);
-  }, [features, selectedIds]);
+  const primaryFeature = usePrimaryFeature();
 
   const vertexEditing = isVertexEditorEligible({
     activeTool,
@@ -156,18 +145,39 @@ export function MapView() {
     layers,
   });
   const hiddenIds = vertexEditing && primaryFeature !== null ? [primaryFeature.id] : [];
-  const tile = TILE_SOURCES[baseMap];
+  const tile = TILE_SOURCES[baseMap] ?? TILE_SOURCES.streets;
+
+  if (is3d) return <Map3DView />;
 
   return (
     <MapContainer
       center={[center.lat, center.lon]}
       zoom={zoom}
       zoomControl={false}
+      zoomSnap={0}
       // 绘制工具激活时禁用惯性拖动，避免采点过程中地图漂移
-      dragging={activeTool !== Tool.Measure}
+      dragging={true}
+      preferCanvas={true}
       className="map-container"
     >
-      <TileLayer url={tile.url} attribution={tile.attribution} maxZoom={tile.maxZoom} />
+      {tile.url && (
+        <TileLayer
+          crossOrigin="anonymous"
+          url={tile.url}
+          attribution={tile.attribution}
+          maxZoom={tile.maxZoom}
+        />
+      )}
+      {hillshade && (
+        <TileLayer
+          crossOrigin="anonymous"
+          url={TILE_SOURCES.terrain.url}
+          attribution={TILE_SOURCES.terrain.attribution}
+          maxNativeZoom={13}
+          opacity={0.3}
+        />
+      )}
+      <MapTools />
       <ZoomControl position="bottomright" />
 
       {/* 视图双向同步：替代会引发更新死循环的内联 ref 回调 */}
@@ -176,11 +186,13 @@ export function MapView() {
 
       <GridOverlay type={grid} showLabels={gridLabels} />
 
+      <ImageLayers />
       <FeatureLayer
         features={orderedFeatures}
         selectedIds={selectedIds}
         layerOpacity={layerOpacity}
         hiddenIds={hiddenIds}
+        approvedLayerIds={approvedLayerIds}
         onSelect={(id, event) => {
           const originalEvent = event.originalEvent;
           const next = selectionAfterFeatureClick(selectedIds, id, {

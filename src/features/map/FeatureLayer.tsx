@@ -6,7 +6,8 @@
  */
 
 import { useMemo } from 'react';
-import { Marker, Polygon, Polyline, Tooltip, useMapEvent } from 'react-leaflet';
+import { TacticalGraphic } from './TacticalGraphic';
+import { Circle, Marker, Polygon, Polyline, Tooltip, useMapEvent } from 'react-leaflet';
 
 import type { LonLat } from '@/core/geo';
 import { GeometryKind, type MapFeature } from '@/core/model';
@@ -35,6 +36,8 @@ export interface FeatureLayerProps {
   layerOpacity?: Record<string, number>;
   /** 编辑器接管渲染的要素标识，避免与幽灵几何重复绘制。 */
   hiddenIds?: readonly string[];
+  /** 已核定图层以黑白渲染。 */
+  approvedLayerIds?: readonly string[];
 }
 
 /** 缺省图层不透明度，避免热路径每次创建对象字面量 */
@@ -49,9 +52,11 @@ export function FeatureLayer({
   selectedIds,
   layerOpacity,
   hiddenIds,
+  approvedLayerIds,
 }: FeatureLayerProps) {
   const selectedIdSet = useMemo(() => selectedIdSetOf(selectedIds), [selectedIds]);
   const hiddenIdSet = useMemo(() => new Set(hiddenIds), [hiddenIds]);
+  const approvedIdSet = useMemo(() => new Set(approvedLayerIds), [approvedLayerIds]);
 
   return (
     <>
@@ -64,6 +69,7 @@ export function FeatureLayer({
             selected={selectedIdSet.has(feature.id)}
             onSelect={onSelect}
             opacity={layerOpacity?.[feature.layerId] ?? DEFAULT_LAYER_OPACITY}
+            approved={approvedIdSet.has(feature.layerId)}
           />
         ))}
     </>
@@ -76,14 +82,26 @@ function FeatureShape({
   selected,
   onSelect,
   opacity,
+  approved = false,
 }: {
   feature: MapFeature;
   selected: boolean;
   onSelect?: (id: string, event: L.LeafletMouseEvent) => void;
   /** 图层级不透明度 */
   opacity: number;
+  approved?: boolean;
 }) {
   const geometry = feature.geometry;
+  if (feature.graphicType)
+    return (
+      <TacticalGraphic
+        feature={feature}
+        selected={selected}
+        opacity={opacity}
+        approved={approved}
+        onSelect={onSelect}
+      />
+    );
 
   switch (geometry.kind) {
     case GeometryKind.Point:
@@ -94,6 +112,7 @@ function FeatureShape({
           selected={selected}
           onSelect={onSelect}
           opacity={opacity}
+          approved={approved}
         />
       );
     case GeometryKind.Line:
@@ -108,11 +127,11 @@ function FeatureShape({
       const shared = {
         positions,
         pathOptions: {
-          color: style.color,
           weight: style.weight,
           opacity: style.opacity,
           dashArray: style.dashArray,
           fillOpacity: style.fillOpacity,
+          color: approved ? '#111111' : style.color,
         },
         eventHandlers: onSelect
           ? { click: (event: L.LeafletMouseEvent) => onSelect(feature.id, event) }
@@ -141,6 +160,7 @@ function PointFeature({
   selected,
   onSelect,
   opacity,
+  approved = false,
 }: {
   feature: MapFeature;
   position: LonLat;
@@ -148,30 +168,60 @@ function PointFeature({
   onSelect?: (id: string, event: L.LeafletMouseEvent) => void;
   /** 图层级不透明度，传递给 Leaflet Marker 的 opacity 选项 */
   opacity: number;
+  approved?: boolean;
 }) {
   // 图标构造成本较高，按要素内容缓存；选中态通过 CSS 类切换而非重建图标
   const icon = useMemo(
     () =>
-      symbolIcon(
-        iconPartsOf(feature.sidc, feature.textFields, selected ? 52 : 40, feature.direction),
-      ),
-    [feature.sidc, feature.textFields, feature.direction, selected],
+      symbolIcon({
+        ...iconPartsOf(
+          feature.sidc,
+          feature.textFields,
+          selected ? 52 : 40,
+          feature.direction,
+          feature.style?.fontSize,
+          feature.style?.fontFamily,
+        ),
+        approved,
+      }),
+    [feature.sidc, feature.textFields, feature.direction, feature.style, selected, approved],
   );
 
   return (
-    <Marker
-      position={[position.lat, position.lon]}
-      icon={icon}
-      opacity={opacity}
-      zIndexOffset={selected ? 1000 : 0}
-      eventHandlers={
-        onSelect
-          ? { click: (event: L.LeafletMouseEvent) => onSelect(feature.id, event) }
-          : undefined
-      }
-    >
-      {feature.name ? <Tooltip direction="top">{feature.name}</Tooltip> : null}
-    </Marker>
+    <>
+      {feature.rangeRings?.map((radius) => (
+        <Circle
+          key={radius}
+          center={[position.lat, position.lon]}
+          radius={radius}
+          pathOptions={{
+            color: approved ? '#111111' : (feature.style?.color ?? '#0B82D6'),
+            weight: feature.style?.weight ?? 2,
+            opacity,
+            fillOpacity: 0.03,
+            dashArray: feature.style?.dashArray,
+          }}
+          eventHandlers={onSelect ? { click: (event) => onSelect(feature.id, event) } : undefined}
+        >
+          <Tooltip permanent direction="top">
+            {radius >= 1000 ? `${radius / 1000} km` : `${radius} m`}
+          </Tooltip>
+        </Circle>
+      ))}
+      <Marker
+        position={[position.lat, position.lon]}
+        icon={icon}
+        opacity={opacity}
+        zIndexOffset={selected ? 1000 : 0}
+        eventHandlers={
+          onSelect
+            ? { click: (event: L.LeafletMouseEvent) => onSelect(feature.id, event) }
+            : undefined
+        }
+      >
+        {feature.name ? <Tooltip direction="top">{feature.name}</Tooltip> : null}
+      </Marker>
+    </>
   );
 }
 

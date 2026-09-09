@@ -1,3 +1,4 @@
+import { useAccessStore } from './useAccessStore';
 /**
  * 标图文档的状态容器。
  *
@@ -221,403 +222,429 @@ let pendingGesture: { snapshot: MapDocument; dirty: boolean } | null = null;
 /** 初始文档 */
 const initialDocument = createDocument();
 
-export const useDocumentStore = create<DocumentState>((set, get) => ({
-  document: initialDocument,
-  activeLayerId: initialDocument.layers[0].id,
-  selectedIds: [],
-  past: [],
-  future: [],
+export const useDocumentStore = create<DocumentState>((rawSet, get) => {
+  // 只读保护位于所有写入共享的入口，覆盖快捷键、手势、属性表单及撤销重做。
+  const set = (
+    update: Partial<DocumentState> | ((state: DocumentState) => Partial<DocumentState>),
+  ) =>
+    rawSet((state) => {
+      const next = typeof update === 'function' ? update(state) : update;
+      if (
+        useAccessStore.getState().readOnly &&
+        (next.document !== undefined || next.past !== undefined || next.future !== undefined)
+      )
+        return state;
+      return next;
+    });
+  return {
+    document: initialDocument,
+    activeLayerId: initialDocument.layers[0].id,
+    selectedIds: [],
+    past: [],
+    future: [],
 
-  addFeature: (feature) =>
-    set((state) =>
-      commit(state, {
-        ...state.document,
-        features: [...state.document.features, feature],
-      }),
-    ),
-
-  addFeatures: (features) =>
-    set((state) => {
-      if (features.length === 0) return state;
-
-      const featureIds = new Set(state.document.features.map((feature) => feature.id));
-      const added: MapFeature[] = [];
-      for (const feature of features) {
-        if (featureIds.has(feature.id)) continue;
-        featureIds.add(feature.id);
-        // 剪贴板要素必须与调用方对象彻底隔离，避免后续修改穿透文档。
-        added.push(structuredClone(feature));
-      }
-      if (added.length === 0) return state;
-
-      return {
-        ...commit(state, {
+    addFeature: (feature) =>
+      set((state) =>
+        commit(state, {
           ...state.document,
-          features: [...state.document.features, ...added],
+          features: [...state.document.features, feature],
         }),
-        selectedIds: added.map((feature) => feature.id),
-      };
-    }),
+      ),
 
-  updateFeature: (id, patch) =>
-    set((state) =>
-      commit(state, {
-        ...state.document,
-        features: state.document.features.map((feature) =>
-          feature.id === id ? { ...feature, ...patch, updatedAt: Date.now() } : feature,
-        ),
+    addFeatures: (features) =>
+      set((state) => {
+        if (features.length === 0) return state;
+
+        const featureIds = new Set(state.document.features.map((feature) => feature.id));
+        const added: MapFeature[] = [];
+        for (const feature of features) {
+          if (featureIds.has(feature.id)) continue;
+          featureIds.add(feature.id);
+          // 剪贴板要素必须与调用方对象彻底隔离，避免后续修改穿透文档。
+          added.push(structuredClone(feature));
+        }
+        if (added.length === 0) return state;
+
+        return {
+          ...commit(state, {
+            ...state.document,
+            features: [...state.document.features, ...added],
+          }),
+          selectedIds: added.map((feature) => feature.id),
+        };
       }),
-    ),
 
-  removeFeatures: (ids) =>
-    set((state) => {
-      const target = new Set(ids);
-      const remaining = state.document.features.filter((feature) => !target.has(feature.id));
-      // 一个都没删掉时不提交历史，避免出现「按一次 Ctrl+Z 什么都没发生」的空记录。
-      if (remaining.length === state.document.features.length) return state;
-
-      return commit(state, { ...state.document, features: remaining });
-    }),
-
-  moveFeatureToLayer: (featureId, layerId) =>
-    set((state) =>
-      commit(state, {
-        ...state.document,
-        features: state.document.features.map((feature) =>
-          feature.id === featureId ? { ...feature, layerId, updatedAt: Date.now() } : feature,
-        ),
-      }),
-    ),
-
-  moveFeaturesToLayer: (ids, layerId) =>
-    set((state) => {
-      const targetLayer = state.document.layers.find((layer) => layer.id === layerId);
-      if (!targetLayer || targetLayer.locked) return state;
-
-      const requestedIds = [...new Set(ids)];
-      const featuresById = new Map(state.document.features.map((feature) => [feature.id, feature]));
-      const movedIds = requestedIds.filter((id) => {
-        const feature = featuresById.get(id);
-        return feature !== undefined && feature.layerId !== layerId;
-      });
-      if (movedIds.length === 0) return state;
-
-      const movedIdSet = new Set(movedIds);
-      const now = Date.now();
-      return {
-        ...commit(state, {
+    updateFeature: (id, patch) =>
+      set((state) =>
+        commit(state, {
           ...state.document,
           features: state.document.features.map((feature) =>
-            movedIdSet.has(feature.id) ? { ...feature, layerId, updatedAt: now } : feature,
+            feature.id === id ? { ...feature, ...patch, updatedAt: Date.now() } : feature,
           ),
         }),
-        selectedIds: movedIds,
-      };
-    }),
+      ),
 
-  insertVertexAt: (id, index, point) =>
-    set((state) => {
-      const feature = state.document.features.find((item) => item.id === id);
-      if (!feature || feature.geometry.kind === 'point') return state;
+    removeFeatures: (ids) =>
+      set((state) => {
+        const target = new Set(ids);
+        const remaining = state.document.features.filter((feature) => !target.has(feature.id));
+        // 一个都没删掉时不提交历史，避免出现「按一次 Ctrl+Z 什么都没发生」的空记录。
+        if (remaining.length === state.document.features.length) return state;
 
-      const result = insertVertex(feature.geometry.points, index, point, feature.vertexBearings);
-      const nextFeature: MapFeature = {
-        ...feature,
-        geometry: { ...feature.geometry, points: result.points },
-        vertexBearings: result.bearings,
-        updatedAt: Date.now(),
-      };
-      return commit(state, {
-        ...state.document,
-        features: state.document.features.map((item) => (item.id === id ? nextFeature : item)),
+        return commit(state, { ...state.document, features: remaining });
+      }),
+
+    moveFeatureToLayer: (featureId, layerId) =>
+      set((state) =>
+        commit(state, {
+          ...state.document,
+          features: state.document.features.map((feature) =>
+            feature.id === featureId ? { ...feature, layerId, updatedAt: Date.now() } : feature,
+          ),
+        }),
+      ),
+
+    moveFeaturesToLayer: (ids, layerId) =>
+      set((state) => {
+        const targetLayer = state.document.layers.find((layer) => layer.id === layerId);
+        if (!targetLayer || targetLayer.locked) return state;
+
+        const requestedIds = [...new Set(ids)];
+        const featuresById = new Map(
+          state.document.features.map((feature) => [feature.id, feature]),
+        );
+        const movedIds = requestedIds.filter((id) => {
+          const feature = featuresById.get(id);
+          return feature !== undefined && feature.layerId !== layerId;
+        });
+        if (movedIds.length === 0) return state;
+
+        const movedIdSet = new Set(movedIds);
+        const now = Date.now();
+        return {
+          ...commit(state, {
+            ...state.document,
+            features: state.document.features.map((feature) =>
+              movedIdSet.has(feature.id) ? { ...feature, layerId, updatedAt: now } : feature,
+            ),
+          }),
+          selectedIds: movedIds,
+        };
+      }),
+
+    insertVertexAt: (id, index, point) =>
+      set((state) => {
+        const feature = state.document.features.find((item) => item.id === id);
+        if (!feature || feature.geometry.kind === 'point') return state;
+
+        const result = insertVertex(feature.geometry.points, index, point, feature.vertexBearings);
+        const nextFeature: MapFeature = {
+          ...feature,
+          geometry: { ...feature.geometry, points: result.points },
+          vertexBearings: result.bearings,
+          updatedAt: Date.now(),
+        };
+        return commit(state, {
+          ...state.document,
+          features: state.document.features.map((item) => (item.id === id ? nextFeature : item)),
+        });
+      }),
+
+    deleteVertexAt: (id, index) =>
+      set((state) => {
+        const feature = state.document.features.find((item) => item.id === id);
+        if (!feature || feature.geometry.kind === 'point') return state;
+
+        const points = deleteVertex(
+          feature.geometry.points,
+          index,
+          minVertexCountOf(feature.geometry.kind),
+        );
+        if (points === null) return state;
+
+        const bearings =
+          feature.vertexBearings === undefined
+            ? undefined
+            : [
+                ...feature.vertexBearings.slice(0, index),
+                ...feature.vertexBearings.slice(index + 1),
+              ];
+        const nextFeature: MapFeature = {
+          ...feature,
+          geometry: { ...feature.geometry, points },
+          vertexBearings: bearings,
+          updatedAt: Date.now(),
+        };
+        return commit(state, {
+          ...state.document,
+          features: state.document.features.map((item) => (item.id === id ? nextFeature : item)),
+        });
+      }),
+
+    resetVertexBearing: (id, index) =>
+      set((state) => {
+        const feature = state.document.features.find((item) => item.id === id);
+        if (!feature || feature.geometry.kind === 'point') return state;
+
+        const bearings =
+          index === undefined || index === 'all'
+            ? resetAllBearings(feature.vertexBearings)
+            : resetBearing(feature.vertexBearings, index);
+        if (bearings === feature.vertexBearings) return state;
+
+        const nextFeature: MapFeature = {
+          ...feature,
+          vertexBearings: bearings,
+          updatedAt: Date.now(),
+        };
+        return commit(state, {
+          ...state.document,
+          features: state.document.features.map((item) => (item.id === id ? nextFeature : item)),
+        });
+      }),
+
+    addLayer: (name) => {
+      const layer = createLayer({
+        name,
+        order: Math.max(0, ...get().document.layers.map((item) => item.order)) + 1,
       });
-    }),
-
-  deleteVertexAt: (id, index) =>
-    set((state) => {
-      const feature = state.document.features.find((item) => item.id === id);
-      if (!feature || feature.geometry.kind === 'point') return state;
-
-      const points = deleteVertex(
-        feature.geometry.points,
-        index,
-        minVertexCountOf(feature.geometry.kind),
+      set((state) =>
+        commit(state, {
+          ...state.document,
+          layers: [...state.document.layers, layer],
+        }),
       );
-      if (points === null) return state;
+      set({ activeLayerId: layer.id });
+      return layer.id;
+    },
 
-      const bearings =
-        feature.vertexBearings === undefined
-          ? undefined
-          : [...feature.vertexBearings.slice(0, index), ...feature.vertexBearings.slice(index + 1)];
-      const nextFeature: MapFeature = {
-        ...feature,
-        geometry: { ...feature.geometry, points },
-        vertexBearings: bearings,
-        updatedAt: Date.now(),
-      };
-      return commit(state, {
-        ...state.document,
-        features: state.document.features.map((item) => (item.id === id ? nextFeature : item)),
-      });
-    }),
+    updateLayer: (id, patch) =>
+      set((state) =>
+        commit(state, {
+          ...state.document,
+          layers: state.document.layers.map((layer) =>
+            layer.id === id ? { ...layer, ...patch } : layer,
+          ),
+        }),
+      ),
 
-  resetVertexBearing: (id, index) =>
-    set((state) => {
-      const feature = state.document.features.find((item) => item.id === id);
-      if (!feature || feature.geometry.kind === 'point') return state;
+    removeLayer: (id) =>
+      set((state) => {
+        // 至少保留一个图层，否则用户将无处放置新要素
+        if (state.document.layers.length <= 1) return state;
 
-      const bearings =
-        index === undefined || index === 'all'
-          ? resetAllBearings(feature.vertexBearings)
-          : resetBearing(feature.vertexBearings, index);
-      if (bearings === feature.vertexBearings) return state;
+        const remaining = state.document.layers.filter((layer) => layer.id !== id);
+        const next: MapDocument = {
+          ...state.document,
+          layers: remaining,
+          // 图层被删除时，其上的要素一并删除
+          features: state.document.features.filter((feature) => feature.layerId !== id),
+        };
 
-      const nextFeature: MapFeature = {
-        ...feature,
-        vertexBearings: bearings,
-        updatedAt: Date.now(),
-      };
-      return commit(state, {
-        ...state.document,
-        features: state.document.features.map((item) => (item.id === id ? nextFeature : item)),
-      });
-    }),
+        const activeLayerId =
+          state.activeLayerId === id ? remaining[remaining.length - 1].id : state.activeLayerId;
 
-  addLayer: (name) => {
-    const layer = createLayer({
-      name,
-      order: Math.max(0, ...get().document.layers.map((item) => item.order)) + 1,
-    });
-    set((state) =>
-      commit(state, {
-        ...state.document,
-        layers: [...state.document.layers, layer],
+        return { ...commit(state, next), activeLayerId, selectedIds: [] };
       }),
-    );
-    set({ activeLayerId: layer.id });
-    return layer.id;
-  },
 
-  updateLayer: (id, patch) =>
-    set((state) =>
-      commit(state, {
-        ...state.document,
-        layers: state.document.layers.map((layer) =>
-          layer.id === id ? { ...layer, ...patch } : layer,
-        ),
+    setActiveLayer: (id) => set({ activeLayerId: id }),
+
+    moveLayer: (sourceId, targetId) =>
+      set((state) => {
+        // reorderLayers 在没有变化时返回原引用，便于直接判等跳过提交
+        const next = reorderLayers(state.document.layers, sourceId, targetId);
+        if (next === state.document.layers) return state;
+        return commit(state, { ...state.document, layers: next });
       }),
-    ),
 
-  removeLayer: (id) =>
-    set((state) => {
-      // 至少保留一个图层，否则用户将无处放置新要素
-      if (state.document.layers.length <= 1) return state;
+    setLayerStatus: (id, status) =>
+      set((state) => {
+        const layer = state.document.layers.find((item) => item.id === id);
+        if (!layer || (layer.status ?? LayerStatus.Working) === status) return state;
+        return commit(state, {
+          ...state.document,
+          layers: state.document.layers.map((item) =>
+            item.id === id ? { ...item, status } : item,
+          ),
+        });
+      }),
 
-      const remaining = state.document.layers.filter((layer) => layer.id !== id);
-      const next: MapDocument = {
-        ...state.document,
-        layers: remaining,
-        // 图层被删除时，其上的要素一并删除
-        features: state.document.features.filter((feature) => feature.layerId !== id),
-      };
+    beginGesture: () => {
+      if (pendingGesture !== null) return;
+      pendingGesture = { snapshot: snapshot(get().document), dirty: false };
+    },
 
-      const activeLayerId =
-        state.activeLayerId === id ? remaining[remaining.length - 1].id : state.activeLayerId;
+    endGesture: () => {
+      if (pendingGesture === null) return;
 
-      return { ...commit(state, next), activeLayerId, selectedIds: [] };
-    }),
+      const gesture = pendingGesture;
+      pendingGesture = null;
+      if (!gesture.dirty || sameDocument(gesture.snapshot, get().document)) return;
 
-  setActiveLayer: (id) => set({ activeLayerId: id }),
+      set((state) => ({
+        document: touch(state.document),
+        past: appendHistory(state.past, gesture.snapshot),
+        future: [],
+      }));
+    },
 
-  moveLayer: (sourceId, targetId) =>
-    set((state) => {
-      // reorderLayers 在没有变化时返回原引用，便于直接判等跳过提交
-      const next = reorderLayers(state.document.layers, sourceId, targetId);
-      if (next === state.document.layers) return state;
-      return commit(state, { ...state.document, layers: next });
-    }),
+    previewFeatureGeometry: (id, points, bearings) => {
+      if (pendingGesture === null) return;
 
-  setLayerStatus: (id, status) =>
-    set((state) => {
-      const layer = state.document.layers.find((item) => item.id === id);
-      if (!layer || (layer.status ?? LayerStatus.Working) === status) return state;
-      return commit(state, {
-        ...state.document,
-        layers: state.document.layers.map((item) => (item.id === id ? { ...item, status } : item)),
+      set((state) => {
+        const feature = state.document.features.find((item) => item.id === id);
+        if (!feature || !isValidGeometryUpdate(feature, points, bearings)) return state;
+
+        const currentPoints =
+          feature.geometry.kind === 'point' ? [feature.geometry.position] : feature.geometry.points;
+        if (samePoints(currentPoints, points) && sameBearings(feature.vertexBearings, bearings))
+          return state;
+
+        const geometry =
+          feature.geometry.kind === 'point'
+            ? { ...feature.geometry, position: { ...points[0] } }
+            : { ...feature.geometry, points: points.map((point) => ({ ...point })) };
+        const nextFeature: MapFeature = {
+          ...feature,
+          geometry,
+          // bearings 为 undefined 表示「本次不改动方向」，需保留要素既有手动方向；
+          // 只有显式传入数组时才整体覆盖（isValidGeometryUpdate 已保证与顶点等长）。
+          vertexBearings: bearings ? [...bearings] : feature.vertexBearings,
+        };
+        pendingGesture!.dirty = true;
+
+        return {
+          document: {
+            ...state.document,
+            features: state.document.features.map((item) => (item.id === id ? nextFeature : item)),
+          },
+        };
       });
-    }),
+    },
 
-  beginGesture: () => {
-    if (pendingGesture !== null) return;
-    pendingGesture = { snapshot: snapshot(get().document), dirty: false };
-  },
+    previewLayer: (id, patch) => {
+      if (pendingGesture === null) return;
 
-  endGesture: () => {
-    if (pendingGesture === null) return;
+      set((state) => {
+        const layer = state.document.layers.find((item) => item.id === id);
+        if (!layer || !changesLayer(layer, patch)) return state;
 
-    const gesture = pendingGesture;
-    pendingGesture = null;
-    if (!gesture.dirty || sameDocument(gesture.snapshot, get().document)) return;
+        pendingGesture!.dirty = true;
+        return {
+          document: {
+            ...state.document,
+            layers: state.document.layers.map((item) =>
+              item.id === id ? { ...item, ...patch } : item,
+            ),
+          },
+        };
+      });
+    },
 
-    set((state) => ({
-      document: touch(state.document),
-      past: appendHistory(state.past, gesture.snapshot),
-      future: [],
-    }));
-  },
-
-  previewFeatureGeometry: (id, points, bearings) => {
-    if (pendingGesture === null) return;
-
-    set((state) => {
+    applyGeometry: (id, points, bearings) => {
+      const state = get();
       const feature = state.document.features.find((item) => item.id === id);
-      if (!feature || !isValidGeometryUpdate(feature, points, bearings)) return state;
+      if (!feature || !isValidGeometryUpdate(feature, points, bearings)) return;
 
       const currentPoints =
         feature.geometry.kind === 'point' ? [feature.geometry.position] : feature.geometry.points;
       if (samePoints(currentPoints, points) && sameBearings(feature.vertexBearings, bearings))
-        return state;
+        return;
 
-      const geometry =
-        feature.geometry.kind === 'point'
-          ? { ...feature.geometry, position: { ...points[0] } }
-          : { ...feature.geometry, points: points.map((point) => ({ ...point })) };
-      const nextFeature: MapFeature = {
-        ...feature,
-        geometry,
-        // bearings 为 undefined 表示「本次不改动方向」，需保留要素既有手动方向；
-        // 只有显式传入数组时才整体覆盖（isValidGeometryUpdate 已保证与顶点等长）。
-        vertexBearings: bearings ? [...bearings] : feature.vertexBearings,
-      };
-      pendingGesture!.dirty = true;
+      const ownsGesture = pendingGesture === null;
+      if (ownsGesture) state.beginGesture();
+      get().previewFeatureGeometry(id, points, bearings);
+      if (ownsGesture) get().endGesture();
+    },
 
-      return {
-        document: {
-          ...state.document,
-          features: state.document.features.map((item) => (item.id === id ? nextFeature : item)),
-        },
-      };
-    });
-  },
+    select: (ids) => set({ selectedIds: [...new Set(ids)] }),
 
-  previewLayer: (id, patch) => {
-    if (pendingGesture === null) return;
+    toggleSelect: (id) =>
+      set((state) => ({ selectedIds: toggleInSelection(state.selectedIds, id) })),
 
-    set((state) => {
-      const layer = state.document.layers.find((item) => item.id === id);
-      if (!layer || !changesLayer(layer, patch)) return state;
+    addToSelection: (ids) =>
+      set((state) => ({ selectedIds: addSelectionIds(state.selectedIds, ids) })),
 
-      pendingGesture!.dirty = true;
-      return {
-        document: {
-          ...state.document,
-          layers: state.document.layers.map((item) =>
-            item.id === id ? { ...item, ...patch } : item,
-          ),
-        },
-      };
-    });
-  },
+    removeFromSelection: (ids) =>
+      set((state) => ({ selectedIds: removeSelectionIds(state.selectedIds, ids) })),
 
-  applyGeometry: (id, points, bearings) => {
-    const state = get();
-    const feature = state.document.features.find((item) => item.id === id);
-    if (!feature || !isValidGeometryUpdate(feature, points, bearings)) return;
+    clearSelection: () => set({ selectedIds: [] }),
 
-    const currentPoints =
-      feature.geometry.kind === 'point' ? [feature.geometry.position] : feature.geometry.points;
-    if (samePoints(currentPoints, points) && sameBearings(feature.vertexBearings, bearings)) return;
+    selectAllInLayer: (layerId) =>
+      set((state) => ({
+        selectedIds: state.document.features
+          .filter((feature) => feature.layerId === layerId)
+          .map((feature) => feature.id),
+      })),
 
-    const ownsGesture = pendingGesture === null;
-    if (ownsGesture) state.beginGesture();
-    get().previewFeatureGeometry(id, points, bearings);
-    if (ownsGesture) get().endGesture();
-  },
+    selectInBounds: (bounds, mode) =>
+      set((state) => ({
+        selectedIds: featuresInBounds(visibleFeatures(state.document), bounds, mode),
+      })),
 
-  select: (ids) => set({ selectedIds: [...new Set(ids)] }),
+    renameDocument: (name) => set((state) => commit(state, { ...state.document, name })),
 
-  toggleSelect: (id) => set((state) => ({ selectedIds: toggleInSelection(state.selectedIds, id) })),
+    replaceDocument: (document) =>
+      set((state) => {
+        const base = commit(state, document);
+        return {
+          ...base,
+          activeLayerId: document.layers[0]?.id ?? '',
+          selectedIds: [],
+        };
+      }),
 
-  addToSelection: (ids) =>
-    set((state) => ({ selectedIds: addSelectionIds(state.selectedIds, ids) })),
+    clear: () =>
+      set((state) => {
+        const fresh = createDocument(state.document.name);
+        return {
+          ...commit(state, fresh),
+          activeLayerId: fresh.layers[0].id,
+          selectedIds: [],
+        };
+      }),
 
-  removeFromSelection: (ids) =>
-    set((state) => ({ selectedIds: removeSelectionIds(state.selectedIds, ids) })),
+    undo: () => {
+      const { past, document, future } = get();
+      if (past.length === 0) return;
 
-  clearSelection: () => set({ selectedIds: [] }),
-
-  selectAllInLayer: (layerId) =>
-    set((state) => ({
-      selectedIds: state.document.features
-        .filter((feature) => feature.layerId === layerId)
-        .map((feature) => feature.id),
-    })),
-
-  selectInBounds: (bounds, mode) =>
-    set((state) => ({
-      selectedIds: featuresInBounds(visibleFeatures(state.document), bounds, mode),
-    })),
-
-  renameDocument: (name) => set((state) => commit(state, { ...state.document, name })),
-
-  replaceDocument: (document) =>
-    set((state) => {
-      const base = commit(state, document);
-      return {
-        ...base,
-        activeLayerId: document.layers[0]?.id ?? '',
+      const previous = past[past.length - 1];
+      set({
+        document: previous,
+        past: past.slice(0, -1),
+        future: [snapshot(document), ...future],
         selectedIds: [],
-      };
-    }),
+      });
+    },
 
-  clear: () =>
-    set((state) => {
-      const fresh = createDocument(state.document.name);
-      return {
-        ...commit(state, fresh),
-        activeLayerId: fresh.layers[0].id,
+    redo: () => {
+      const { future, document, past } = get();
+      if (future.length === 0) return;
+
+      const next = future[0];
+      set({
+        document: next,
+        past: [...past, snapshot(document)],
+        future: future.slice(1),
         selectedIds: [],
-      };
-    }),
+      });
+    },
 
-  undo: () => {
-    const { past, document, future } = get();
-    if (past.length === 0) return;
-
-    const previous = past[past.length - 1];
-    set({
-      document: previous,
-      past: past.slice(0, -1),
-      future: [snapshot(document), ...future],
-      selectedIds: [],
-    });
-  },
-
-  redo: () => {
-    const { future, document, past } = get();
-    if (future.length === 0) return;
-
-    const next = future[0];
-    set({
-      document: next,
-      past: [...past, snapshot(document)],
-      future: future.slice(1),
-      selectedIds: [],
-    });
-  },
-
-  canUndo: () => get().past.length > 0,
-  canRedo: () => get().future.length > 0,
-}));
+    canUndo: () => get().past.length > 0,
+    canRedo: () => get().future.length > 0,
+  };
+});
 
 /** 用于选择 selector 的最小状态形状。 */
 type SelectionState = Pick<DocumentState, 'document' | 'selectedIds'>;
 
 /** 返回选择队列末位仍存在的主选要素。 */
 export function selectPrimaryFeature(state: SelectionState): MapFeature | null {
-  const id = state.selectedIds[state.selectedIds.length - 1];
-  if (!id) return null;
-  return state.document.features.find((feature) => feature.id === id) ?? null;
+  for (const id of [...state.selectedIds].reverse()) {
+    const feature = state.document.features.find((item) => item.id === id);
+    if (feature) return feature;
+  }
+  return null;
 }
 
 /** 返回按选择队列顺序去重并过滤缺失项后的已选要素。 */

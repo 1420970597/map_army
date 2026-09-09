@@ -4,6 +4,9 @@
  * 编辑单个要素的符号与样式；多选时提供批量移动与删除操作。
  */
 
+import { militarySvg } from '@/core/symbology/military';
+import { useSymbolStore } from '@/stores/useSymbolStore';
+import { useAccessStore } from '@/stores/useAccessStore';
 import { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -15,7 +18,6 @@ import {
   createSidc,
   formatSidc,
   parseSidc,
-  symbolToSvg,
 } from '@/core/symbology';
 import { mergeFeatureStyle, mergeFeatureText, useDocumentStore } from '@/stores/useDocumentStore';
 import { useEditStore } from '@/stores/useEditStore';
@@ -34,6 +36,7 @@ export function Inspector() {
   const removeFeatures = useDocumentStore((state) => state.removeFeatures);
   const moveFeaturesToLayer = useDocumentStore((state) => state.moveFeaturesToLayer);
   const resetVertexBearing = useDocumentStore((state) => state.resetVertexBearing);
+  const readOnly = useAccessStore((s) => s.readOnly);
   const activeVertex = useEditStore((state) => state.activeVertex);
   const selection = useMemo(
     () => deriveInspectorSelection(selectedIds, features),
@@ -43,7 +46,15 @@ export function Inspector() {
   if (!open || selection.mode === 'none') return null;
 
   return (
-    <div className="inspector">
+    <fieldset
+      className="inspector"
+      disabled={
+        readOnly ||
+        (selection.primary
+          ? layers.find((l) => l.id === selection.primary?.layerId)?.locked
+          : false)
+      }
+    >
       <div className="panel-header">
         <span>要素属性</span>
         <button type="button" className="icon-button" title="关闭" onClick={() => setOpen(false)}>
@@ -73,7 +84,7 @@ export function Inspector() {
           onResetVertexBearing={resetVertexBearing}
         />
       ) : null}
-    </div>
+    </fieldset>
   );
 }
 
@@ -147,6 +158,7 @@ function SingleFeaturePanel({
   onDelete: () => void;
   onResetVertexBearing: (id: string, index?: number | 'all') => void;
 }) {
+  const mode = useSymbolStore((s) => s.symbolMode);
   let sidc = createSidc();
   try {
     sidc = parseSidc(feature.sidc);
@@ -164,7 +176,11 @@ function SingleFeaturePanel({
       <div className="panel-section" style={{ textAlign: 'center' }}>
         <img
           src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(
-            symbolToSvg(sidc, { size: 96, direction: feature.direction }),
+            militarySvg(feature.sidc, {
+              ...feature.textFields,
+              size: 96,
+              direction: feature.direction,
+            }),
           )}`}
           alt="符号预览"
           width={96}
@@ -184,6 +200,31 @@ function SingleFeaturePanel({
       </div>
 
       <div className="panel-section">
+        <TextField
+          label="SIDC（15 位或 20 位）"
+          value={feature.sidc}
+          onChange={(value) => {
+            if (/^(?:[A-Za-z0-9*-]{15}|\d{20})$/.test(value))
+              onUpdate(feature.id, { sidc: value.toUpperCase(), nativeMss: undefined });
+          }}
+        />
+        {feature.geometry.kind === 'point' && (
+          <label className="field">
+            距离环半径（米，逗号分隔）
+            <input
+              key={feature.id + '-rings'}
+              defaultValue={feature.rangeRings?.join(', ') ?? ''}
+              onBlur={(e) => {
+                const values = e.target.value
+                  .split(/[,，;\s]+/)
+                  .filter(Boolean)
+                  .map(Number);
+                if (values.every((n) => Number.isFinite(n) && n > 0))
+                  onUpdate(feature.id, { rangeRings: [...new Set(values)].sort((a, b) => a - b) });
+              }}
+            />
+          </label>
+        )}
         <div className="panel-section-title">符号标识（SIDC）</div>
         <label className="field">
           <span className="field-label">身份</span>
@@ -289,6 +330,47 @@ function SingleFeaturePanel({
         />
       </div>
 
+      <div className="panel-section">
+        {(
+          [
+            ['quantity', '兵力 / 装备数量'],
+            ['type', '平台型号'],
+            ['platformType', '平台代号'],
+            ['commonIdentifier', '通用标识'],
+            ['dtg', '日期时间组'],
+            ['altitudeDepth', '高度 / 深度'],
+            ['speed', '速度'],
+            ['combatEffectiveness', '战斗效能'],
+            ['reinforcedReduced', '加强 / 缩编'],
+            ['specialHeadquarters', '特殊司令部'],
+          ] as const
+        ).map(([key, label]) => (
+          <TextField
+            key={key}
+            label={label}
+            value={feature.textFields[key] ?? ''}
+            onChange={(value) => mergeFeatureText(feature.id, { [key]: value })}
+          />
+        ))}
+        {mode === 'extended' &&
+          (
+            [
+              ['modifier1', '扩展图标一'],
+              ['modifier2', '扩展图标二'],
+            ] as const
+          ).map(([key, label]) => (
+            <label className="field" key={key}>
+              {label}
+              <input
+                type="number"
+                min={0}
+                max={99}
+                value={sidc[key]}
+                onChange={(e) => patchSidc({ [key]: e.target.value.padStart(2, '0') })}
+              />
+            </label>
+          ))}
+      </div>
       <div className="panel-section">
         <div className="panel-section-title">样式</div>
         <label className="field">

@@ -96,6 +96,11 @@ self.addEventListener('install', (event) => {
   );
 });
 
+// 页面确认新版本后由此消息立即切换到等待中的 Service Worker。
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {

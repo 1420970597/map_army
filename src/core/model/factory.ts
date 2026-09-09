@@ -177,6 +177,7 @@ export function cloneFeature(feature: MapFeature, overrides: Partial<MapFeature>
     textFields: { ...source.textFields },
     style: source.style ? { ...source.style } : undefined,
     vertexBearings: source.vertexBearings ? [...source.vertexBearings] : undefined,
+    rangeRings: source.rangeRings ? [...source.rangeRings] : undefined,
     graphicParams: source.graphicParams ? { ...source.graphicParams } : undefined,
     id: createId(ID_PREFIX.feature),
     createdAt: now,

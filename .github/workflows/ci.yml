@@ -45,8 +45,15 @@ jobs:
       - name: 单元测试
         run: npm run test -- --reporter=verbose
 
+      - name: 分享服务测试
+        run: npm run test:server
+
       - name: 类型检查与构建
         run: npm run build
+
+      - name: Docker Compose 构建检查
+        if: matrix.node-version == '22.x'
+        run: docker compose build
 
       - name: 上传构建产物
         if: matrix.node-version == '22.x'

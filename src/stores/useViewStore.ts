@@ -30,6 +30,8 @@ export interface ViewState {
   grid: GridDisplay;
   /** 网格标签是否可见 */
   gridLabels: boolean;
+  /** 是否切换到只读三维地球 */
+  is3d: boolean;
   /** 当前激活的绘制工具 */
   activeTool: Tool;
   /** 待放置符号的 SIDC，切换到符号工具后点击地图即放置 */
@@ -53,6 +55,7 @@ export interface ViewState {
   setGrid: (grid: GridDisplay) => void;
   toggleGridLabels: () => void;
   setActiveTool: (tool: Tool) => void;
+  toggle3d: () => void;
   setPendingSidc: (sidc: string) => void;
   toggleSymbolPanel: () => void;
   toggleLayerPanel: () => void;
@@ -90,6 +93,7 @@ export const useViewStore = create<ViewState>((set) => ({
   baseMap: BaseMapType.Topo,
   grid: 'MGRS',
   gridLabels: true,
+  is3d: false,
   activeTool: Tool.Select,
   pendingSidc: '10031000001211000000',
   symbolPanelOpen: true,
@@ -111,6 +115,7 @@ export const useViewStore = create<ViewState>((set) => ({
   setGrid: (grid) => set({ grid }),
   toggleGridLabels: () => set((state) => ({ gridLabels: !state.gridLabels })),
   setActiveTool: (activeTool) => set({ activeTool }),
+  toggle3d: () => set((state) => ({ is3d: !state.is3d })),
   setPendingSidc: (pendingSidc) => set({ pendingSidc }),
   toggleSymbolPanel: () => set((state) => ({ symbolPanelOpen: !state.symbolPanelOpen })),
   toggleLayerPanel: () => set((state) => ({ layerPanelOpen: !state.layerPanelOpen })),

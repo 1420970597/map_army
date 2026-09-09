@@ -3,6 +3,23 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    depends_on:
+      shares:
+        condition: service_healthy
     ports:
       - "8080:80"
     restart: unless-stopped
+  shares:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    volumes:
+      - share-data:/data/shares
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+volumes:
+  share-data:

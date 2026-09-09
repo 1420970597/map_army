@@ -1,3 +1,4 @@
+import { usePreferencesStore } from './usePreferencesStore';
 /**
  * 几何编辑瞬态状态容器。
  *
@@ -137,6 +138,8 @@ function defaultEditState(): Pick<
 /** 编辑瞬态 Zustand 状态容器。 */
 export const useEditStore = create<EditState>((set) => ({
   ...defaultEditState(),
+  snapEnabled: usePreferencesStore.getState().snapEnabled,
+  snapThresholdPx: usePreferencesStore.getState().snapThresholdPx,
 
   beginDrag: (featureId, index, startPoints) =>
     set({
@@ -151,7 +154,11 @@ export const useEditStore = create<EditState>((set) => ({
 
   setActiveVertex: (index) => set({ activeVertex: index }),
 
-  toggleSnap: () => set((state) => ({ snapEnabled: !state.snapEnabled })),
+  toggleSnap: () =>
+    set((state) => {
+      usePreferencesStore.getState().update({ snapEnabled: !state.snapEnabled });
+      return { snapEnabled: !state.snapEnabled };
+    }),
 
   setSnapThresholdPx: (thresholdPx) =>
     set((state) => {
@@ -162,6 +169,7 @@ export const useEditStore = create<EditState>((set) => ({
       ) {
         return state;
       }
+      usePreferencesStore.getState().update({ snapThresholdPx: thresholdPx });
       return { snapThresholdPx: thresholdPx };
     }),
 

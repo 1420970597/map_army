@@ -486,7 +486,7 @@ describe('QA 多选语义', () => {
 
   // BUG-02（低）：`selectPrimaryFeature` 只检查队列末位，末位要素缺失时直接返回 null，
   // 与 `selectSelectedFeatures`「过滤缺失项」的语义不一致，也与自己的 JSDoc（末位仍存在）不符。
-  it.fails('末位标识缺失时主选应回退到队列中最后一个仍存在的要素', () => {
+  it('末位标识缺失时主选应回退到队列中最后一个仍存在的要素', () => {
     const { first, second } = installSelection([]);
     useDocumentStore.getState().select([first.id, second.id, 'missing']);
 

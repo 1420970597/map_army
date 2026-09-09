@@ -1,3 +1,4 @@
+import { nearbyGridPoints } from '@/core/geo/gridSnap';
 /**
  * 绘制交互处理器。
  *
@@ -29,6 +30,8 @@ import {
   createLineGeometry,
   createPointGeometry,
   formatDistance,
+  polygonArea,
+  formatArea,
   measurePath,
   Tool,
 } from '@/core/model';
@@ -36,6 +39,12 @@ import { createLeafletProjection } from '@/features/map/leafletProjection';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useEditStore } from '@/stores/useEditStore';
 import { useViewStore } from '@/stores/useViewStore';
+
+import { useSymbolStore } from '@/stores/useSymbolStore';
+import { GRAPHIC_META } from '@/core/graphics';
+import { TacticalGraphic } from '@/features/map/TacticalGraphic';
+import { styleFromSymbolDefaults } from '@/core/model/style';
+import { isTypingTarget } from '@/core/shell';
 
 import { buildDrawSnapCandidates, resolveDrawSnap, sameDrawSnapTarget } from './drawSnapLogic';
 
@@ -74,7 +83,11 @@ export function DrawHandler() {
   toolRef.current = activeTool;
 
   const isDrawing =
-    activeTool === Tool.Line || activeTool === Tool.Area || activeTool === Tool.Measure;
+    activeTool === Tool.Line ||
+    activeTool === Tool.Area ||
+    activeTool === Tool.Measure ||
+    activeTool === Tool.TacticalGraphic ||
+    activeTool === Tool.MeasureArea;
 
   const projection = useMemo(() => createLeafletProjection(map), [map]);
 
@@ -146,7 +159,10 @@ export function DrawHandler() {
       const edit = useEditStore.getState();
       const next = resolveDrawSnap({
         origin,
-        candidates: candidatesRef.current,
+        candidates: [
+          ...candidatesRef.current,
+          ...nearbyGridPoints(origin, useViewStore.getState().grid, map.getZoom()),
+        ],
         enabled: edit.snapEnabled,
         thresholdPx: edit.snapThresholdPx,
         projection,
@@ -188,7 +204,28 @@ export function DrawHandler() {
       const tool = toolRef.current;
       const points = dropLast ? draftRef.current.slice(0, -1) : draftRef.current;
 
-      if (tool === Tool.Line && points.length >= 2) {
+      const symbol = useSymbolStore.getState();
+      if (
+        tool === Tool.TacticalGraphic &&
+        symbol.graphicType &&
+        points.length >= GRAPHIC_META[symbol.graphicType].minPoints
+      ) {
+        addFeature(
+          createFeature({
+            layerId: activeLayerId,
+            sidc: pendingSidc,
+            name: GRAPHIC_META[symbol.graphicType].name,
+            geometry: createLineGeometry(points),
+            symbolKind: 'multiPoint',
+            graphicType: symbol.graphicType,
+            style: {
+              ...styleFromSymbolDefaults(symbol.symbolDefaults),
+              fontSize: symbol.symbolDefaults.fontSize,
+              fontFamily: symbol.symbolDefaults.fontFamily,
+            },
+          }),
+        );
+      } else if (tool === Tool.Line && points.length >= 2) {
         addFeature(
           createFeature({
             layerId: activeLayerId,
@@ -205,6 +242,23 @@ export function DrawHandler() {
           }),
         );
       }
+      if (
+        (tool === Tool.Measure || tool === Tool.MeasureArea) &&
+        points.length >= (tool === Tool.Measure ? 2 : 3)
+      ) {
+        const geometry =
+          tool === Tool.Measure ? createLineGeometry(points) : createAreaGeometry(points);
+        addFeature({
+          ...createFeature({
+            layerId: activeLayerId,
+            sidc: pendingSidc,
+            name: tool === Tool.Measure ? '距离量测' : '面积量测',
+            geometry,
+            style: { color: '#b45309', dashArray: '5 4' },
+          }),
+          measurement: tool === Tool.Measure ? 'distance' : 'area',
+        });
+      }
       reset();
     },
     [addFeature, activeLayerId, pendingSidc, reset],
@@ -213,7 +267,7 @@ export function DrawHandler() {
   // 本地 Enter/Esc 与全局快捷键命令桥共用同一提交/取消路径。
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (!isDrawing) return;
+      if (!isDrawing || isTypingTarget(event.target)) return;
       if (event.key === 'Enter') {
         event.preventDefault();
         commitDraft(false);
@@ -253,8 +307,23 @@ export function DrawHandler() {
 
   // 地图点击：采点或放置符号
   useMapEvent('click', (event) => {
+    if (!layers.some((layer) => layer.id === activeLayerId && layer.visible && !layer.locked))
+      return;
     const raw: LonLat = { lon: event.latlng.lng, lat: event.latlng.lat };
 
+    if (toolRef.current === Tool.RangeRing) {
+      addFeature({
+        ...createFeature({
+          layerId: activeLayerId,
+          sidc: pendingSidc,
+          name: '距离环',
+          geometry: createPointGeometry(raw.lon, raw.lat),
+        }),
+        rangeRings: [1000, 3000, 5000],
+      });
+      setActiveTool(Tool.Select);
+      return;
+    }
     if (toolRef.current === Tool.Symbol) {
       addFeature(
         createFeature({
@@ -271,7 +340,9 @@ export function DrawHandler() {
     if (
       toolRef.current === Tool.Line ||
       toolRef.current === Tool.Area ||
-      toolRef.current === Tool.Measure
+      toolRef.current === Tool.Measure ||
+      toolRef.current === Tool.TacticalGraphic ||
+      toolRef.current === Tool.MeasureArea
     ) {
       // 复用 mousemove 已算好的吸附结果，命中时采集吸附点，否则用原始坐标
       const snapped = snapRef.current;
@@ -286,7 +357,13 @@ export function DrawHandler() {
   // 因此此处丢弃最后采集到的那个多余顶点。
   useMapEvent('dblclick', () => {
     const tool = toolRef.current;
-    if (tool === Tool.Line || tool === Tool.Area || tool === Tool.Measure) {
+    if (
+      tool === Tool.Line ||
+      tool === Tool.Area ||
+      tool === Tool.Measure ||
+      tool === Tool.TacticalGraphic ||
+      tool === Tool.MeasureArea
+    ) {
       commitDraft(true);
     }
   });
@@ -294,11 +371,24 @@ export function DrawHandler() {
   if (!isDrawing || draft.length === 0) return null;
 
   const positions = draft.map((point) => [point.lat, point.lon] as [number, number]);
-  const isMeasure = activeTool === Tool.Measure;
+  const isMeasure = activeTool === Tool.Measure || activeTool === Tool.MeasureArea;
 
   return (
     <>
-      <Polyline positions={positions} pathOptions={DRAFT_STYLE} />
+      {activeTool === Tool.TacticalGraphic &&
+      useSymbolStore.getState().graphicType &&
+      draft.length >= 2 ? (
+        <TacticalGraphic
+          feature={createFeature({
+            layerId: activeLayerId,
+            sidc: pendingSidc,
+            geometry: createLineGeometry(draft),
+            graphicType: useSymbolStore.getState().graphicType ?? undefined,
+          })}
+        />
+      ) : (
+        <Polyline positions={positions} pathOptions={DRAFT_STYLE} />
+      )}
 
       {draft.map((point, index) => (
         <CircleMarker
@@ -312,7 +402,9 @@ export function DrawHandler() {
       {isMeasure && draft.length >= 2 ? (
         <Polyline positions={positions} pathOptions={{ opacity: 0 }}>
           <Tooltip permanent direction="top" className="measure-badge" opacity={0.9}>
-            总长 {formatDistance(measurePath(draft).length)}
+            {activeTool === Tool.MeasureArea
+              ? `面积 ${formatArea(polygonArea(draft))}`
+              : `总长 ${formatDistance(measurePath(draft).length)}`}
           </Tooltip>
         </Polyline>
       ) : null}

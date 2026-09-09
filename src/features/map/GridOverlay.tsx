@@ -67,7 +67,11 @@ export function GridOverlay({ type, showLabels }: GridOverlayProps) {
     if (type === 'none') return [];
 
     const spacing = suggestSpacing(zoom, (bounds.north + bounds.south) / 2);
-    return generateGrid({ bounds, type: type as 'MGRS' | 'UTM' | 'BNG', spacingMeters: spacing });
+    return generateGrid({
+      bounds,
+      type: type as 'MGRS' | 'UTM' | 'BNG' | 'WGS84' | 'GARS' | 'LV95' | 'LV03' | 'HEX',
+      spacingMeters: spacing,
+    });
   }, [bounds, zoom, type]);
 
   if (type === 'none') return null;

@@ -14,6 +14,8 @@ export type { MilxlyFile } from './milxly';
 
 export { documentToGeoJson, geoJsonToDocument } from './geojson';
 export type { GeoJsonFeature, GeoJsonFeatureCollection, GeoJsonGeometry } from './geojson';
+export { documentToKml, kmlToDocument } from './kml';
+export { createShareUrl, readShareUrl } from './share';
 
 export {
   autoSave,
@@ -63,3 +65,5 @@ export {
   toSafeFilename,
 } from './download';
 export type { DownloadOptions } from './download';
+
+export { documentToMilxXml, milxXmlToDocument } from './milxNative';

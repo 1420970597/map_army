@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GRID_SPACINGS, generateGrid, generateMgrsZoneGrid, suggestSpacing } from './grid';
 import type { GeoBounds } from './grid';
+import { garsToLonLat, lonLatToGars } from './extended';
 
 /** 中欧的一个小视口，用于测试网格生成 */
 const ALPS: GeoBounds = { west: 7.0, south: 46.5, east: 9.0, north: 47.5 };
@@ -27,6 +28,12 @@ describe('格网间距推荐', () => {
 });
 
 describe('网格线生成', () => {
+  it('GARS 纬度字母覆盖完整 24 字母表', () => {
+    const value = lonLatToGars({ lon: 10, lat: 70 }, 30);
+    expect(value).toMatch(/^\d{3}[A-HJ-NP-Z]{2}$/);
+    const center = garsToLonLat(value);
+    expect(center.lat).toBeGreaterThan(69);
+  });
   it('应生成 MGRS 网格线', () => {
     const lines = generateGrid({ bounds: ALPS, type: 'MGRS', spacingMeters: 10000 });
     expect(lines.length).toBeGreaterThan(0);

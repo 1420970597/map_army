@@ -132,6 +132,26 @@ export interface FeatureTextFields {
   additionalInformation?: string;
   /** 参谋注记（Field G），显示在符号左下方 */
   staffComments?: string;
+  /** 兵力或装备数量。 */
+  quantity?: string;
+  /** 平台型号。 */
+  type?: string;
+  /** 平台代号。 */
+  platformType?: string;
+  /** 通用标识。 */
+  commonIdentifier?: string;
+  /** 日期时间组。 */
+  dtg?: string;
+  /** 高度或深度。 */
+  altitudeDepth?: string;
+  /** 速度。 */
+  speed?: string;
+  /** 战斗效能。 */
+  combatEffectiveness?: string;
+  /** 加强或缩编。 */
+  reinforcedReduced?: string;
+  /** 特殊司令部。 */
+  specialHeadquarters?: string;
 }
 
 /** 要素的样式覆盖项，未指定的字段回退到图层默认样式 */
@@ -144,6 +164,12 @@ export interface FeatureStyle {
   opacity?: number;
   /** 虚线样式，如 "8 6" */
   dashArray?: string;
+  /** 填充颜色。 */
+  fillColor?: string;
+  /** 标签字号。 */
+  fontSize?: number;
+  /** 标签字体。 */
+  fontFamily?: string;
 }
 
 /**
@@ -172,6 +198,12 @@ export interface MapFeature {
   direction?: number;
   /** 逐顶点方向，与 geometry.points 一一对应；缺省表示自动切线方向 */
   vertexBearings?: number[];
+  /** 原生 MSS 符号定义，仅用于无损交换。 */
+  nativeMss?: string;
+  /** 已保存量测类型。 */
+  measurement?: 'distance' | 'area';
+  /** 点要素的同心环半径，单位米。 */
+  rangeRings?: number[];
   /** 符号形态；缺省视为单点符号。 */
   symbolKind?: SymbolKind;
   /** 战术图形种类，仅多点符号时有意义。 */
@@ -182,6 +214,14 @@ export interface MapFeature {
   createdAt: number;
   /** 最后修改时间戳（毫秒） */
   updatedAt: number;
+}
+
+/** 图像以三个角点进行仿射配准，允许平移、缩放和旋转。 */
+export interface ImageOverlayData {
+  url: string;
+  width: number;
+  height: number;
+  corners: [LonLat, LonLat, LonLat];
 }
 
 /** 图层 */
@@ -204,6 +244,12 @@ export interface Layer {
   kind?: LayerKind;
   /** 兵棋分组标识，如 red / blue */
   group?: string;
+  /** 本地嵌入图像或在线图像及配准。 */
+  image?: ImageOverlayData;
+  /** 在线矢量图层的刷新地址。 */
+  sourceUrl?: string;
+  /** 保留原生格式的图层元数据。 */
+  nativeMetadata?: Record<string, unknown>;
 }
 
 /**
@@ -224,6 +270,8 @@ export interface MapDocument {
   updatedAt: number;
   /** 模型结构版本，缺失视为 1 */
   schemaVersion?: number;
+  /** 保留原生文档的演习和任务元数据。 */
+  nativeMetadata?: Record<string, unknown>;
 }
 
 /** 可用工具 */
@@ -238,6 +286,10 @@ export const Tool = {
   Area: 'area',
   /** 量距 */
   Measure: 'measure',
+  /** 面积量测。 */
+  MeasureArea: 'measureArea',
+  /** 同心距离环。 */
+  RangeRing: 'rangeRing',
   /** 删除要素 */
   Delete: 'delete',
   /** 框选（R24） */
@@ -255,6 +307,11 @@ export const BaseMapType = {
   Topo: 'topo',
   /** 卫星影像 */
   Satellite: 'satellite',
+  Light: 'light',
+  Dark: 'dark',
+  Terrain: 'terrain',
+  Swiss: 'swiss',
+  None: 'none',
 } as const;
 export type BaseMapType = (typeof BaseMapType)[keyof typeof BaseMapType];
 

@@ -20,6 +20,8 @@ import { useMap } from 'react-leaflet';
 
 import type { LonLat } from '@/core/geo';
 import { snapPoint } from '@/core/geo';
+import { nearbyGridPoints } from '@/core/geo/gridSnap';
+import { useViewStore } from '@/stores/useViewStore';
 import { isTypingTarget } from '@/core/shell/shortcuts';
 import { GeometryKind, moveVertex, type Layer, type MapFeature, type Tool } from '@/core/model';
 import { createLeafletProjection } from '@/features/map/leafletProjection';
@@ -239,7 +241,10 @@ export function VertexEditor({
         const edit = useEditStore.getState();
         const snapped = snapPoint(
           rawPoint,
-          edit.snapCandidates,
+          [
+            ...edit.snapCandidates,
+            ...nearbyGridPoints(rawPoint, useViewStore.getState().grid, map.getZoom()),
+          ],
           {
             enabled: edit.snapEnabled,
             thresholdPx: edit.snapThresholdPx,
