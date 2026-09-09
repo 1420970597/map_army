@@ -40,6 +40,23 @@ function createImageryLayer(
   );
 }
 
+/** 创建 Cesium 随包发布的 Natural Earth 离线底图，避免无网络时只显示纯色地球。 */
+function createOfflineImageryLayer(
+  ImageryLayer: typeof CesiumImageryLayer,
+  Provider: typeof CesiumUrlTemplateImageryProvider,
+): CesiumImageryLayer {
+  return new ImageryLayer(
+    new Provider({
+      // Cesium 的 Natural Earth 资源采用 TMS 行号，reverseY 将其转换为地理瓦片行号。
+      url: '/cesium/Assets/Textures/NaturalEarthII/{z}/{x}/{reverseY}.jpg',
+      maximumLevel: 2,
+      credit: 'Cesium Natural Earth 离线底图',
+      tileWidth: 256,
+      tileHeight: 256,
+    }),
+  );
+}
+
 export function Map3DView() {
   const host = useRef<HTMLDivElement>(null);
   const viewer = useRef<Viewer | null>(null);
@@ -59,12 +76,14 @@ export function Map3DView() {
         async ({
           Viewer,
           Cartesian3,
+          EllipsoidTerrainProvider,
           CustomHeightmapTerrainProvider,
           CesiumTerrainProvider,
           Ion,
           createWorldTerrainAsync,
           ImageryLayer,
           UrlTemplateImageryProvider,
+          Color,
           Math: CMath,
         }) => {
           if (disposed || !host.current) return;
@@ -84,7 +103,8 @@ export function Map3DView() {
               setTerrainStatus('offline');
             }
           } else if (!terrainUrl) {
-            terrainProvider = createOfflineTerrain(CustomHeightmapTerrainProvider);
+            // Cesium 椭球 provider 是离线部署的稳定基线；离线高程采样用于要素贴地时不阻断地球渲染。
+            terrainProvider = new EllipsoidTerrainProvider();
             setTerrainStatus('offline');
           } else {
             try {
@@ -94,11 +114,16 @@ export function Map3DView() {
               });
               setTerrainStatus('ready');
             } catch {
-              terrainProvider = createOfflineTerrain(CustomHeightmapTerrainProvider);
+              terrainProvider = new EllipsoidTerrainProvider();
               setTerrainStatus('offline');
             }
           }
           if (disposed || !host.current) return;
+          const configuredImagery = createImageryLayer(
+            ImageryLayer,
+            UrlTemplateImageryProvider,
+            import.meta.env.VITE_CESIUM_IMAGERY_URL?.trim(),
+          );
           const instance = new Viewer(host.current, {
             animation: false,
             timeline: false,
@@ -108,15 +133,21 @@ export function Map3DView() {
             sceneModePicker: false,
             navigationHelpButton: false,
             fullscreenButton: false,
-            baseLayer: createImageryLayer(
-              ImageryLayer,
-              UrlTemplateImageryProvider,
-              import.meta.env.VITE_CESIUM_IMAGERY_URL?.trim(),
-            ),
+            // 未配置影像时使用随应用发布的单瓦片底图，确保离线部署仍有可辨识地球。
+            baseLayer:
+              configuredImagery ||
+              createOfflineImageryLayer(ImageryLayer, UrlTemplateImageryProvider),
             terrainProvider,
-            requestRenderMode: true,
+            // 持续渲染确保无影像的离线场景也能完成地球首帧绘制。
+            requestRenderMode: false,
           });
           viewer.current = instance;
+          // 无影像的离线模式仍显示带颜色的地球和地形网格，避免出现整屏纯蓝。
+          instance.scene.globe.baseColor = Color.fromCssColorString('#6f8f5f');
+          instance.scene.globe.show = true;
+          if (instance.scene.skyAtmosphere) instance.scene.skyAtmosphere.show = false;
+          instance.scene.backgroundColor = Color.fromCssColorString('#102536');
+          instance.scene.requestRender();
           const view = useViewStore.getState();
           instance.camera.setView({
             destination: Cartesian3.fromDegrees(
