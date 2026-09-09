@@ -30,22 +30,43 @@ export function Map3DView() {
           Cartesian3,
           EllipsoidTerrainProvider,
           CesiumTerrainProvider,
+          Ion,
+          createWorldTerrainAsync,
           ImageryLayer,
           UrlTemplateImageryProvider,
           Math: CMath,
         }) => {
           if (disposed || !host.current) return;
           let terrainProvider: TerrainProvider;
-          try {
-            // AWS 公共地形服务提供全球 quantized-mesh DEM，无需 Cesium Ion 密钥。
-            terrainProvider = await CesiumTerrainProvider.fromUrl(
-              'https://s3.amazonaws.com/elevation-tiles-prod/skadi/',
-              { requestVertexNormals: true, requestWaterMask: true },
-            );
-            setTerrainStatus('ready');
-          } catch {
+          const terrainUrl = import.meta.env.VITE_CESIUM_TERRAIN_URL?.trim();
+          const ionToken = import.meta.env.VITE_CESIUM_ION_TOKEN?.trim();
+          if (ionToken) {
+            try {
+              Ion.defaultAccessToken = ionToken;
+              terrainProvider = await createWorldTerrainAsync({
+                requestVertexNormals: true,
+                requestWaterMask: true,
+              });
+              setTerrainStatus('ready');
+            } catch {
+              terrainProvider = new EllipsoidTerrainProvider();
+              setTerrainStatus('fallback');
+            }
+          } else if (!terrainUrl) {
+            // 未配置可用的 Cesium terrain 服务时使用椭球，避免请求失效地址破坏三维视图。
             terrainProvider = new EllipsoidTerrainProvider();
             setTerrainStatus('fallback');
+          } else {
+            try {
+              terrainProvider = await CesiumTerrainProvider.fromUrl(terrainUrl, {
+                requestVertexNormals: true,
+                requestWaterMask: true,
+              });
+              setTerrainStatus('ready');
+            } catch {
+              terrainProvider = new EllipsoidTerrainProvider();
+              setTerrainStatus('fallback');
+            }
           }
           if (disposed || !host.current) return;
           const instance = new Viewer(host.current, {
@@ -196,7 +217,7 @@ export function Map3DView() {
             ? 'DEM 已加载'
             : terrainStatus === 'loading'
               ? 'DEM 加载中'
-              : '椭球回退'}
+              : '椭球回退（未配置 DEM）'}
         </span>
         <div className="map-3d-layers" aria-label="三维图层控制">
           {layers.map((layer) => (

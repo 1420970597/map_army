@@ -88,6 +88,10 @@ docker compose logs -f map-army
 docker compose down
 ```
 
+三维视图默认使用无网络请求的椭球地球，避免未配置服务时反复请求失效高程瓦片。
+需要真实 DEM 时，复制 `.env.example` 并在构建前配置 `VITE_CESIUM_ION_TOKEN`，或提供
+`VITE_CESIUM_TERRAIN_URL` 指向兼容 Cesium quantized-mesh 的 terrain 服务，再执行构建。
+
 容器不保存业务数据；标图文档继续按浏览器 localStorage 保存，也可以使用应用内的
 `.milxlyz` 导出作为跨设备备份。
 
