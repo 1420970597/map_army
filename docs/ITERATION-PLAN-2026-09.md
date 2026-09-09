@@ -54,3 +54,13 @@ Compose 前端首页和 `/api/health` 均正常，两个容器 healthy。PR 推�
 并新增服务端独立副本接口。离线快照继续保持纯前端权限边界，编辑副本通过独立 ID 和令牌隔离。
 
 本轮完成后重新核对 Share、iframe、在线图层和版本跟踪页面，再进入符号编辑器轮次。
+
+本轮已关闭（提交 `904a2e6`）：`npm run ci` 通过（60 个测试文件、968 个测试、3 个分享服务测试），
+Compose 两个容器 healthy，首页和健康检查正常。PR 推送后重新读取原站页面：
+
+- `data-exchange/create-a-share`：`a7c3dc3b6147974c74987ed5148e9b08826e23603f8660f08d5613f5da5de6a1`
+- `data-exchange/iframe`：`935514abb747fee3cfa7c065f871f05dd33044a45445f6b1fab232cea2487319`
+- `data-exchange/share-online-source-layers`：`21995c2cefc002af4021bcc8c32ed85368fd1f201c5ad66bdc84575357150bc3`
+- `data-exchange/track-changes`：`b5b3f9b34b146cd7c1e59ce2a45c7e285c1350d6ea2b554af069ae9cb5a4fe23`
+
+复核确认 Share 核心差异已关闭；原站符号编辑器的三页签、2525C 与 Extended 修饰符进入第四轮。
