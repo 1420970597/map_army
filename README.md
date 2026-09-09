@@ -93,6 +93,10 @@ docker compose down
 
 ## 开发规范
 
+本项目的长期复刻约束、原站差异审计流程和每轮迭代完成门槛记录在
+[AGENTS.md](AGENTS.md) 与 [docs/PROJECT_MEMORY.md](docs/PROJECT_MEMORY.md)。任何功能迭代、PR
+更新或合并后的工作都必须先阅读项目记忆，并重新对照原站生成下一轮 ToDo。
+
 - **注释语言**：全部代码注释使用**简体中文**。
 - **提交信息**：遵循 [Conventional Commits](https://www.conventionalcommits.org/zh-hans/)，
   PR 标题由 CI 自动校验。
