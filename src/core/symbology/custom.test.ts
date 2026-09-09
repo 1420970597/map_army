@@ -20,6 +20,7 @@ describe('自定义军标', () => {
 
   it('冷门但结构合法的 SIDC 仍生成可见 SVG', () => {
     expect(militarySvg('10045000009999000000')).toContain('<svg');
-    expect(militarySvg('10031000001211000000')).toContain('<svg');
+    expect(militarySvg('10031000001211000000')).toContain('M 25,22');
+    expect(militarySvg('10020600000000000000')).toContain('<svg');
   });
 });

@@ -53,7 +53,7 @@ export {
 export type { FrameFamily } from './frames';
 
 // ── 图标库 ──
-export { findSymbol, listSymbols, searchSymbols } from './icons';
+export { findSymbol, hasLocalSymbolSet, listSymbols, searchSymbols } from './icons';
 export type { IconPath, SymbolDefinition } from './icons';
 
 // ── 符号目录 ──

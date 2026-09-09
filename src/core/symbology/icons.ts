@@ -990,6 +990,11 @@ export function findSymbol(symbolSet: SymbolSet, entity: string): SymbolDefiniti
   };
 }
 
+/** 判断符号集是否由本地图标库覆盖，避免标准兼容引擎的通用占位图覆盖本地图形。 */
+export function hasLocalSymbolSet(symbolSet: SymbolSet): boolean {
+  return DEFINITIONS.some((definition) => definition.symbolSet === symbolSet);
+}
+
 /** 列出当前符号库中全部已收录的定义（供 UI 生成符号选择器） */
 export function listSymbols(symbolSet?: SymbolSet): SymbolDefinition[] {
   if (symbolSet === undefined) return [...DEFINITIONS];
