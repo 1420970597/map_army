@@ -71,3 +71,13 @@ Compose 两个容器 healthy，首页和健康检查正常。PR 推送后重新�
 本地格式；符号库标注 2525C/APP-6(C) 基线与 2525D 数字兼容，Extended 两个扩展图标代码有确定位置和回归测试。
 
 本轮完成后重新核对 Symbol Gallery、Symbol Editor 和 MSS 版本页面，再进入六边形网格与 PWA 轮次。
+
+本轮已关闭（提交 `208e8d0`）：`npm run ci` 通过（61 个测试文件、970 个测试、3 个分享服务测试），
+符号预览与扩展修饰符回归通过。PR 推送后重新读取原站页面：
+
+- `symbols/symbol-gallery`：`e171d75610644dbe5a405fd16f0eb837059436276ace80aec7da4aeacd828c67`
+- `symbols/symbol-editor`：`ae6896236c09746726faceaa4e6297770d6f71306b1874365bb611a52c2ed2c8`
+- `about/milx-format`：`cc74e2459e16042a1faacc5f3368ec1780043525bd54c39c9b824b32c13048a8`
+- `options/general`：`8d0d1c0c7416b4358a1c58f364a4b7e8b0af4c9979618dbe3c8cb04396518259`
+
+复核确认符号编辑器核心差异已关闭；六边形网格高级设置与 PWA/浏览器验收进入第五轮。
