@@ -133,6 +133,19 @@ export function useAppRuntime() {
         };
       }
     ).launchQueue;
+    if (!launch && /Chrome|Chromium|Edg\//.test(navigator.userAgent)) {
+      try {
+        const hintKey = 'map-army.file-handler-fallback.v1';
+        if (!window.sessionStorage.getItem(hintKey)) {
+          window.sessionStorage.setItem(hintKey, '1');
+          useAccessStore
+            .getState()
+            .notify('当前浏览器未启用文件关联 API，请使用“导入”按钮打开 .milxly/.milxlyz 文件。');
+        }
+      } catch {
+        // 隐私模式禁止会话存储时不影响正常导入。
+      }
+    }
     launch?.setConsumer(async ({ files }) => {
       for (const handle of files) {
         try {

@@ -11,8 +11,29 @@ export function nearbyGridPoints(
   point: LonLat,
   type: GridType | 'none',
   zoom: number,
+  hexEdgeMeters = 10000,
 ): SnapCandidate[] {
-  if (type === 'none' || type === 'HEX') return [];
+  if (type === 'none') return [];
+  if (type === 'HEX') {
+    const radius = Math.max(0.001, hexEdgeMeters / 111320);
+    const dy = Math.sqrt(3) * radius;
+    // 与 extendedGrid 使用相同的 pointy-top 六边形列/行坐标，确保吸附点
+    // 与屏幕上实际绘制的六个顶点重合；奇数列向上偏移半个行距。
+    const column = Math.round(point.lon / (radius * 1.5));
+    const parity = ((column % 2) + 2) % 2;
+    const row = Math.round((point.lat - (parity ? dy / 2 : 0)) / dy);
+    const center = { lon: column * radius * 1.5, lat: row * dy + (parity ? dy / 2 : 0) };
+    return Array.from({ length: 6 }, (_, index) => {
+      const angle = (index * Math.PI) / 3;
+      return {
+        source: 'grid' as const,
+        point: {
+          lon: center.lon + radius * Math.cos(angle),
+          lat: center.lat + radius * Math.sin(angle),
+        },
+      };
+    });
+  }
   const spacing = suggestSpacing(zoom, point.lat);
   const utm = lonLatToUtm(point);
   let step = spacing;

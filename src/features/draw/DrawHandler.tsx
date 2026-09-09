@@ -80,6 +80,7 @@ export function DrawHandler() {
   const layers = useDocumentStore((state) => state.document.layers);
   const units = usePreferencesStore((state) => state.units);
   const angularUnit = usePreferencesStore((state) => state.angularUnit);
+  const hexEdgeMeters = usePreferencesStore((state) => state.hexEdgeMeters);
 
   const [draft, setDraft] = useState<LonLat[]>([]);
   const draftRef = useRef<LonLat[]>([]);
@@ -165,7 +166,7 @@ export function DrawHandler() {
         origin,
         candidates: [
           ...candidatesRef.current,
-          ...nearbyGridPoints(origin, useViewStore.getState().grid, map.getZoom()),
+          ...nearbyGridPoints(origin, useViewStore.getState().grid, map.getZoom(), hexEdgeMeters),
         ],
         enabled: edit.snapEnabled,
         thresholdPx: edit.snapThresholdPx,
@@ -185,7 +186,7 @@ export function DrawHandler() {
         if (!map.hasLayer(indicator)) indicator.addTo(map);
       }
     },
-    [map, projection],
+    [hexEdgeMeters, map, projection],
   );
 
   /** 更新草稿，保持 state 与 ref 同步 */

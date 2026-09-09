@@ -154,16 +154,15 @@ export function extendedGrid(type: string, bounds: GeoBounds, spacing: number): 
         ) ?? 30);
   while ((east - west + north - south) / step > 400) step *= 2;
   if (type === 'HEX') {
-    const radius = Math.max(step, (east - west) / 30);
+    // 六边形边长由选项直接控制；线数量超限时由下方上限保护性能。
+    const radius = Math.max(0.001, spacing / 111320);
     const dy = Math.sqrt(3) * radius;
-    let col = 0;
-    for (
-      let lon = Math.floor(west / (1.5 * radius)) * 1.5 * radius;
-      lon < east + radius;
-      lon += radius * 1.5, col++
-    ) {
+    const firstColumn = Math.floor(west / (1.5 * radius));
+    for (let column = firstColumn; column * 1.5 * radius < east + radius; column++) {
+      const lon = column * 1.5 * radius;
+      const parity = ((column % 2) + 2) % 2;
       for (
-        let lat = Math.floor(south / dy) * dy + ((col % 2) * dy) / 2;
+        let lat = Math.floor((south - (parity ? dy / 2 : 0)) / dy) * dy + (parity * dy) / 2;
         lat < north + radius && lines.length < 1200;
         lat += dy
       ) {
@@ -171,7 +170,11 @@ export function extendedGrid(type: string, bounds: GeoBounds, spacing: number): 
           lon: lon + radius * Math.cos((i * Math.PI) / 3),
           lat: lat + radius * Math.sin((i * Math.PI) / 3),
         }));
-        lines.push({ path, label: '', level: 1 });
+        lines.push({
+          path,
+          label: `${column}:${Math.round((lat - (parity ? dy / 2 : 0)) / dy)}`,
+          level: 1,
+        });
       }
     }
     return lines;

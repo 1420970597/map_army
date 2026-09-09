@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 
 import { generateGrid, suggestSpacing, type GeoBounds, type GridLine } from '@/core/geo';
+import { usePreferencesStore } from '@/stores/usePreferencesStore';
 
 /** 视口变化事件的最小触发间隔（毫秒），避免拖动时高频重算 */
 const RECALC_DEBOUNCE = 120;
@@ -40,6 +41,11 @@ export function GridOverlay({ type, showLabels }: GridOverlayProps) {
   const map = useMap();
   const [bounds, setBounds] = useState<GeoBounds>(() => readBounds(map));
   const [zoom, setZoom] = useState<number>(() => map.getZoom());
+  const hexEdge = usePreferencesStore((state) => state.hexEdgeMeters);
+  const hexColor = usePreferencesStore((state) => state.hexColor);
+  const hexOpacity = usePreferencesStore((state) => state.hexOpacity);
+  const hexLineWidth = usePreferencesStore((state) => state.hexLineWidth);
+  const hexLabels = usePreferencesStore((state) => state.hexLabels);
 
   /**
    * 读取当前视口的地理边界。
@@ -66,13 +72,14 @@ export function GridOverlay({ type, showLabels }: GridOverlayProps) {
   const lines = useMemo<GridLine[]>(() => {
     if (type === 'none') return [];
 
-    const spacing = suggestSpacing(zoom, (bounds.north + bounds.south) / 2);
+    const spacing =
+      type === 'HEX' ? hexEdge : suggestSpacing(zoom, (bounds.north + bounds.south) / 2);
     return generateGrid({
       bounds,
       type: type as 'MGRS' | 'UTM' | 'BNG' | 'WGS84' | 'GARS' | 'LV95' | 'LV03' | 'HEX',
       spacingMeters: spacing,
     });
-  }, [bounds, zoom, type]);
+  }, [bounds, hexEdge, zoom, type]);
 
   if (type === 'none') return null;
 
@@ -83,13 +90,13 @@ export function GridOverlay({ type, showLabels }: GridOverlayProps) {
           key={`${line.level}-${index}`}
           positions={line.path.map((point) => [point.lat, point.lon] as [number, number])}
           pathOptions={{
-            color: LINE_COLORS[line.level % LINE_COLORS.length],
-            weight: line.level === 0 ? 2 : 1,
-            opacity: line.level === 0 ? 0.85 : 0.55,
+            color: type === 'HEX' ? hexColor : LINE_COLORS[line.level % LINE_COLORS.length],
+            weight: type === 'HEX' ? hexLineWidth : line.level === 0 ? 2 : 1,
+            opacity: type === 'HEX' ? hexOpacity : line.level === 0 ? 0.85 : 0.55,
             interactive: false,
           }}
         >
-          {showLabels && line.label ? (
+          {showLabels && line.label && (type !== 'HEX' || hexLabels) ? (
             <Tooltip direction="center" opacity={0.85} permanent>
               {line.label}
             </Tooltip>

@@ -171,6 +171,57 @@ export function OptionsDialog({ onClose }: { onClose: () => void }) {
             />
           </label>
           <hr />
+          <h3>六边形网格</h3>
+          <label className="field">
+            边长 {prefs.hexEdgeMeters.toLocaleString()} m
+            <input
+              type="range"
+              min={1000}
+              max={50000}
+              step={1000}
+              value={prefs.hexEdgeMeters}
+              onChange={(e) => prefs.update({ hexEdgeMeters: Number(e.target.value) })}
+            />
+          </label>
+          <label className="field">
+            颜色
+            <input
+              type="color"
+              value={prefs.hexColor}
+              onChange={(e) => prefs.update({ hexColor: e.target.value })}
+            />
+          </label>
+          <label className="field">
+            线宽 {prefs.hexLineWidth}px
+            <input
+              type="range"
+              min={1}
+              max={5}
+              step={1}
+              value={prefs.hexLineWidth}
+              onChange={(e) => prefs.update({ hexLineWidth: Number(e.target.value) })}
+            />
+          </label>
+          <label className="field">
+            不透明度 {Math.round(prefs.hexOpacity * 100)}%
+            <input
+              type="range"
+              min={0.1}
+              max={1}
+              step={0.05}
+              value={prefs.hexOpacity}
+              onChange={(e) => prefs.update({ hexOpacity: Number(e.target.value) })}
+            />
+          </label>
+          <label className="field-row">
+            <input
+              type="checkbox"
+              checked={prefs.hexLabels}
+              onChange={(e) => prefs.update({ hexLabels: e.target.checked })}
+            />
+            显示六边形标签
+          </label>
+          <hr />
           <h3>新建符号默认格式</h3>
           <div className="settings-grid">
             <label className="field">

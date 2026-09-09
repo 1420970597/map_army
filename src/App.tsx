@@ -33,6 +33,20 @@ export function App() {
     return () => window.removeEventListener('map-army:update-available', onUpdate);
   }, []);
 
+  useEffect(() => {
+    const onOffline = () =>
+      useAccessStore
+        .getState()
+        .notify('网络已断开，已切换离线模式；未缓存的地图瓦片可能暂时无法显示。');
+    const onOnline = () => useAccessStore.getState().notify('网络已恢复。');
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
+    return () => {
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
+    };
+  }, []);
+
   useKeyboardShortcuts();
 
   return (

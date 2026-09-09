@@ -22,6 +22,11 @@ export interface Preferences {
   brightness: number;
   hue: number;
   chroma: number;
+  hexEdgeMeters: number;
+  hexColor: string;
+  hexOpacity: number;
+  hexLineWidth: number;
+  hexLabels: boolean;
 }
 export const usePreferencesStore = create<
   Preferences & { update: (patch: Partial<Preferences>) => void }
@@ -45,6 +50,11 @@ export const usePreferencesStore = create<
       brightness: 100,
       hue: 0,
       chroma: 100,
+      hexEdgeMeters: 10000,
+      hexColor: '#7c3aed',
+      hexOpacity: 0.55,
+      hexLineWidth: 1,
+      hexLabels: true,
       update: (patch) => set(patch),
     }),
     { name: PREFERENCES_STORAGE_KEY, version: 1 },
