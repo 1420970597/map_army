@@ -30,6 +30,7 @@ import {
   createLineGeometry,
   createPointGeometry,
   formatDistance,
+  bearingOf,
   polygonArea,
   formatArea,
   measurePath,
@@ -45,6 +46,7 @@ import { GRAPHIC_META } from '@/core/graphics';
 import { TacticalGraphic } from '@/features/map/TacticalGraphic';
 import { styleFromSymbolDefaults } from '@/core/model/style';
 import { isTypingTarget } from '@/core/shell';
+import { usePreferencesStore } from '@/stores/usePreferencesStore';
 
 import { buildDrawSnapCandidates, resolveDrawSnap, sameDrawSnapTarget } from './drawSnapLogic';
 
@@ -76,6 +78,8 @@ export function DrawHandler() {
   const activeLayerId = useDocumentStore((state) => state.activeLayerId);
   const features = useDocumentStore((state) => state.document.features);
   const layers = useDocumentStore((state) => state.document.layers);
+  const units = usePreferencesStore((state) => state.units);
+  const angularUnit = usePreferencesStore((state) => state.angularUnit);
 
   const [draft, setDraft] = useState<LonLat[]>([]);
   const draftRef = useRef<LonLat[]>([]);
@@ -242,23 +246,7 @@ export function DrawHandler() {
           }),
         );
       }
-      if (
-        (tool === Tool.Measure || tool === Tool.MeasureArea) &&
-        points.length >= (tool === Tool.Measure ? 2 : 3)
-      ) {
-        const geometry =
-          tool === Tool.Measure ? createLineGeometry(points) : createAreaGeometry(points);
-        addFeature({
-          ...createFeature({
-            layerId: activeLayerId,
-            sidc: pendingSidc,
-            name: tool === Tool.Measure ? '距离量测' : '面积量测',
-            geometry,
-            style: { color: '#b45309', dashArray: '5 4' },
-          }),
-          measurement: tool === Tool.Measure ? 'distance' : 'area',
-        });
-      }
+      // 原站量测是临时工具，结束后清空草稿，不把结果写进标图文档。
       reset();
     },
     [addFeature, activeLayerId, pendingSidc, reset],
@@ -368,6 +356,12 @@ export function DrawHandler() {
     }
   });
 
+  useMapEvent('contextmenu', (event) => {
+    if (!isDrawing) return;
+    event.originalEvent.preventDefault();
+    commitDraft(false);
+  });
+
   if (!isDrawing || draft.length === 0) return null;
 
   const positions = draft.map((point) => [point.lat, point.lon] as [number, number]);
@@ -403,11 +397,57 @@ export function DrawHandler() {
         <Polyline positions={positions} pathOptions={{ opacity: 0 }}>
           <Tooltip permanent direction="top" className="measure-badge" opacity={0.9}>
             {activeTool === Tool.MeasureArea
-              ? `面积 ${formatArea(polygonArea(draft))}`
-              : `总长 ${formatDistance(measurePath(draft).length)}`}
+              ? `面积 ${formatMeasuredArea(polygonArea(draft), units)}`
+              : `总长 ${formatMeasuredDistance(measurePath(draft).length, units)}`}
           </Tooltip>
         </Polyline>
       ) : null}
+      {activeTool === Tool.Measure &&
+        draft.slice(1).map((point, index) => {
+          const start = draft[index];
+          const distance = measurePath([start, point]).length;
+          return (
+            <Polyline
+              key={`measure-${index}`}
+              positions={[
+                [start.lat, start.lon],
+                [point.lat, point.lon],
+              ]}
+              pathOptions={{ opacity: 0 }}
+            >
+              <Tooltip permanent direction="center" className="measure-badge" opacity={0.9}>
+                {formatMeasuredDistance(distance, units)} ·{' '}
+                {formatBearing(bearingOf(start, point), angularUnit)}
+              </Tooltip>
+            </Polyline>
+          );
+        })}
     </>
   );
+}
+
+/** 按选项格式化距离量测，支持公制、英制和海里。 */
+function formatMeasuredDistance(meters: number, units: 'metric' | 'imperial' | 'nautical'): string {
+  if (units === 'nautical') return `${(meters / 1852).toFixed(2)} NM`;
+  if (units === 'imperial') {
+    const yards = meters * 1.0936133;
+    return yards < 1760 ? `${Math.round(yards)} yd` : `${(yards / 1760).toFixed(2)} mi`;
+  }
+  return formatDistance(meters);
+}
+
+/** 按选项格式化面积量测。 */
+function formatMeasuredArea(
+  squareMeters: number,
+  units: 'metric' | 'imperial' | 'nautical',
+): string {
+  if (units === 'imperial') return `${Math.round(squareMeters * 10.7639104)} ft²`;
+  return formatArea(squareMeters);
+}
+
+/** 按选项格式化方位角，北约密位一周为 6400 密位。 */
+function formatBearing(angle: number, unit: 'degree' | 'milliradian'): string {
+  const normalized = ((angle % 360) + 360) % 360;
+  if (unit === 'milliradian') return `${Math.round((normalized / 360) * 6400)} mil`;
+  return `${Math.round(normalized)}°`;
 }

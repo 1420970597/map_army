@@ -244,7 +244,10 @@ export function Toolbar() {
           type="button"
           className={`tb-button${is3d ? ' is-active' : ''}`}
           title="切换二维/三维只读视图"
-          onClick={toggle3d}
+          onClick={() => {
+            if (!is3d) useDocumentStore.getState().setActiveLayer('');
+            toggle3d();
+          }}
         >
           {is3d ? '二维' : '三维'}
         </button>

@@ -11,9 +11,8 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [inline, setInline] = useState(false);
-  const [selected, setSelected] = useState<string[]>(
-    useDocumentStore.getState().document.layers.map((l) => l.id),
-  );
+  // 原站新建分享默认为空，必须由用户明确选择要发布的图层。
+  const [selected, setSelected] = useState<string[]>([]);
   const doc = useDocumentStore((s) => s.document);
   const shared = useAccessStore((s) => s.shared);
   const buildUrl = (id: string, token?: string) => {
@@ -34,7 +33,6 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
       features: doc.features.filter((f) => selected.includes(f.layerId)),
     };
     try {
-      if (!document.layers.length) throw new Error('请至少选择一个图层');
       if (inline) {
         setUrl(createShareUrl(document, mode === 'view' ? 'view' : 'copy'));
         return;
@@ -129,7 +127,7 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
             </select>
           </label>
           <div className="field">
-            分享图层
+            分享图层（新建分享默认为空，请明确选择）
             {doc.layers.map((l) => (
               <label key={l.id}>
                 <input

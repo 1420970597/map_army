@@ -6,7 +6,9 @@ import { persist } from 'zustand/middleware';
 export const PREFERENCES_STORAGE_KEY = 'map-army.prefs.v1';
 export interface Preferences {
   language: 'zh' | 'en' | 'de' | 'fr' | 'it';
-  units: 'metric' | 'imperial';
+  units: 'metric' | 'imperial' | 'nautical';
+  angularUnit: 'degree' | 'milliradian';
+  geoDegreeFormat: 'decimal' | 'dms';
   coordinateSearch: boolean;
   northArrow: boolean;
   measurement: boolean;
@@ -17,6 +19,9 @@ export interface Preferences {
   snapEnabled: boolean;
   snapThresholdPx: number;
   mapLanguage: 'local' | 'en';
+  brightness: number;
+  hue: number;
+  chroma: number;
 }
 export const usePreferencesStore = create<
   Preferences & { update: (patch: Partial<Preferences>) => void }
@@ -25,6 +30,8 @@ export const usePreferencesStore = create<
     (set) => ({
       language: 'zh',
       units: 'metric',
+      angularUnit: 'degree',
+      geoDegreeFormat: 'decimal',
       coordinateSearch: true,
       northArrow: true,
       measurement: true,
@@ -35,6 +42,9 @@ export const usePreferencesStore = create<
       snapEnabled: true,
       snapThresholdPx: 10,
       mapLanguage: 'local',
+      brightness: 100,
+      hue: 0,
+      chroma: 100,
       update: (patch) => set(patch),
     }),
     { name: PREFERENCES_STORAGE_KEY, version: 1 },

@@ -43,6 +43,31 @@ export function OptionsDialog({ onClose }: { onClose: () => void }) {
               >
                 <option value="metric">公制（米 / 千米）</option>
                 <option value="imperial">英制（码 / 英里）</option>
+                <option value="nautical">航海（海里）</option>
+              </select>
+            </label>
+            <label className="field">
+              角度单位
+              <select
+                value={prefs.angularUnit}
+                onChange={(e) =>
+                  prefs.update({ angularUnit: e.target.value as typeof prefs.angularUnit })
+                }
+              >
+                <option value="degree">度</option>
+                <option value="milliradian">北约密位</option>
+              </select>
+            </label>
+            <label className="field">
+              经纬度格式
+              <select
+                value={prefs.geoDegreeFormat}
+                onChange={(e) =>
+                  prefs.update({ geoDegreeFormat: e.target.value as typeof prefs.geoDegreeFormat })
+                }
+              >
+                <option value="decimal">十进制度</option>
+                <option value="dms">度分秒</option>
               </select>
             </label>
             <label className="field">
@@ -111,6 +136,38 @@ export function OptionsDialog({ onClose }: { onClose: () => void }) {
               max={30}
               value={threshold}
               onChange={(e) => useEditStore.getState().setSnapThresholdPx(Number(e.target.value))}
+            />
+          </label>
+          <hr />
+          <h3>底图显示</h3>
+          <label className="field">
+            亮度 {prefs.brightness}%
+            <input
+              type="range"
+              min={40}
+              max={180}
+              value={prefs.brightness}
+              onChange={(e) => prefs.update({ brightness: Number(e.target.value) })}
+            />
+          </label>
+          <label className="field">
+            Hue {prefs.hue}°
+            <input
+              type="range"
+              min={-180}
+              max={180}
+              value={prefs.hue}
+              onChange={(e) => prefs.update({ hue: Number(e.target.value) })}
+            />
+          </label>
+          <label className="field">
+            Chroma {prefs.chroma}%
+            <input
+              type="range"
+              min={0}
+              max={200}
+              value={prefs.chroma}
+              onChange={(e) => prefs.update({ chroma: Number(e.target.value) })}
             />
           </label>
           <hr />

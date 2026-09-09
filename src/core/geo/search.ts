@@ -1,4 +1,4 @@
-/** 按明确格式解析坐标，十进制度约定为纬度、经度。 */
+/** 按原站格式解析坐标；WGS84 十进制度顺序为经度、纬度。 */
 import type { LonLat } from './types';
 import { bngStringToLonLat } from './bng';
 import { mgrsStringToLonLat } from './mgrs';
@@ -7,7 +7,13 @@ import { garsToLonLat, swissToLonLat } from './extended';
 
 /** 返回合法坐标，无法识别或超出地理范围时返回 null。 */
 export function parseCoordinateSearch(input: string): LonLat | null {
-  const value = input.trim().toUpperCase();
+  // 原站允许在十进制度后附加 deg/degree；先移除文字单位，再按同一规则解析。
+  const value = input
+    .trim()
+    .toUpperCase()
+    .replace(/\bDEG(?:REES?)?\b/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
   const valid = (point: LonLat) =>
     Number.isFinite(point.lon) &&
     Number.isFinite(point.lat) &&
@@ -16,8 +22,16 @@ export function parseCoordinateSearch(input: string): LonLat | null {
       ? point
       : null;
   try {
-    const decimal = value.match(/^(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)$/);
-    if (decimal) return valid({ lat: Number(decimal[1]), lon: Number(decimal[2]) });
+    const decimalHemisphere = value.match(
+      /^([+-]?\d+(?:\.\d+)?)\s*([EW])[,;\s]+([+-]?\d+(?:\.\d+)?)\s*([NS])$/,
+    );
+    if (decimalHemisphere)
+      return valid({
+        lon: Number(decimalHemisphere[1]) * (decimalHemisphere[2] === 'W' ? -1 : 1),
+        lat: Number(decimalHemisphere[3]) * (decimalHemisphere[4] === 'S' ? -1 : 1),
+      });
+    const decimal = value.match(/^([+-]?\d+(?:\.\d+)?)\s*[,;\s]\s*([+-]?\d+(?:\.\d+)?)$/);
+    if (decimal) return valid({ lon: Number(decimal[1]), lat: Number(decimal[2]) });
     const utm = value.match(
       /^(?:UTM\s*)?(\d{1,2})\s*([NS])\s+(\d+(?:\.\d+)?)E?\s+(\d+(?:\.\d+)?)N?$/,
     );
@@ -38,16 +52,16 @@ export function parseCoordinateSearch(input: string): LonLat | null {
     if (/^\d{1,2}[A-Z]{3}\d*$/.test(compact)) return valid(mgrsStringToLonLat(compact));
     if (/^[A-Z]{2}\d*$/.test(compact)) return valid(bngStringToLonLat(compact));
     const dms = value.match(
-      /^(\d{1,2})[°\s]+(\d{1,2})['′\s]+(\d+(?:\.\d+)?)["″\s]*([NS])[,\s]+(\d{1,3})[°\s]+(\d{1,2})['′\s]+(\d+(?:\.\d+)?)["″\s]*([EW])$/,
+      /^(\d{1,3})[°\s]+(\d{1,2})['′\s]+(\d+(?:\.\d+)?)["″\s]*([EW])[,;\s]+(\d{1,2})[°\s]+(\d{1,2})['′\s]+(\d+(?:\.\d+)?)["″\s]*([NS])$/,
     );
     if (dms && [2, 3, 6, 7].every((i) => Number(dms[i]) < 60))
       return valid({
-        lat:
-          (Number(dms[1]) + Number(dms[2]) / 60 + Number(dms[3]) / 3600) *
-          (dms[4] === 'S' ? -1 : 1),
         lon:
+          (Number(dms[1]) + Number(dms[2]) / 60 + Number(dms[3]) / 3600) *
+          (dms[4] === 'W' ? -1 : 1),
+        lat:
           (Number(dms[5]) + Number(dms[6]) / 60 + Number(dms[7]) / 3600) *
-          (dms[8] === 'W' ? -1 : 1),
+          (dms[8] === 'S' ? -1 : 1),
       });
   } catch {
     return null;

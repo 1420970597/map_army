@@ -12,20 +12,60 @@ test('分享创建、版本更新、只读拒写及服务重启后读取', async
   const start = () => new Promise((done) => server.listen(0, '127.0.0.1', done));
   await start();
   const document = { name: '演习', layers: [{ id: 'one' }], features: [] };
-  const request = (path, options = {}) => fetch(`http://127.0.0.1:${server.address().port}${path}`, options);
+  const request = (path, options = {}) =>
+    fetch(`http://127.0.0.1:${server.address().port}${path}`, options);
   try {
-    const created = await request('/api/shares', { method: 'POST', body: JSON.stringify({ document }) });
+    const created = await request('/api/shares', {
+      method: 'POST',
+      body: JSON.stringify({ document }),
+    });
     assert.equal(created.status, 201);
     const share = await created.json();
     const path = `/api/shares/${share.id}`;
     assert.deepEqual((await (await request(path)).json()).document, document);
-    assert.equal((await request(path, { method: 'PUT', body: JSON.stringify({ document }) })).status, 403);
-    const update = { method: 'PUT', headers: { Authorization: `Bearer ${share.token}`, 'If-Match': '1' }, body: JSON.stringify({ document: { ...document, name: '第二版' } }) };
+    assert.equal(
+      (await request(path, { method: 'PUT', body: JSON.stringify({ document }) })).status,
+      403,
+    );
+    const update = {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${share.token}`, 'If-Match': '1' },
+      body: JSON.stringify({ document: { ...document, name: '第二版' } }),
+    };
     const simultaneous = await Promise.all([request(path, update), request(path, update)]);
     assert.deepEqual(simultaneous.map((r) => r.status).sort(), [200, 409]);
     assert.equal((await (await request(`${path}?version=1`)).json()).document.name, '演习');
     await new Promise((done) => server.close(done));
-    server = createShareServer({ directory }); await start();
+    server = createShareServer({ directory });
+    await start();
     assert.equal((await (await request(path)).json()).document.name, '第二版');
-  } finally { await new Promise((done) => server.close(done)); await rm(directory, { recursive: true, force: true }); }
+  } finally {
+    await new Promise((done) => server.close(done));
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('允许先创建空分享，再在后续版本加入图层', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'map-army-empty-share-'));
+  const server = createShareServer({ directory });
+  await new Promise((done) => server.listen(0, '127.0.0.1', done));
+  const request = (path, options = {}) =>
+    fetch(`http://127.0.0.1:${server.address().port}${path}`, options);
+  try {
+    const created = await request('/api/shares', {
+      method: 'POST',
+      body: JSON.stringify({ document: { name: '空分享', layers: [], features: [] } }),
+    });
+    assert.equal(created.status, 201);
+    const share = await created.json();
+    const updated = await request(`/api/shares/${share.id}`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${share.token}`, 'If-Match': '1' },
+      body: JSON.stringify({ document: { name: '已填充', layers: [{ id: 'one' }], features: [] } }),
+    });
+    assert.equal(updated.status, 200);
+  } finally {
+    await new Promise((done) => server.close(done));
+    await rm(directory, { recursive: true, force: true });
+  }
 });

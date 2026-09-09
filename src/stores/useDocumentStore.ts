@@ -419,14 +419,23 @@ export const useDocumentStore = create<DocumentState>((rawSet, get) => {
     },
 
     updateLayer: (id, patch) =>
-      set((state) =>
-        commit(state, {
+      set((state) => {
+        const current = state.document.layers.find((layer) => layer.id === id);
+        if (
+          !current ||
+          Object.entries(patch).every(
+            ([key, value]) => current[key as keyof typeof current] === value,
+          )
+        ) {
+          return state;
+        }
+        return commit(state, {
           ...state.document,
           layers: state.document.layers.map((layer) =>
             layer.id === id ? { ...layer, ...patch } : layer,
           ),
-        }),
-      ),
+        });
+      }),
 
     removeLayer: (id) =>
       set((state) => {

@@ -151,6 +151,10 @@ button {
   background: #dfe6ec;
 }
 
+.map-container .leaflet-tile-pane {
+  filter: var(--map-tile-filter, none);
+}
+
 /* ── 顶栏 ─────────────────────────────────────────────── */
 
 .toolbar {
@@ -911,6 +915,25 @@ button {
   border-radius: 4px;
   padding: 8px;
   color: #16344b;
+}
+
+.map-3d-layers {
+  display: grid;
+  gap: 4px;
+  max-height: 180px;
+  overflow: auto;
+  padding: 6px;
+  background: color-mix(in srgb, var(--c-panel) 92%, transparent);
+  border: 1px solid var(--c-border);
+  border-radius: 4px;
+}
+
+.map-3d-layers .field-row {
+  display: grid;
+  grid-template-columns: auto minmax(80px, 1fr) 80px;
+  gap: 6px;
+  align-items: center;
+  white-space: nowrap;
 }
 .north-arrow {
   font-size: 20px;

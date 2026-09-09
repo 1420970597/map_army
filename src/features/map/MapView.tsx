@@ -6,7 +6,7 @@
  * 文档数据（要素、图层）来自 document store，二者在此汇合。
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, type CSSProperties } from 'react';
 import { latLng } from 'leaflet';
 import { MapContainer, TileLayer, ZoomControl, useMap } from 'react-leaflet';
 
@@ -100,6 +100,9 @@ export function MapView() {
   const grid = useViewStore((state) => state.grid);
   const gridLabels = useViewStore((state) => state.gridLabels);
   const activeTool = useViewStore((state) => state.activeTool);
+  const brightness = usePreferencesStore((state) => state.brightness);
+  const hue = usePreferencesStore((state) => state.hue);
+  const chroma = usePreferencesStore((state) => state.chroma);
 
   const features = useDocumentStore((state) => state.document.features);
   const layers = useDocumentStore((state) => state.document.layers);
@@ -159,6 +162,11 @@ export function MapView() {
       dragging={true}
       preferCanvas={true}
       className="map-container"
+      style={
+        {
+          '--map-tile-filter': `brightness(${brightness}%) hue-rotate(${hue}deg) saturate(${chroma}%)`,
+        } as CSSProperties
+      }
     >
       {tile.url && (
         <TileLayer

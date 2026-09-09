@@ -17,6 +17,7 @@ export function Map3DView() {
   const [pitch, setPitch] = useState(-60);
   const layers = useDocumentStore((s) => s.document.layers);
   const features = useDocumentStore((s) => s.document.features);
+  const updateLayer = useDocumentStore((s) => s.updateLayer);
   useEffect(() => {
     let disposed = false;
     void import('cesium')
@@ -173,6 +174,27 @@ export function Map3DView() {
       <div ref={host} className="cesium-container" aria-label="三维只读地球视图" />
       <div className="map-tools-overlay">
         <span>三维只读 · 高度 {height.toLocaleString()} m</span>
+        <div className="map-3d-layers" aria-label="三维图层控制">
+          {layers.map((layer) => (
+            <label className="field-row" key={layer.id}>
+              <input
+                type="checkbox"
+                checked={layer.visible}
+                onChange={(event) => updateLayer(layer.id, { visible: event.target.checked })}
+              />
+              <span>{layer.name}</span>
+              <input
+                aria-label={`${layer.name} 不透明度`}
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={layer.opacity}
+                onChange={(event) => updateLayer(layer.id, { opacity: Number(event.target.value) })}
+              />
+            </label>
+          ))}
+        </div>
         <button onClick={() => void rotate(0, pitch)}>N 朝北</button>
         <label>
           航向 {heading}°
