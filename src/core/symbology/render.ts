@@ -19,7 +19,13 @@ import {
   VIEWPORT,
 } from './frames';
 import { findSymbol } from './icons';
-import { buildDirectionArrow, buildEchelon, buildHqTfDummy, buildStatusOverlay } from './modifiers';
+import {
+  buildDirectionArrow,
+  buildEchelon,
+  buildHqTfDummy,
+  buildIconExtensions,
+  buildStatusOverlay,
+} from './modifiers';
 import { echelonOf, entityCodeOf } from './sidc';
 import { Affiliation, SymbolSet, type Sidc, type SymbolGeometry, type SymbolPath } from './types';
 
@@ -37,6 +43,10 @@ export interface RenderOptions {
   direction?: number;
   /** 框架左右边界，用于绘制司令部与特遣队指示符 */
   frameExtent?: { left: number; right: number };
+  /** 文本修饰符字号，缺省为 26。 */
+  fontSize?: number;
+  /** 文本修饰符字体，缺省为 sans-serif。 */
+  fontFamily?: string;
 }
 
 /**
@@ -106,6 +116,7 @@ export function renderSymbol(
     strokes.push(...echelonPaths.strokes);
   }
   strokes.push(...buildHqTfDummy(sidc.hqTfDummy, frameTop, extent.left, extent.right));
+  strokes.push(...buildIconExtensions(sidc.modifier1, sidc.modifier2));
 
   // 5. 机动方向箭头
   if (options.direction !== undefined) {
@@ -130,7 +141,7 @@ function buildLabels(
   extent: { left: number; right: number },
 ): SymbolGeometry['labels'] {
   const labels: SymbolGeometry['labels'] = [];
-  const fontSize = 26;
+  const fontSize = options.fontSize ?? 26;
 
   // 上部文本：与框架顶部对齐
   if (options.higherFormation) {
@@ -211,6 +222,8 @@ export interface SvgOptions {
   size?: number;
   /** 配色主题 */
   theme?: PaletteTheme;
+  /** 文本修饰符字体，缺省为 sans-serif。 */
+  fontFamily?: string;
   /** 是否绘制调试用的视口边框 */
   debug?: boolean;
 }
@@ -256,11 +269,12 @@ export function toSvg(sidc: Sidc, geometry: SymbolGeometry, options: SvgOptions 
     );
   }
 
+  const fontFamily = options.fontFamily ?? 'sans-serif';
   for (const label of geometry.labels) {
     parts.push(
       `<text x="${label.x}" y="${label.y}" font-size="${label.fontSize}" ` +
         `text-anchor="${label.anchor}" fill="${colorOf(label.role, palette)}" ` +
-        `font-family="sans-serif">${escapeXml(label.text)}</text>`,
+        `font-family="${escapeXml(fontFamily)}">${escapeXml(label.text)}</text>`,
     );
   }
 

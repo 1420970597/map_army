@@ -1,3 +1,4 @@
+import { extendedGrid } from './extended';
 import type { GridLine, GridType, LonLat } from './types';
 import { WGS84 } from './constants';
 import {
@@ -307,6 +308,8 @@ function generateBngGrid(request: GridRequest): GridLine[] {
  * @returns 可直接绘制的折线数组
  */
 export function generateGrid(request: GridRequest): GridLine[] {
+  if (!['MGRS', 'UTM', 'BNG'].includes(request.type))
+    return extendedGrid(request.type, request.bounds, request.spacingMeters);
   switch (request.type) {
     case 'MGRS':
       return generateUtmBasedGrid(request, 'mgrs');

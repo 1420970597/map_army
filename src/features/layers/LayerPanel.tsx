@@ -6,10 +6,12 @@
  */
 
 import { useMemo, useRef, useState, type MouseEvent } from 'react';
+import { latLngBounds } from 'leaflet';
 
 import { GeometryKind, rangeSelection, sortLayersByDisplay, type MapFeature } from '@/core/model';
 import { mergeFeatureText, useDocumentStore } from '@/stores/useDocumentStore';
 import { useViewStore } from '@/stores/useViewStore';
+import { getMap } from '@/features/map/mapInstance';
 
 import {
   FEATURE_IDS_DRAG_MIME,
@@ -48,13 +50,20 @@ export function LayerPanel() {
   const [dragLayerId, setDragLayerId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [selectionAnchorId, setSelectionAnchorId] = useState<string | null>(null);
+  const [featureFilter, setFeatureFilter] = useState('');
   const opacityGestureActive = useRef(false);
 
   const orderedLayers = useMemo(() => sortLayersByDisplay(layers), [layers]);
-  const activeFeatures = useMemo(
-    () => features.filter((feature) => feature.layerId === activeLayerId),
-    [features, activeLayerId],
-  );
+  const activeFeatures = useMemo(() => {
+    const query = featureFilter.trim().toLocaleLowerCase();
+    return features.filter((feature) => {
+      if (feature.layerId !== activeLayerId) return false;
+      if (!query) return true;
+      return [feature.name, feature.sidc, ...Object.values(feature.textFields ?? {})]
+        .filter(Boolean)
+        .some((value) => String(value).toLocaleLowerCase().includes(query));
+    });
+  }, [features, activeLayerId, featureFilter]);
   const activeFeatureIds = useMemo(
     () => activeFeatures.map((feature) => feature.id),
     [activeFeatures],
@@ -69,6 +78,31 @@ export function LayerPanel() {
     if (trimmed && trimmed !== layers.find((layer) => layer.id === id)?.name) {
       updateLayer(id, { name: trimmed });
     }
+  };
+
+  /** 将指定图层或全部可见要素缩放到当前地图视口。 */
+  const fitToView = (layerId?: string) => {
+    const map = getMap();
+    if (!map) return;
+    const selectedFeatures = features.filter((feature) =>
+      layerId === undefined
+        ? layers.find((layer) => layer.id === feature.layerId)?.visible !== false
+        : feature.layerId === layerId,
+    );
+    const points = selectedFeatures.flatMap((feature) =>
+      feature.geometry.kind === GeometryKind.Point
+        ? [feature.geometry.position]
+        : feature.geometry.points,
+    );
+    if (points.length === 0) return;
+    if (points.length === 1) {
+      map.setView([points[0].lat, points[0].lon], Math.max(map.getZoom(), 12));
+      return;
+    }
+    map.fitBounds(latLngBounds(points.map((point) => [point.lat, point.lon])), {
+      padding: [36, 36],
+      maxZoom: 16,
+    });
   };
 
   const applyOpacityTransaction = (
@@ -108,6 +142,11 @@ export function LayerPanel() {
       <div className="panel-body">
         <div className="panel-section">
           <div className="panel-section-title">图层</div>
+          <div className="field-row layer-view-actions">
+            <button type="button" onClick={() => fitToView()}>
+              定位全部要素
+            </button>
+          </div>
 
           {orderedLayers.map((layer) => {
             const isEditing = editingLayerId === layer.id;
@@ -187,6 +226,32 @@ export function LayerPanel() {
                   }}
                 >
                   {status.label}
+                </button>
+                <button
+                  type="button"
+                  className="icon-button"
+                  title="缩放到图层"
+                  draggable={false}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    fitToView(layer.id);
+                  }}
+                >
+                  定位
+                </button>
+                <button
+                  type="button"
+                  className="icon-button"
+                  title="导出图层"
+                  draggable={false}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    window.dispatchEvent(
+                      new CustomEvent('map-army:export-layer', { detail: { layerId: layer.id } }),
+                    );
+                  }}
+                >
+                  导出
                 </button>
                 {isEditing ? (
                   <input
@@ -300,6 +365,13 @@ export function LayerPanel() {
 
         <div className="panel-section">
           <div className="panel-section-title">要素（{activeFeatures.length}）</div>
+          <input
+            className="field-input"
+            aria-label="过滤当前图层要素"
+            placeholder="按名称、SIDC 或修饰符过滤"
+            value={featureFilter}
+            onChange={(event) => setFeatureFilter(event.target.value)}
+          />
 
           {activeFeatures.length === 0 ? (
             <div className="empty-hint">该图层暂无要素</div>

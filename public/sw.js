@@ -24,6 +24,8 @@ const ALL_CACHES = [SHELL_CACHE, PAGE_CACHE, TILE_CACHE];
 
 /** 瓦片缓存上限（条目数），超出后按先进先出淘汰 */
 const TILE_LIMIT = 500;
+/** 单个瓦片缓存上限，避免错误响应或超大资源占满离线空间。 */
+const TILE_MAX_BYTES = 2 * 1024 * 1024;
 
 /** 应用外壳清单：相对 SW 所在目录解析，适配任意部署子路径 */
 const PRECACHE = [
@@ -59,7 +61,9 @@ const TILE_HOST_SUFFIXES = [
 
 /** 判断请求是否指向地图瓦片 */
 function isTileUrl(url) {
-  return TILE_HOST_SUFFIXES.some((suffix) => url.hostname === suffix || url.hostname.endsWith(`.${suffix}`));
+  return TILE_HOST_SUFFIXES.some(
+    (suffix) => url.hostname === suffix || url.hostname.endsWith(`.${suffix}`),
+  );
 }
 
 /** 以先进先出策略修剪瓦片缓存 */
@@ -94,6 +98,11 @@ self.addEventListener('install', (event) => {
       );
     })(),
   );
+});
+
+// 页面确认新版本后由此消息立即切换到等待中的 Service Worker。
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -136,10 +145,12 @@ async function tileStrategy(request) {
   if (cached) return cached;
   try {
     const response = await fetch(request);
-    if (response.ok) {
+    const length = Number(response.headers.get('Content-Length') || 0);
+    const contentType = response.headers.get('Content-Type') || '';
+    if (response.ok && contentType.startsWith('image/') && (!length || length <= TILE_MAX_BYTES)) {
       const cache = await caches.open(TILE_CACHE);
-      cache.put(request, response.clone());
-      trimTileCache();
+      await cache.put(request, response.clone());
+      await trimTileCache();
     }
     return response;
   } catch {

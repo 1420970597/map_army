@@ -1,19 +1,15 @@
-/**
- * MilX 图层文件的读写。
- *
- * 原站使用 `.milxly`（图层）与 `.milxlyz`（压缩图层）作为交换格式。
- * 本复刻版实现等价物：
- *
- * - `.milxly` —— UTF-8 的 JSON 文本，便于人工检视与版本控制；
- * - `.milxlyz` —— 同一份 JSON 经 gzip 压缩后的二进制，用于减小体积。
- *
- * 之所以选择 JSON 而非 XML：同等信息量下 JSON 体积更小、解析更快，
- * 且天然支持后续字段扩展；文件头部的 `format` 与 `version` 字段
- * 保证未来可以做格式迁移。
- */
-
+/** 项目 JSON 备份和早期 gzip 文件迁移；原生 MilX XML/ZIP 由 milxNative 与 files 提供。 */
 import { createDocument } from '../model/factory';
-import { LayerKind, LayerStatus, type MapDocument, type MapFeature } from '../model/types';
+import type { ImageOverlayData } from '../model/types';
+import {
+  LayerKind,
+  LayerStatus,
+  SymbolKind,
+  TacticalGraphicType,
+  type GraphicParams,
+  type MapDocument,
+  type MapFeature,
+} from '../model/types';
 
 /** 文件格式标识 */
 export const MILXLY_FORMAT = 'milxly';
@@ -108,8 +104,12 @@ export function deserializeMilxly(text: string): {
       status: layer.status === LayerStatus.Approved ? LayerStatus.Approved : LayerStatus.Working,
       kind: isLayerKind(layer.kind) ? layer.kind : LayerKind.Feature,
       group: typeof layer.group === 'string' ? layer.group : undefined,
+      image: reviveImage(layer.image),
+      sourceUrl: typeof layer.sourceUrl === 'string' ? layer.sourceUrl : undefined,
+      nativeMetadata: isRecord(layer.nativeMetadata) ? layer.nativeMetadata : undefined,
     })),
     features,
+    nativeMetadata: isRecord(raw.nativeMetadata) ? raw.nativeMetadata : undefined,
     createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now(),
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
     schemaVersion: typeof raw.schemaVersion === 'number' ? raw.schemaVersion : undefined,
@@ -145,7 +145,10 @@ function reviveFeature(item: unknown): MapFeature | null {
     if (
       !isRecord(position) ||
       typeof position.lon !== 'number' ||
-      typeof position.lat !== 'number'
+      typeof position.lat !== 'number' ||
+      !Number.isFinite(position.lon) ||
+      !Number.isFinite(position.lat) ||
+      Math.abs(position.lat) > 90
     ) {
       return null;
     }
@@ -159,6 +162,15 @@ function reviveFeature(item: unknown): MapFeature | null {
       style: isRecord(item.style) ? (item.style as MapFeature['style']) : undefined,
       direction: typeof item.direction === 'number' ? item.direction : undefined,
       vertexBearings: reviveVertexBearings(item.vertexBearings),
+      ...reviveGraphicFields(item),
+      rangeRings: Array.isArray(item.rangeRings)
+        ? item.rangeRings.filter((r) => typeof r === 'number' && Number.isFinite(r) && r > 0)
+        : undefined,
+      nativeMss: typeof item.nativeMss === 'string' ? item.nativeMss : undefined,
+      measurement:
+        item.measurement === 'distance' || item.measurement === 'area'
+          ? item.measurement
+          : undefined,
       createdAt: typeof item.createdAt === 'number' ? item.createdAt : now,
       updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : now,
     };
@@ -168,7 +180,12 @@ function reviveFeature(item: unknown): MapFeature | null {
   if (!Array.isArray(points)) return null;
   const coords = points.filter(
     (point): point is { lon: number; lat: number } =>
-      isRecord(point) && typeof point.lon === 'number' && typeof point.lat === 'number',
+      isRecord(point) &&
+      typeof point.lon === 'number' &&
+      typeof point.lat === 'number' &&
+      Number.isFinite(point.lon) &&
+      Number.isFinite(point.lat) &&
+      Math.abs(point.lat) <= 90,
   );
   if (coords.length === 0) return null;
 
@@ -184,9 +201,58 @@ function reviveFeature(item: unknown): MapFeature | null {
     style: isRecord(item.style) ? (item.style as MapFeature['style']) : undefined,
     direction: typeof item.direction === 'number' ? item.direction : undefined,
     vertexBearings: reviveVertexBearings(item.vertexBearings),
+    ...reviveGraphicFields(item),
+    nativeMss: typeof item.nativeMss === 'string' ? item.nativeMss : undefined,
+    measurement:
+      item.measurement === 'distance' || item.measurement === 'area' ? item.measurement : undefined,
     createdAt: typeof item.createdAt === 'number' ? item.createdAt : now,
     updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : now,
   };
+}
+
+const GRAPHIC_PARAM_KEYS = [
+  'widthRatio',
+  'headRatio',
+  'toothRatio',
+  'toothSpacingRatio',
+  'tickRatio',
+  'tickSpacingRatio',
+  'hatchSpacingRatio',
+  'corridorWidthMeters',
+  'phaseWingRatio',
+  'smooth',
+] as const;
+
+/** 恢复战术图形字段，忽略未知类型与非法参数。 */
+function reviveGraphicFields(
+  item: Record<string, unknown>,
+): Pick<MapFeature, 'symbolKind' | 'graphicType' | 'graphicParams'> {
+  const symbolKind =
+    item.symbolKind === SymbolKind.Single || item.symbolKind === SymbolKind.MultiPoint
+      ? item.symbolKind
+      : undefined;
+  const graphicType = Object.values(TacticalGraphicType).includes(
+    item.graphicType as TacticalGraphicType,
+  )
+    ? (item.graphicType as MapFeature['graphicType'])
+    : undefined;
+  const graphicParams = reviveGraphicParams(item.graphicParams);
+  return { symbolKind, graphicType, graphicParams };
+}
+
+/** 仅恢复声明过的有限参数，避免外部数据污染模型。 */
+function reviveGraphicParams(value: unknown): GraphicParams | undefined {
+  if (!isRecord(value)) return undefined;
+  const result: GraphicParams = {};
+  for (const key of GRAPHIC_PARAM_KEYS) {
+    const item = value[key];
+    if (key === 'smooth') {
+      if (typeof item === 'boolean') result.smooth = item;
+    } else if (typeof item === 'number' && Number.isFinite(item)) {
+      result[key] = item;
+    }
+  }
+  return Object.keys(result).length === 0 ? undefined : result;
 }
 
 /** 判断值是否为已知图层种类。 */
@@ -212,6 +278,16 @@ function reviveTextFields(value: unknown): MapFeature['textFields'] {
     'higherFormation',
     'additionalInformation',
     'staffComments',
+    'quantity',
+    'type',
+    'platformType',
+    'commonIdentifier',
+    'dtg',
+    'altitudeDepth',
+    'speed',
+    'combatEffectiveness',
+    'reinforcedReduced',
+    'specialHeadquarters',
   ] as const) {
     if (typeof value[key] === 'string') result[key] = value[key] as string;
   }
@@ -224,7 +300,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * 把 JSON 文本压缩为 gzip 字节流（`.milxlyz` 的内容）。
+ * 将旧版项目 JSON 压缩为 gzip，仅供历史格式迁移。
  *
  * 依赖浏览器原生的 CompressionStream，在无该 API 的环境下会抛出错误，
  * 调用方需要自行降级为未压缩格式。
@@ -255,4 +331,40 @@ export async function decompressMilxly(data: Uint8Array | ArrayBuffer): Promise<
 
   const stream = new Blob([data as BlobPart]).stream().pipeThrough(new DecompressionStream('gzip'));
   return new Response(stream).text();
+}
+
+/** 校验图像配准字段和可嵌入地址。 */
+function reviveImage(value: unknown): ImageOverlayData | undefined {
+  if (
+    !isRecord(value) ||
+    typeof value.url !== 'string' ||
+    !/^(https?:|data:image\/)/i.test(value.url)
+  )
+    return undefined;
+  if (
+    typeof value.width !== 'number' ||
+    typeof value.height !== 'number' ||
+    !(value.width > 0 && value.height > 0)
+  )
+    return undefined;
+  if (
+    !Array.isArray(value.corners) ||
+    value.corners.length !== 3 ||
+    !value.corners.every(
+      (p) =>
+        isRecord(p) &&
+        typeof p.lon === 'number' &&
+        typeof p.lat === 'number' &&
+        Number.isFinite(p.lon) &&
+        Number.isFinite(p.lat) &&
+        Math.abs(p.lat) <= 90,
+    )
+  )
+    return undefined;
+  return {
+    url: value.url,
+    width: value.width,
+    height: value.height,
+    corners: value.corners as ImageOverlayData['corners'],
+  };
 }

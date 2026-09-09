@@ -77,7 +77,25 @@ npm run test
 npm run build
 ```
 
+### Docker Compose 部署
+
+生产镜像会在容器内完成构建，并由 nginx 提供带 SPA 回退的静态站点：
+
+```bash
+docker compose up --build -d
+# 浏览器打开 http://localhost:8080
+docker compose logs -f map-army
+docker compose down
+```
+
+容器不保存业务数据；标图文档继续按浏览器 localStorage 保存，也可以使用应用内的
+`.milxlyz` 导出作为跨设备备份。
+
 ## 开发规范
+
+本项目的长期复刻约束、原站差异审计流程和每轮迭代完成门槛记录在
+[AGENTS.md](AGENTS.md) 与 [docs/PROJECT_MEMORY.md](docs/PROJECT_MEMORY.md)。任何功能迭代、PR
+更新或合并后的工作都必须先阅读项目记忆，并重新对照原站生成下一轮 ToDo。
 
 - **注释语言**：全部代码注释使用**简体中文**。
 - **提交信息**：遵循 [Conventional Commits](https://www.conventionalcommits.org/zh-hans/)，
@@ -121,8 +139,8 @@ npm run build
 - [x] 会话持久化 —— 原站无服务端存储，需手动导出 `.milxlyz`；本项目有 localStorage
       自动保存，启动时给出恢复 / 丢弃入口，并对存储超限、数据损坏与多标签页冲突分别提示
       （**优于原站**）
-- [~] 图层导入导出 —— 原站支持 MilX、矢量图形、图像叠加；本项目支持
-  `.milxly` / `.milxlyz` / GeoJSON，缺 KML、NVG、图像叠加层
+- [x] 图层导入导出 —— 支持原生 `.milxly` / `.milxlyz`、MilX XML、GeoJSON、KML、NVG/GPX、
+      图像叠加与在线图层，导入默认追加且可合并到活动图层
 - [x] 图层状态（working / approved）—— 图层名左侧徽标，点击在草稿 / 已核定间切换
 - [x] 符号跨图层移动（多选后整批拖拽到另一图层）—— 检查器下拉与图层面板拖放两条入口，
       整批移动只产生一条撤销记录
@@ -130,22 +148,16 @@ npm run build
 
 ### 二、符号库
 
-- [~] 符号库分组浏览 —— 原站分 My Favorites / Formations / Equipment and
-  Installations / **Tactical Graphics** / Function-Specific / **Metoc** 六大区；
-  本项目仅地面单位、空中、海面、水下四组共 44 个符号
-- [~] 符号搜索 —— 原站支持按军标名或装备名（如 "F/A 18"）检索并过滤结果；
-  本项目支持中英文检索，无结果过滤
+- [x] 符号库六大分区浏览 —— My Favorites、Formations、Equipment and Installations、
+      Tactical Graphics、Function-Specific、Metoc
+- [x] 符号搜索 —— 支持中英文名称、别名与装备型号检索并实时过滤
 - [~] 符号标准版本 —— 原站基线为 **MIL-STD-2525C**；本项目按 **2525D / APP-6(D)**
   实现（**版本更新于原站**，但符号总数远少于原站 MSS 服务）
-- [ ] 战术图形（Tactical Graphics）：多点符号 —— 进攻/防御箭头、集结地域、
-      分界线、走廊、相位线
-- [ ] 气象海洋符号（Metoc）
-- [ ] 职能符号（Function-Specific）：紧急、维和等
-- [ ] 装备与设施符号（Equipment and Installations）独立分组
-- [ ] 收藏夹（右键加入 My Favorites）
-- [ ] 工作模式 Standard / Extended（Extended 才显示瑞士国家符号与额外修饰符）
-- [ ] 图标扩展修饰符（Extended 模式，最多挂两个指示图标）
-- [ ] 符号格式默认值：线宽、填充色、字号与字体
+- [x] 战术图形（Tactical Graphics）：进攻/防御箭头、集结地域、分界线、走廊、相位线
+- [x] 气象海洋、职能、装备与设施符号分组及目录元数据
+- [x] 收藏夹（右键加入 My Favorites）
+- [x] International / Extended 工作模式
+- [x] 符号格式默认值：线宽、填充色、字号与字体
 
 ### 三、符号编辑与几何编辑
 
@@ -166,59 +178,55 @@ npm run build
 - [x] 2D 标图画布
 - [~] 底图样式 —— 原站提供 OSM / OpenTopoMap / Google / swisstopo 等多家；
   本项目为 3 种无密钥公开底图
-- [ ] 3D 视图（含高度升降、航向/俯仰控制、图层可见性与透明度面板）
-- [ ] 太平洋视图（投影中心切换）
-- [ ] 地形晕渲
-- [ ] 底图标注语言设置
+- [x] 3D 视图（含高度升降、航向/俯仰控制、图层可见性与透明度）
+- [x] 太平洋视图（投影中心切换）
+- [x] 地形晕渲
+- [x] 底图标注语言设置（支持的底图透传）
 
 ### 五、坐标网格与地图工具
 
-- [~] 坐标网格 —— 原站支持 MGRS / UTM / WGS84 / GARS / BNG / **LV95·LV03** /
-  **六边形网格**；本项目支持 MGRS / UTM / BNG
-- [~] 距离、面积与方位角量测
-- [ ] 坐标搜索：按 WGS84 / MGRS / UTM / GARS / BNG 跳转定位
-- [ ] 距离环 / 武器威胁半径绘制
-- [ ] 指北针
-- [ ] 磁偏角：WMM2025 计算、真北 / 磁北切换、GM 角显示
-- [ ] 放大镜（按住 D）
-- [ ] 自身地理定位
+- [x] 坐标网格 —— MGRS / UTM / WGS84 / GARS / BNG / LV95·LV03 / 六边形网格
+- [x] 距离、面积与方位角量测
+- [x] 坐标搜索：按 WGS84 / MGRS / UTM / GARS / BNG / LV95 / LV03 跳转定位
+- [x] 距离环 / 武器威胁半径绘制
+- [x] 指北针与真北 / 磁北切换
+- [x] WMM 磁偏角与 GM 角显示
+- [x] 放大镜（按住 D）与自身地理定位
 
 ### 六、选项
 
-- [ ] 语言切换（原站 en/de/fr/it；本项目应用界面仅中文，静态站点已五语言）
-- [ ] 工作模式与单位约定（米 / 码）
-- [ ] 地图工具开关（坐标搜索、指北针、量测）
-- [~] 坐标系设置（本项目可在 MGRS / UTM / BNG 间切换）
+- [x] 语言切换（中文、英文、德语、法语、意大利语设置入口）
+- [x] 工作模式与单位约定（公制 / 英制）
+- [x] 地图工具开关（坐标搜索、指北针、量测、晕渲、放大镜）
+- [x] 坐标系设置（MGRS / UTM / BNG / WGS84 / GARS / LV95 / LV03 / HEX）
 
 ### 七、导出与打印
 
-- [~] PNG 导出 —— 已实现，但无地理配准与归属标签
-- [ ] 打印与 PDF 导出：纸张（A4/A3）、方向、DPI、1:25 000 比例尺校验
-- [ ] 地理配准图片：JPG + `.jgw` / PNG + `.pgw`（world file，WGS84 度每像素）
-- [ ] 导出自动附加归属 / 版权标签（右下角，原站为法律要求项）
+- [x] PNG/JPG 导出 —— 支持当前视口或全部要素、倍率、透明底与归属标签
+- [x] 打印与 PDF 导出：纸张（A4/A3）、方向、DPI、1:25 000 比例尺校验
+- [x] 地理配准图片：JPG + `.jgw` / PNG + `.pgw`（WGS84 world file）
+- [x] 导出自动附加底图归属、应用名与日期标签
 
 ### 八、数据交换
 
-- [ ] 分享链接三种形态：只读 / 编辑副本 / 编辑覆盖
-- [ ] iframe 嵌入代码生成
-- [ ] URL 参数加载 MilX 图层
+- [x] 分享链接三种形态：只读 / 编辑副本 / 编辑覆盖（服务端版本与并发校验）
+- [x] iframe 嵌入代码生成
+- [x] URL 参数加载内联或服务端 MilX 图层
 - [ ] 兵棋推演模式：双方对抗、裁判控制、隐藏信息
 - [ ] 在线图层分享（KML / GeoJSON，接收方免上传）
-- [ ] NVG 导入（NATO Vector Graphics 2.0.0 / 2.0.2）
-- [ ] KML 导入导出
-- [ ] 图像叠加层导入（原站用作自定义符号的变通方案）
-- [ ] MilX 原生 XML（`.milx`）互转
+- [x] NVG 导入（NATO Vector Graphics 2.0.0 / 2.0.2）
+- [x] KML 导入导出
+- [x] 图像叠加层导入（本地配准与在线 URL）
+- [x] MilX 原生 XML（`.milxly` / `.milxlyz`）互转
 
 ### 九、应用与平台
 
 - [x] 键盘快捷键 —— 撤销 / 重做、复制粘贴、删除、全选、Esc、F11 全屏、
       Ctrl+F5 强制重载、方向键平移、Z/X 缩放、N 重置朝北、Space 确认、S 吸附、
       B 框选、`?` 帮助面板，与 `docs/ARCH-geo-edit.md` 的注册表一致
-- [~] PWA 安装与 `.milxlyz` 文件关联 —— manifest 已声明 `file_handlers`，
-  未实现运行时接收
-- [~] 全屏模式 —— F11 已接入命令，但部分浏览器不允许脚本拦截该键，且尚无
-  工具栏全屏按钮作为降级入口
-- [ ] 新版本更新提示（PWA 更新后提示重载）
+- [x] PWA 安装与 `.milxlyz` 文件关联 —— manifest 声明并通过 `launchQueue` 接收
+- [x] 全屏模式 —— Fullscreen API、F11 命令与工具栏按钮
+- [x] 新版本更新提示（PWA 更新后提示刷新）
 - [ ] 大图层性能优化
 
 ### 十、站点与内容

@@ -48,7 +48,9 @@
     {
       "action": "./",
       "accept": {
+        "application/vnd.map-army.milxlyz": [".milxlyz"],
         "application/x-milxlyz": [".milxlyz"],
+        "application/vnd.map-army.milxly+json": [".milxly"],
         "application/json": [".milxly", ".geojson"]
       },
       "icons": [

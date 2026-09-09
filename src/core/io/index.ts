@@ -14,6 +14,8 @@ export type { MilxlyFile } from './milxly';
 
 export { documentToGeoJson, geoJsonToDocument } from './geojson';
 export type { GeoJsonFeature, GeoJsonFeatureCollection, GeoJsonGeometry } from './geojson';
+export { documentToKml, kmlToDocument } from './kml';
+export { createShareUrl, readShareUrl } from './share';
 
 export {
   autoSave,
@@ -45,6 +47,17 @@ export {
 export type { SessionErrorKind, SessionMeta } from './session';
 
 export {
+  loadPrefs,
+  parsePrefs,
+  savePrefs,
+  serializePrefs,
+  DEFAULT_APP_PREFS,
+  PREFS_STORAGE_KEY,
+  PREFS_VERSION,
+} from './prefs';
+export type { AppPrefs } from './prefs';
+
+export {
   downloadBytes,
   downloadText,
   pickBinaryFile,
@@ -52,3 +65,5 @@ export {
   toSafeFilename,
 } from './download';
 export type { DownloadOptions } from './download';
+
+export { documentToMilxXml, milxExportWarnings, milxXmlToDocument } from './milxNative';

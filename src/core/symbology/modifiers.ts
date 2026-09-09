@@ -13,6 +13,32 @@
 import { CENTER } from './frames';
 import { HqTfDummy, Status, type Echelon, type SymbolPath } from './types';
 
+/** Extended 模式的两个图标扩展修饰符位置。 */
+export function buildIconExtensions(modifier1: string, modifier2: string): SymbolPath[] {
+  const paths: SymbolPath[] = [];
+  if (modifier1 !== '00') paths.push(iconExtensionPath(modifier1, 28, 30));
+  if (modifier2 !== '00') paths.push(iconExtensionPath(modifier2, 172, 30));
+  return paths;
+}
+
+/** 用稳定的代码标记绘制扩展图标，未知代码仍保留可见的占位语义。 */
+function iconExtensionPath(code: string, x: number, y: number): SymbolPath {
+  const size = 9;
+  const marker = Number.parseInt(code, 10);
+  if (Number.isFinite(marker) && marker % 2 === 0) {
+    return {
+      d: `M ${x},${y - size} L ${x + size},${y} L ${x},${y + size} L ${x - size},${y} Z`,
+      role: 'icon',
+      strokeWidth: 4,
+    };
+  }
+  return {
+    d: `M ${x - size},${y - size} L ${x + size},${y - size} L ${x + size},${y + size} L ${x - size},${y + size} Z`,
+    role: 'icon',
+    strokeWidth: 4,
+  };
+}
+
 /** 梯队单元之间的水平间距 */
 const ECHELON_GAP = 16;
 

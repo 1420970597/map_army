@@ -1,3 +1,4 @@
+import { nearbyGridPoints } from '@/core/geo/gridSnap';
 /**
  * 绘制交互处理器。
  *
@@ -29,6 +30,9 @@ import {
   createLineGeometry,
   createPointGeometry,
   formatDistance,
+  bearingOf,
+  polygonArea,
+  formatArea,
   measurePath,
   Tool,
 } from '@/core/model';
@@ -36,6 +40,13 @@ import { createLeafletProjection } from '@/features/map/leafletProjection';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useEditStore } from '@/stores/useEditStore';
 import { useViewStore } from '@/stores/useViewStore';
+
+import { useSymbolStore } from '@/stores/useSymbolStore';
+import { GRAPHIC_META } from '@/core/graphics';
+import { TacticalGraphic } from '@/features/map/TacticalGraphic';
+import { styleFromSymbolDefaults } from '@/core/model/style';
+import { isTypingTarget } from '@/core/shell';
+import { usePreferencesStore } from '@/stores/usePreferencesStore';
 
 import { buildDrawSnapCandidates, resolveDrawSnap, sameDrawSnapTarget } from './drawSnapLogic';
 
@@ -67,6 +78,9 @@ export function DrawHandler() {
   const activeLayerId = useDocumentStore((state) => state.activeLayerId);
   const features = useDocumentStore((state) => state.document.features);
   const layers = useDocumentStore((state) => state.document.layers);
+  const units = usePreferencesStore((state) => state.units);
+  const angularUnit = usePreferencesStore((state) => state.angularUnit);
+  const hexEdgeMeters = usePreferencesStore((state) => state.hexEdgeMeters);
 
   const [draft, setDraft] = useState<LonLat[]>([]);
   const draftRef = useRef<LonLat[]>([]);
@@ -74,7 +88,11 @@ export function DrawHandler() {
   toolRef.current = activeTool;
 
   const isDrawing =
-    activeTool === Tool.Line || activeTool === Tool.Area || activeTool === Tool.Measure;
+    activeTool === Tool.Line ||
+    activeTool === Tool.Area ||
+    activeTool === Tool.Measure ||
+    activeTool === Tool.TacticalGraphic ||
+    activeTool === Tool.MeasureArea;
 
   const projection = useMemo(() => createLeafletProjection(map), [map]);
 
@@ -146,7 +164,10 @@ export function DrawHandler() {
       const edit = useEditStore.getState();
       const next = resolveDrawSnap({
         origin,
-        candidates: candidatesRef.current,
+        candidates: [
+          ...candidatesRef.current,
+          ...nearbyGridPoints(origin, useViewStore.getState().grid, map.getZoom(), hexEdgeMeters),
+        ],
         enabled: edit.snapEnabled,
         thresholdPx: edit.snapThresholdPx,
         projection,
@@ -165,7 +186,7 @@ export function DrawHandler() {
         if (!map.hasLayer(indicator)) indicator.addTo(map);
       }
     },
-    [map, projection],
+    [hexEdgeMeters, map, projection],
   );
 
   /** 更新草稿，保持 state 与 ref 同步 */
@@ -188,7 +209,28 @@ export function DrawHandler() {
       const tool = toolRef.current;
       const points = dropLast ? draftRef.current.slice(0, -1) : draftRef.current;
 
-      if (tool === Tool.Line && points.length >= 2) {
+      const symbol = useSymbolStore.getState();
+      if (
+        tool === Tool.TacticalGraphic &&
+        symbol.graphicType &&
+        points.length >= GRAPHIC_META[symbol.graphicType].minPoints
+      ) {
+        addFeature(
+          createFeature({
+            layerId: activeLayerId,
+            sidc: pendingSidc,
+            name: GRAPHIC_META[symbol.graphicType].name,
+            geometry: createLineGeometry(points),
+            symbolKind: 'multiPoint',
+            graphicType: symbol.graphicType,
+            style: {
+              ...styleFromSymbolDefaults(symbol.symbolDefaults),
+              fontSize: symbol.symbolDefaults.fontSize,
+              fontFamily: symbol.symbolDefaults.fontFamily,
+            },
+          }),
+        );
+      } else if (tool === Tool.Line && points.length >= 2) {
         addFeature(
           createFeature({
             layerId: activeLayerId,
@@ -205,6 +247,7 @@ export function DrawHandler() {
           }),
         );
       }
+      // 原站量测是临时工具，结束后清空草稿，不把结果写进标图文档。
       reset();
     },
     [addFeature, activeLayerId, pendingSidc, reset],
@@ -213,7 +256,7 @@ export function DrawHandler() {
   // 本地 Enter/Esc 与全局快捷键命令桥共用同一提交/取消路径。
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (!isDrawing) return;
+      if (!isDrawing || isTypingTarget(event.target)) return;
       if (event.key === 'Enter') {
         event.preventDefault();
         commitDraft(false);
@@ -253,8 +296,23 @@ export function DrawHandler() {
 
   // 地图点击：采点或放置符号
   useMapEvent('click', (event) => {
+    if (!layers.some((layer) => layer.id === activeLayerId && layer.visible && !layer.locked))
+      return;
     const raw: LonLat = { lon: event.latlng.lng, lat: event.latlng.lat };
 
+    if (toolRef.current === Tool.RangeRing) {
+      addFeature({
+        ...createFeature({
+          layerId: activeLayerId,
+          sidc: pendingSidc,
+          name: '距离环',
+          geometry: createPointGeometry(raw.lon, raw.lat),
+        }),
+        rangeRings: [1000, 3000, 5000],
+      });
+      setActiveTool(Tool.Select);
+      return;
+    }
     if (toolRef.current === Tool.Symbol) {
       addFeature(
         createFeature({
@@ -271,7 +329,9 @@ export function DrawHandler() {
     if (
       toolRef.current === Tool.Line ||
       toolRef.current === Tool.Area ||
-      toolRef.current === Tool.Measure
+      toolRef.current === Tool.Measure ||
+      toolRef.current === Tool.TacticalGraphic ||
+      toolRef.current === Tool.MeasureArea
     ) {
       // 复用 mousemove 已算好的吸附结果，命中时采集吸附点，否则用原始坐标
       const snapped = snapRef.current;
@@ -286,19 +346,44 @@ export function DrawHandler() {
   // 因此此处丢弃最后采集到的那个多余顶点。
   useMapEvent('dblclick', () => {
     const tool = toolRef.current;
-    if (tool === Tool.Line || tool === Tool.Area || tool === Tool.Measure) {
+    if (
+      tool === Tool.Line ||
+      tool === Tool.Area ||
+      tool === Tool.Measure ||
+      tool === Tool.TacticalGraphic ||
+      tool === Tool.MeasureArea
+    ) {
       commitDraft(true);
     }
+  });
+
+  useMapEvent('contextmenu', (event) => {
+    if (!isDrawing) return;
+    event.originalEvent.preventDefault();
+    commitDraft(false);
   });
 
   if (!isDrawing || draft.length === 0) return null;
 
   const positions = draft.map((point) => [point.lat, point.lon] as [number, number]);
-  const isMeasure = activeTool === Tool.Measure;
+  const isMeasure = activeTool === Tool.Measure || activeTool === Tool.MeasureArea;
 
   return (
     <>
-      <Polyline positions={positions} pathOptions={DRAFT_STYLE} />
+      {activeTool === Tool.TacticalGraphic &&
+      useSymbolStore.getState().graphicType &&
+      draft.length >= 2 ? (
+        <TacticalGraphic
+          feature={createFeature({
+            layerId: activeLayerId,
+            sidc: pendingSidc,
+            geometry: createLineGeometry(draft),
+            graphicType: useSymbolStore.getState().graphicType ?? undefined,
+          })}
+        />
+      ) : (
+        <Polyline positions={positions} pathOptions={DRAFT_STYLE} />
+      )}
 
       {draft.map((point, index) => (
         <CircleMarker
@@ -312,10 +397,58 @@ export function DrawHandler() {
       {isMeasure && draft.length >= 2 ? (
         <Polyline positions={positions} pathOptions={{ opacity: 0 }}>
           <Tooltip permanent direction="top" className="measure-badge" opacity={0.9}>
-            总长 {formatDistance(measurePath(draft).length)}
+            {activeTool === Tool.MeasureArea
+              ? `面积 ${formatMeasuredArea(polygonArea(draft), units)}`
+              : `总长 ${formatMeasuredDistance(measurePath(draft).length, units)}`}
           </Tooltip>
         </Polyline>
       ) : null}
+      {activeTool === Tool.Measure &&
+        draft.slice(1).map((point, index) => {
+          const start = draft[index];
+          const distance = measurePath([start, point]).length;
+          return (
+            <Polyline
+              key={`measure-${index}`}
+              positions={[
+                [start.lat, start.lon],
+                [point.lat, point.lon],
+              ]}
+              pathOptions={{ opacity: 0 }}
+            >
+              <Tooltip permanent direction="center" className="measure-badge" opacity={0.9}>
+                {formatMeasuredDistance(distance, units)} ·{' '}
+                {formatBearing(bearingOf(start, point), angularUnit)}
+              </Tooltip>
+            </Polyline>
+          );
+        })}
     </>
   );
+}
+
+/** 按选项格式化距离量测，支持公制、英制和海里。 */
+function formatMeasuredDistance(meters: number, units: 'metric' | 'imperial' | 'nautical'): string {
+  if (units === 'nautical') return `${(meters / 1852).toFixed(2)} NM`;
+  if (units === 'imperial') {
+    const yards = meters * 1.0936133;
+    return yards < 1760 ? `${Math.round(yards)} yd` : `${(yards / 1760).toFixed(2)} mi`;
+  }
+  return formatDistance(meters);
+}
+
+/** 按选项格式化面积量测。 */
+function formatMeasuredArea(
+  squareMeters: number,
+  units: 'metric' | 'imperial' | 'nautical',
+): string {
+  if (units === 'imperial') return `${Math.round(squareMeters * 10.7639104)} ft²`;
+  return formatArea(squareMeters);
+}
+
+/** 按选项格式化方位角，北约密位一周为 6400 密位。 */
+function formatBearing(angle: number, unit: 'degree' | 'milliradian'): string {
+  const normalized = ((angle % 360) + 360) % 360;
+  if (unit === 'milliradian') return `${Math.round((normalized / 360) * 6400)} mil`;
+  return `${Math.round(normalized)}°`;
 }

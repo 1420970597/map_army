@@ -7,20 +7,24 @@
  */
 
 import L from 'leaflet';
+import { militarySvg } from '@/core/symbology/military';
+import type { FeatureTextFields } from '@/core/model';
 
 import { parseSidc, renderSymbol, symbolToSvg } from '@/core/symbology';
-import type { Sidc } from '@/core/symbology';
 
 /** 符号在地图上的默认边长（像素） */
 export const DEFAULT_SYMBOL_SIZE = 40;
 
 /** 图标缓存键的组成要素 */
-interface IconKeyParts {
+interface IconKeyParts extends FeatureTextFields {
+  approved?: boolean;
   sidc: string;
   size: number;
   direction?: number;
   higherFormation?: string;
   uniqueDesignation?: string;
+  fontSize?: number;
+  fontFamily?: string;
 }
 
 /**
@@ -67,25 +71,20 @@ export function symbolSvg(sidc: string, size = DEFAULT_SYMBOL_SIZE, direction?: 
 
 /** 构造实际的图标实例 */
 function buildIcon(parts: IconKeyParts): L.DivIcon {
-  const { size, direction, higherFormation, uniqueDesignation } = parts;
-  let parsed: Sidc;
-
-  try {
-    parsed = parseSidc(parts.sidc);
-  } catch {
-    // SIDC 非法时回退到"未知地面单位"，保证地图仍能渲染而不是抛错
-    parsed = parseSidc('10031000000000000000');
-  }
-
-  const svg = symbolToSvg(parsed, {
+  const { size, direction, higherFormation, uniqueDesignation, fontSize, fontFamily } = parts;
+  const svg = militarySvg(parts.sidc, {
+    ...parts,
     size,
     direction,
     higherFormation,
     uniqueDesignation,
+    infoSize: fontSize ? (fontSize / 26) * 40 : undefined,
+    fontfamily: fontFamily,
+    monoColor: parts.approved ? '#111111' : undefined,
   });
 
   return L.divIcon({
-    html: svg,
+    html: `<img alt="" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}" style="height:${size}px;max-width:none" />`,
     // 图标锚点取几何中心，使标记尖端正对经纬度
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
@@ -95,13 +94,7 @@ function buildIcon(parts: IconKeyParts): L.DivIcon {
 
 /** 生成缓存键 */
 function iconKey(parts: IconKeyParts): string {
-  return [
-    parts.sidc,
-    parts.size,
-    parts.direction ?? '',
-    parts.higherFormation ?? '',
-    parts.uniqueDesignation ?? '',
-  ].join('|');
+  return JSON.stringify(parts);
 }
 
 /** 清空图标缓存（切换配色主题等导致 SVG 变化时需要调用） */
@@ -141,16 +134,19 @@ export function previewSymbol(
  */
 export function iconPartsOf(
   sidc: string,
-  text: { higherFormation?: string; uniqueDesignation?: string } = {},
+  text: FeatureTextFields = {},
   size = DEFAULT_SYMBOL_SIZE,
   direction?: number,
+  fontSize?: number,
+  fontFamily?: string,
 ): IconKeyParts {
   return {
     sidc,
     size,
     direction,
-    higherFormation: text.higherFormation,
-    uniqueDesignation: text.uniqueDesignation,
+    ...text,
+    fontSize,
+    fontFamily,
   };
 }
 

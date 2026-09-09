@@ -65,7 +65,7 @@ export interface MgrsCoordinate {
 }
 
 /** 军网类型：MGRS / UTM / 英国国家格网 */
-export type GridType = 'MGRS' | 'UTM' | 'BNG';
+export type GridType = 'MGRS' | 'UTM' | 'BNG' | 'WGS84' | 'GARS' | 'LV95' | 'LV03' | 'HEX';
 
 /** 网格线的一段折线（用于绘制） */
 export interface GridLine {

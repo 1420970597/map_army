@@ -12,6 +12,7 @@ import { fileURLToPath, URL } from 'node:url';
  */
 export default defineConfig({
   plugins: [react()],
+  define: { CESIUM_BASE_URL: JSON.stringify('/cesium/') },
   resolve: {
     alias: {
       // 路径别名，与 tsconfig.app.json 中的 paths 保持同步
@@ -20,6 +21,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    proxy: { '/api': 'http://127.0.0.1:3001' },
     host: true,
     open: false,
   },

@@ -1,3 +1,4 @@
+import { registerMap } from './mapInstance';
 import { useEffect } from 'react';
 import { useMap } from 'react-leaflet';
 
@@ -73,7 +74,12 @@ export function MapCommandHandler() {
       },
     };
 
-    return registerMapCommandContext(context);
+    const releaseMap = registerMap(map);
+    const releaseCommands = registerMapCommandContext(context);
+    return () => {
+      releaseMap();
+      releaseCommands();
+    };
   }, [map]);
 
   return null;

@@ -31,10 +31,25 @@ createRoot(container).render(
  */
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // BASE_URL 使部署到任意子路径时注册地址仍正确
-    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch((error) => {
-      // 注册失败不影响应用本身的功能，仅失去离线能力
-      console.warn('[PWA] Service Worker 注册失败，应用将以在线模式运行：', error);
-    });
+    // BASE_URL 使部署到任意子路径时注册地址仍正确。
+    void navigator.serviceWorker
+      .register(`${import.meta.env.BASE_URL}sw.js`)
+      .then((registration) => {
+        const notifyUpdate = () => {
+          window.dispatchEvent(new CustomEvent('map-army:update-available'));
+        };
+        if (registration.waiting) notifyUpdate();
+        registration.addEventListener('updatefound', () => {
+          const worker = registration.installing;
+          if (!worker) return;
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'installed' && navigator.serviceWorker.controller) notifyUpdate();
+          });
+        });
+      })
+      .catch((error) => {
+        // 注册失败不影响应用本身的功能，仅失去离线能力。
+        console.warn('[PWA] Service Worker 注册失败，应用将以在线模式运行：', error);
+      });
   });
 }
