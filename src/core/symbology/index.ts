@@ -88,7 +88,13 @@ export { DEFAULT_SYMBOL_DEFAULTS, normalizeSymbolDefaults } from './defaults';
 export type { SymbolDefaults } from './defaults';
 
 // ── 修饰符 ──
-export { buildDirectionArrow, buildEchelon, buildHqTfDummy, buildStatusOverlay } from './modifiers';
+export {
+  buildDirectionArrow,
+  buildEchelon,
+  buildHqTfDummy,
+  buildIconExtensions,
+  buildStatusOverlay,
+} from './modifiers';
 
 // ── 渲染 ──
 export {

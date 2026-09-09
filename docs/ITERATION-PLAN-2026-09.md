@@ -64,3 +64,10 @@ Compose 两个容器 healthy，首页和健康检查正常。PR 推送后重新�
 - `data-exchange/track-changes`：`b5b3f9b34b146cd7c1e59ce2a45c7e285c1350d6ea2b554af069ae9cb5a4fe23`
 
 复核确认 Share 核心差异已关闭；原站符号编辑器的三页签、2525C 与 Extended 修饰符进入第四轮。
+
+### 第 4 轮：符号编辑器与标准兼容
+
+本轮完成 Edit/Preview/About MSS 三个视图；原生 15 位 SIDC 编辑时保留警告和 MSS 原文，修改字段后才重新生成
+本地格式；符号库标注 2525C/APP-6(C) 基线与 2525D 数字兼容，Extended 两个扩展图标代码有确定位置和回归测试。
+
+本轮完成后重新核对 Symbol Gallery、Symbol Editor 和 MSS 版本页面，再进入六边形网格与 PWA 轮次。

@@ -19,7 +19,13 @@ import {
   VIEWPORT,
 } from './frames';
 import { findSymbol } from './icons';
-import { buildDirectionArrow, buildEchelon, buildHqTfDummy, buildStatusOverlay } from './modifiers';
+import {
+  buildDirectionArrow,
+  buildEchelon,
+  buildHqTfDummy,
+  buildIconExtensions,
+  buildStatusOverlay,
+} from './modifiers';
 import { echelonOf, entityCodeOf } from './sidc';
 import { Affiliation, SymbolSet, type Sidc, type SymbolGeometry, type SymbolPath } from './types';
 
@@ -110,6 +116,7 @@ export function renderSymbol(
     strokes.push(...echelonPaths.strokes);
   }
   strokes.push(...buildHqTfDummy(sidc.hqTfDummy, frameTop, extent.left, extent.right));
+  strokes.push(...buildIconExtensions(sidc.modifier1, sidc.modifier2));
 
   // 5. 机动方向箭头
   if (options.direction !== undefined) {

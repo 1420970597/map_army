@@ -167,6 +167,42 @@ button {
   font-size: 0.82rem;
 }
 
+.symbol-editor-tabs {
+  display: flex;
+  gap: 4px;
+  margin: -4px 0 12px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.symbol-editor-tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--c-muted);
+  padding: 6px 9px;
+  cursor: pointer;
+}
+
+.symbol-editor-tabs button.is-active {
+  color: var(--c-text);
+  border-bottom-color: var(--c-accent);
+}
+
+.symbol-editor-preview,
+.symbol-editor-about {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 280px;
+  text-align: center;
+}
+
+.symbol-editor-about {
+  display: block;
+  text-align: left;
+  padding: 12px;
+}
+
 /* ── 顶栏 ─────────────────────────────────────────────── */
 
 .toolbar {

@@ -159,7 +159,7 @@ export function SymbolPanel() {
           })}
         </div>
         {entries.length === 0 && <p className="empty-hint">暂无符号；右键符号可加入收藏。</p>}
-        <p className="empty-hint">MIL-STD-2525D / APP-6(D) · 标准符号与自绘战术图形</p>
+        <p className="empty-hint">MIL-STD-2525C / APP-6(C) 基线 · 兼容 2525D 数字 SIDC</p>
       </div>
     </aside>
   );

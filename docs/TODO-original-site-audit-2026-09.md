@@ -58,10 +58,16 @@
 - [x] 固定版本 URL、If-Match 冲突提示、在线图层 URL 元数据和 iframe 预览信息均可验收；明确离线快照
       只在浏览器本地编辑，服务端分享通过令牌和版本控制更新。
 
-## 下一轮 ToDo（Iteration 2026-09-D）
+## 已完成迭代（Iteration 2026-09-D）
 
-- [ ] 符号编辑器增加 Edit/Preview/About MSS 三个视图，原生 15 位 SIDC 显示保留提示且不退化为默认 20 位。
-- [ ] 完善 2525C 基线标识、Extended 两个 Icon Extension Modifier 的校验与预览，补充导出回归测试。
+- [x] 符号编辑器增加 Edit/Preview/About MSS 三个视图，原生 15 位 SIDC 显示保留提示且不会静默退化为默认 20 位。
+- [x] 符号库界面明确 2525C/APP-6(C) 基线与 2525D 数字兼容；Extended 两个 Icon Extension Modifier
+      经过代码校验、预览绘制和回归测试。
+
+## 下一轮 ToDo（Iteration 2026-09-E）
+
+- [ ] 六边形网格增加边长、颜色、不透明度、线宽、标签和交点吸附设置，状态持久化并实时刷新。
+- [ ] PWA 补齐离线失败提示、文件关联降级提示和地图瓦片缓存边界；增加 Chromium 浏览器冒烟验收。
 
 ## 后续 ToDo（本轮不伪装完成）
 
