@@ -88,8 +88,8 @@ docker compose logs -f map-army
 docker compose down
 ```
 
-三维视图默认使用项目内置的离线高程地形，不请求外部高程瓦片；影像图层默认关闭，确保
-完全离线部署不会产生网络错误。需要真实 DEM 或离线影像时，复制 `.env.example`，在构建前配置
+三维视图默认使用项目内置的椭球高程基线与随 Cesium 发布的 Natural Earth 离线底图，不请求外部
+高程或影像瓦片；因此完全离线部署仍能看到可辨识的地球。需要真实 DEM 或内网影像时，复制 `.env.example`，在构建前配置
 `VITE_CESIUM_ION_TOKEN`、`VITE_CESIUM_TERRAIN_URL` 和 `VITE_CESIUM_IMAGERY_URL` 中的相应项。
 
 容器不保存业务数据；标图文档继续按浏览器 localStorage 保存，也可以使用应用内的
