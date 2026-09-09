@@ -670,6 +670,18 @@ button {
   overflow: visible;
 }
 
+.map-symbol-svg {
+  pointer-events: none;
+}
+
+.map-symbol-svg svg {
+  display: block;
+  width: auto;
+  height: 100%;
+  max-width: none;
+  overflow: visible;
+}
+
 .measure-badge {
   padding: 2px 6px;
   font-weight: 600;

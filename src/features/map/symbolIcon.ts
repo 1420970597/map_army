@@ -11,6 +11,7 @@ import { militarySvg } from '@/core/symbology/military';
 import type { FeatureTextFields } from '@/core/model';
 
 import { parseSidc, renderSymbol, symbolToSvg } from '@/core/symbology';
+import { mapSymbolMarkup } from './symbolMarkup';
 
 /** 符号在地图上的默认边长（像素） */
 export const DEFAULT_SYMBOL_SIZE = 40;
@@ -86,7 +87,7 @@ function buildIcon(parts: IconKeyParts): L.DivIcon {
   const customSvg = parts.customSvg;
 
   return L.divIcon({
-    html: `<img alt="" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(customSvg ?? svg)}" style="height:${size}px;max-width:none" />`,
+    html: mapSymbolMarkup(customSvg ?? svg, size),
     // 图标锚点取几何中心，使标记尖端正对经纬度
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
