@@ -77,6 +77,20 @@ npm run test
 npm run build
 ```
 
+### Docker Compose 部署
+
+生产镜像会在容器内完成构建，并由 nginx 提供带 SPA 回退的静态站点：
+
+```bash
+docker compose up --build -d
+# 浏览器打开 http://localhost:8080
+docker compose logs -f map-army
+docker compose down
+```
+
+容器不保存业务数据；标图文档继续按浏览器 localStorage 保存，也可以使用应用内的
+`.milxlyz` 导出作为跨设备备份。
+
 ## 开发规范
 
 - **注释语言**：全部代码注释使用**简体中文**。
