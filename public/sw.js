@@ -11,7 +11,7 @@
  */
 
 /** 缓存版本：发布新版本时递增 */
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.0.1';
 
 /** 预缓存（应用外壳与静态站点页） */
 const SHELL_CACHE = `map-army-shell-${VERSION}`;
@@ -163,7 +163,7 @@ async function navigationStrategy(request) {
   const cache = await caches.open(PAGE_CACHE);
   try {
     const response = await Promise.race([
-      fetch(request),
+      fetch(request, { cache: 'no-store' }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
     ]);
     if (response && response.ok) cache.put(request, response.clone());

@@ -33,7 +33,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // BASE_URL 使部署到任意子路径时注册地址仍正确。
     void navigator.serviceWorker
-      .register(`${import.meta.env.BASE_URL}sw.js`)
+      .register(`${import.meta.env.BASE_URL}sw.js`, { updateViaCache: 'none' })
       .then((registration) => {
         const notifyUpdate = () => {
           window.dispatchEvent(new CustomEvent('map-army:update-available'));
