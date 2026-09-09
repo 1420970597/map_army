@@ -37,3 +37,13 @@ Compose 前端首页和 `/api/health` 均正常，两个容器 healthy。PR 推�
 
 本轮完成后必须重新读取 `about/milx-format`、`data-exchange/import` 和 `data-exchange/create-a-share`，
 再建立第三轮 Share ToDo。
+
+本轮已关闭（提交 `37e583a`）：`npm run ci` 通过（60 个测试文件、968 个测试），原生交换测试覆盖
+15 位 SIDC、LV95 坐标、MSS 原文、ZIP 和导出警告。PR 推送后重新读取原站页面：
+
+- `about/milx-format`：`cc74e2459e16042a1faacc5f3368ec1780043525bd54c39c9b824b32c13048a8`
+- `data-exchange/import`：`b5b3f9b34b146cd7c1e59ce2a45c7e285c1350d6ea2b554af069ae9cb5a4fe23`
+- `data-exchange/create-a-share`：`a7c3dc3b6147974c74987ed5148e9b08826e23603f8660f08d5613f5da5de6a1`
+- `data-exchange/load-milx-layer-using-url-parameter`：`d413f266727ad0daaf94298697d02dd41711ace64053e1f55ee8086363cbc55b`
+
+复核确认原生 MilX 差异已关闭；在线图层 URL 元数据与 Share 权限闭环进入第三轮。
