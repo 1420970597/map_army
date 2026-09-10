@@ -108,6 +108,15 @@
 
 ## 验收证据
 
+### AFSIM 用户扩展（2026-09-10）
+
+本轮范围由用户明确追加：本地想定文件夹静态单位导入，不改变原站免费/Pro 能力判定。
+实现与验收清单见 [QA-afsim-import-2026-09.md](QA-afsim-import-2026-09.md)，格式依据见
+[RESEARCH-afsim-import-2026-09.md](RESEARCH-afsim-import-2026-09.md)。官方导入页未列 AFSIM；
+下一轮继续核对原站差距，AFSIM 后续兼容项为宏、编码、路线变换及浏览器矩阵。
+
+### 原站功能来源
+
 - 官方索引：`https://www.map.army/doc/en/llms.txt`
 - 坐标搜索：`https://www.map.army/doc/en/map-tools/coordinate-search/`
 - 测量：`https://www.map.army/doc/en/map-tools/measurement/`

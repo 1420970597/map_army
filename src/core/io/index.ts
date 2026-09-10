@@ -67,3 +67,5 @@ export {
 export type { DownloadOptions } from './download';
 
 export { documentToMilxXml, milxExportWarnings, milxXmlToDocument } from './milxNative';
+export { afsimFilesToDocument, parseAfsimCoordinate } from './afsim';
+export type { AfsimImportResult, AfsimSourceFile } from './afsim';

@@ -1,12 +1,15 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createDocument, createFeature, createPointGeometry, createLayer } from '@/core/model';
 import { useDocumentStore } from '@/stores/useDocumentStore';
+import { useAccessStore } from '@/stores/useAccessStore';
+import { afsimFilesToDocument } from '@/core/io/afsim';
 
 import { applyImportedDocument } from './importDocument';
 
 describe('导入到指定图层', () => {
   beforeEach(() => {
+    useAccessStore.getState().setReadOnly(false);
     const document = createDocument('目标文档');
     useDocumentStore.setState({
       document,
@@ -16,6 +19,7 @@ describe('导入到指定图层', () => {
       future: [],
     });
   });
+  afterEach(() => useAccessStore.getState().setReadOnly(false));
 
   it('把导入要素合并到指定图层且不新增图层', () => {
     const target = useDocumentStore.getState().document.layers[0];
@@ -46,5 +50,23 @@ describe('导入到指定图层', () => {
       '目标图层不可编辑',
     );
     expect(useDocumentStore.getState().past).toHaveLength(0);
+  });
+
+  it('AFSIM 结果可整批追加和撤销，解析后切换只读仍拒绝写入', async () => {
+    const text =
+      'platform a WSF_PLATFORM side red position 12N 34E end_platform platform b WSF_PLATFORM side blue position 13N 35E end_platform';
+    const result = await afsimFilesToDocument(
+      [{ path: 'main.txt', size: text.length, readText: async () => text }],
+      'main.txt',
+    );
+    applyImportedDocument(result.document);
+    expect(useDocumentStore.getState().document.layers).toHaveLength(3);
+    expect(useDocumentStore.getState().document.features).toHaveLength(2);
+    expect(useDocumentStore.getState().past).toHaveLength(1);
+    useDocumentStore.getState().undo();
+    expect(useDocumentStore.getState().document.features).toHaveLength(0);
+    useAccessStore.getState().setReadOnly(true);
+    expect(() => applyImportedDocument(result.document)).toThrow('只读');
+    expect(useDocumentStore.getState().document.features).toHaveLength(0);
   });
 });

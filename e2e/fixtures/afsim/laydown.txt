@@ -1,0 +1,12 @@
+platform blue-one AIR
+  position 40N 100E
+  route
+    position 25N 135E
+    position 26N 136E
+  end_route
+end_platform
+platform red-one WSF_PLATFORM
+  side red
+  spatial_domain surface
+  position 26N 134E
+end_platform

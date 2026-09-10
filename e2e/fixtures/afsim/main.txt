@@ -1,0 +1,3 @@
+# 人工编写的格式回归样例，不包含外部想定数据。
+include_once types.txt
+include laydown.txt
