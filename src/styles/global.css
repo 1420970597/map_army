@@ -67,6 +67,7 @@ button {
 }
 
 .app-body {
+  position: relative;
   display: flex;
   flex: 1;
   min-height: 0;
@@ -1032,8 +1033,8 @@ button {
   .panel-right {
     position: absolute;
     z-index: 950;
-    top: 130px;
-    bottom: 28px;
+    top: 0;
+    bottom: 0;
     box-shadow: var(--shadow);
   }
   .panel-right {
