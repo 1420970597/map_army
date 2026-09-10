@@ -69,6 +69,8 @@ export interface CreateFeatureParams {
   customSymbolId?: string;
   /** 自定义军标 SVG 快照。 */
   customSymbolSvg?: string;
+  /** 可选三维关联，构造时复制以免与调用方共享装配数组。 */
+  equipment3d?: MapFeature['equipment3d'];
   /** 显示名称，省略时取符号的中文名 */
   name?: string;
   /** 几何 */
@@ -102,6 +104,7 @@ export function createFeature(params: CreateFeatureParams): MapFeature {
     sidc,
     customSymbolId: params.customSymbolId,
     customSymbolSvg: params.customSymbolSvg,
+    equipment3d: params.equipment3d ? structuredClone(params.equipment3d) : undefined,
     name: params.name ?? '',
     geometry: params.geometry,
     textFields: params.textFields ?? {},
@@ -184,6 +187,7 @@ export function cloneFeature(feature: MapFeature, overrides: Partial<MapFeature>
     style: source.style ? { ...source.style } : undefined,
     customSymbolId: source.customSymbolId,
     customSymbolSvg: source.customSymbolSvg,
+    equipment3d: source.equipment3d ? structuredClone(source.equipment3d) : undefined,
     vertexBearings: source.vertexBearings ? [...source.vertexBearings] : undefined,
     rangeRings: source.rangeRings ? [...source.rangeRings] : undefined,
     graphicParams: source.graphicParams ? { ...source.graphicParams } : undefined,

@@ -8,6 +8,7 @@
 
 import type { LonLat } from '../geo';
 import type { Sidc } from '../symbology';
+import type { Equipment3D } from './equipment3d';
 
 /**
  * 网格类型复用测绘模块的定义，避免同一概念出现两份不一致的取值
@@ -190,6 +191,8 @@ export interface MapFeature {
   customSymbolId?: string;
   /** 自定义军标 SVG 快照，确保分享和导出不依赖接收方本地目录。 */
   customSymbolSvg?: string;
+  /** 用户显式关联的三维模型及挂载，属于本项目扩展。 */
+  equipment3d?: Equipment3D;
   /** 显示名称 */
   name: string;
   /** 几何 */

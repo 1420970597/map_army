@@ -64,7 +64,11 @@ export function ImportExportBar() {
           format === 'json' || format === 'geojson' ? 'application/json' : 'application/xml',
       });
     }
-    const warnings = format === 'milxly' || format === 'milx' ? milxExportWarnings(output) : [];
+    const warnings = ['milxly', 'milx', 'milxlyz'].includes(format)
+      ? milxExportWarnings(output)
+      : [];
+    if (format === 'kml' && output.features.some((feature) => feature.equipment3d))
+      warnings.push('KML 不保留三维装配；如需继续编辑装配，请另存项目 JSON');
     setMessage(warnings.length ? `文件已导出；${warnings.join('；')}` : '文件已导出');
   };
   useEffect(() => {

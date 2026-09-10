@@ -1,0 +1,124 @@
+.equipment-intro,
+.equipment-panel {
+  padding: 12px;
+}
+
+.inspector:has(.equipment-panel),
+.inspector:has(.equipment-intro) {
+  width: min(400px, calc(100vw - 24px));
+}
+
+.equipment-canvas {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  border-radius: 6px;
+  margin: 12px 0 8px;
+  background: #e8eef2;
+}
+
+.equipment-canvas canvas {
+  display: block;
+  touch-action: none;
+}
+
+.equipment-socket {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 2px solid #6c7a84;
+  border-radius: 14px;
+  background: #fff;
+  color: #304552;
+  padding: 5px 9px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.equipment-socket.is-compatible {
+  border-color: #158354;
+  color: #11633f;
+}
+
+.equipment-socket.is-target {
+  background: #158354;
+  color: #fff;
+  box-shadow: 0 0 0 5px #15835444;
+}
+
+.equipment-socket:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.equipment-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  background: #e8eef2e8;
+  padding: 16px;
+  font-size: 13px;
+}
+
+.equipment-parts {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.equipment-part {
+  flex: 1;
+  padding: 10px 6px;
+  border: 1px solid var(--c-border);
+  border-radius: 5px;
+  background: var(--c-surface);
+  color: var(--c-text);
+  cursor: grab;
+  font-size: 12px;
+}
+
+.equipment-part.is-selected {
+  border-color: #168458;
+  background: #16845816;
+}
+
+.equipment-part:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.equipment-mounts {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+.equipment-mounts li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.equipment-mounts button {
+  padding: 4px 8px;
+}
+
+.equipment-panel .tb-button,
+.equipment-intro .tb-button {
+  color: var(--c-primary);
+  background: var(--c-surface-alt);
+  border: 1px solid var(--c-border);
+  margin: 3px 4px 3px 0;
+}
+
+.inspector-edit-fields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}

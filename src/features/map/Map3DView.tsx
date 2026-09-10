@@ -132,6 +132,7 @@ export function Map3DView() {
             homeButton: false,
             sceneModePicker: false,
             navigationHelpButton: false,
+            infoBox: false,
             fullscreenButton: false,
             // 未配置影像时使用随应用发布的单瓦片底图，确保离线部署仍有可辨识地球。
             baseLayer:
@@ -142,6 +143,13 @@ export function Map3DView() {
             requestRenderMode: false,
           });
           viewer.current = instance;
+          instance.selectedEntityChanged.addEventListener((entity) => {
+            const state = useDocumentStore.getState();
+            if (entity && state.document.features.some((feature) => feature.id === entity.id)) {
+              state.select([entity.id]);
+              useViewStore.getState().setInspectorOpen(true);
+            }
+          });
           // 无影像的离线模式仍显示带颜色的地球和地形网格，避免出现整屏纯蓝。
           instance.scene.globe.baseColor = Color.fromCssColorString('#6f8f5f');
           instance.scene.globe.show = true;

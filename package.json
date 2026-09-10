@@ -22,6 +22,8 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
+    "models:build": "blender --background --python-exit-code 1 --python assets/unit-models/build_models.py",
+    "models:check": "node assets/unit-models/validate.mjs",
     "dev": "vite",
     "site": "node site/generate.mjs && node site/icons.mjs && node site/cesium.mjs",
     "build": "npm run site && tsc -b && vite build",
@@ -35,7 +37,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "ci": "npm run lint && npm run format:check && npm run test && npm run test:server && npm run build",
+    "ci": "npm run lint && npm run format:check && npm run models:check && npm run test && npm run test:server && npm run build",
     "test:server": "node --test server/*.test.mjs",
     "server": "node server/index.mjs",
     "predev": "node site/cesium.mjs"
@@ -52,6 +54,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-leaflet": "^5.0.0",
+    "three": "^0.186.0",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
@@ -61,12 +64,14 @@
     "@types/node": "^26.4.1",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
+    "@types/three": "^0.185.4",
     "@vitejs/plugin-react": "^5.0.0",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
+    "gltf-validator": "^2.0.0-dev.3.10",
     "prettier": "^3.6.2",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
