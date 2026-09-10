@@ -34,4 +34,5 @@
 
 `npm run ci` 全部通过，`docker compose up --build -d` 已成功。
 前端与分享服务均 healthy；首页 HTTP 200，健康接口返回 `{"status":"ok"}`，部署的 GLB 与源文件一致。
-原站复核 URL、页面哈希、截图和下轮待办保存在本轮清单；PR 与主线结果在完成后补记。
+PR #35 已 squash 合并到 `main`，主线 SHA 为 `b49b271a23574c21e669e290fb52aae899eb928b`。
+合并后复核原站三维地图与符号编辑器，页面 SHA-256 与合并前一致；下一轮待办保存在本轮清单。

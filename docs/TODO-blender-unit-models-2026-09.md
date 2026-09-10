@@ -33,6 +33,9 @@
 - `npm run ci`：991 个 Vitest、3 个分享服务测试、lint、format、模型校验及生产构建全部通过。
 - `docker compose up --build -d`：前端与分享服务均 healthy；首页 HTTP 200、`/api/health` 返回 `{"status":"ok"}`；
   经 HTTP 下载的 GLB 与仓库资产逐字节一致。评审记录见 [QA 文档](QA-blender-unit-models-2026-09.md)。
+- PR #35 已 squash 合并到 `main`；合并后主线 SHA：`b49b271a23574c21e669e290fb52aae899eb928b`。
+- 合并后原站复核页面 SHA-256 未变化：三维地图 `1d9937f6d80ee59d043b9c9d66246104e2e5e3bfa4894f22fa463c0697ad1788`；
+  符号编辑器 `ae6896236c09746726faceaa4e6297770d6f71306b1874365bb611a52c2ed2c8`。
 
 ## 原站复核
 
