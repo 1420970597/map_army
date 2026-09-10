@@ -8,6 +8,7 @@
  */
 
 import type { LonLat } from '../geo';
+import { readEquipment3D } from '../model/equipment3d';
 import {
   createAreaGeometry,
   createFeature,
@@ -40,6 +41,7 @@ export interface GeoJsonFeatureCollection {
 
 /** 属性键名：与 2525 字段对应，便于其他系统识别 */
 const PROP_KEYS = {
+  equipment3d: 'mapArmyEquipment3d',
   sidc: 'sidc',
   name: 'name',
   uniqueDesignation: 'uniqueDesignation',
@@ -87,6 +89,9 @@ function toGeoJsonFeature(feature: MapFeature, layerNames: Map<string, string>):
     geometry: geoGeometry,
     properties: {
       [PROP_KEYS.sidc]: feature.sidc,
+      ...(feature.equipment3d
+        ? { [PROP_KEYS.equipment3d]: structuredClone(feature.equipment3d) }
+        : {}),
       ...(feature.customSymbolId ? { [PROP_KEYS.customSymbolId]: feature.customSymbolId } : {}),
       ...(feature.customSymbolSvg ? { [PROP_KEYS.customSymbolSvg]: feature.customSymbolSvg } : {}),
       [PROP_KEYS.name]: feature.name,
@@ -208,6 +213,8 @@ function fromGeoJsonFeature(item: GeoJsonFeature, defaultLayerId: string): MapFe
         : undefined,
     name,
     geometry: featureGeometry,
+    equipment3d:
+      featureGeometry.kind === 'point' ? readEquipment3D(props[PROP_KEYS.equipment3d]) : undefined,
     textFields: {
       uniqueDesignation: stringOrUndefined(props[PROP_KEYS.uniqueDesignation]),
       higherFormation: stringOrUndefined(props[PROP_KEYS.higherFormation]),

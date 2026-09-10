@@ -1,5 +1,6 @@
 /** 项目 JSON 备份和早期 gzip 文件迁移；原生 MilX XML/ZIP 由 milxNative 与 files 提供。 */
 import { createDocument } from '../model/factory';
+import { readEquipment3D } from '../model/equipment3d';
 import type { ImageOverlayData } from '../model/types';
 import {
   LayerKind,
@@ -160,6 +161,7 @@ function reviveFeature(item: unknown): MapFeature | null {
       customSymbolSvg: typeof item.customSymbolSvg === 'string' ? item.customSymbolSvg : undefined,
       name: typeof item.name === 'string' ? item.name : '',
       geometry: { kind: 'point', position: { lon: position.lon, lat: position.lat } },
+      equipment3d: readEquipment3D(item.equipment3d),
       textFields: reviveTextFields(item.textFields),
       style: isRecord(item.style) ? (item.style as MapFeature['style']) : undefined,
       direction: typeof item.direction === 'number' ? item.direction : undefined,
