@@ -87,7 +87,7 @@ export function mountAttachment(
   if (equipment3DProblem(value)) return value;
   const socket = AIRCRAFT_MODEL.sockets.find((entry) => entry.id === socketId);
   const part = ATTACHMENTS.find((entry) => entry.id === attachmentId);
-  if (!socket || (attachmentId !== null && (!part || !socket.accepts.includes(attachmentId))))
+  if (!socket || (attachmentId !== null && !canMountAttachment(socketId, attachmentId)))
     return value;
   const current = value.attachments.find((entry) => entry.socketId === socketId);
   if ((!current && attachmentId === null) || current?.attachmentId === attachmentId) return value;
@@ -95,4 +95,14 @@ export function mountAttachment(
   if (part) attachments.push({ socketId, attachmentId: part.id, assetVersion: part.version });
   attachments.sort((a, b) => a.socketId.localeCompare(b.socketId));
   return { ...value, attachments };
+}
+
+/** 预览高亮与最终提交共用同一兼容性规则。 */
+export function canMountAttachment(socketId: string, attachmentId: string): boolean {
+  return (
+    ATTACHMENTS.some((part) => part.id === attachmentId) &&
+    AIRCRAFT_MODEL.sockets.some(
+      (socket) => socket.id === socketId && socket.accepts.includes(attachmentId),
+    )
+  );
 }

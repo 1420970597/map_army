@@ -129,6 +129,8 @@ export function createEquipmentPreview(
         releaseResources(resources);
         return;
       }
+      // 加载成功不能覆盖加载期间发生的上下文丢失；保留重建入口。
+      if (lost) return;
       if (results.some((result) => result.status === 'rejected'))
         throw new Error('模型加载失败，请检查网络后重试。');
       const aircraft = resources[0];

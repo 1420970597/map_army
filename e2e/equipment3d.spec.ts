@@ -2,6 +2,9 @@ import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { gzipSync } from 'node:zlib';
 
+// 资源失败用例直接拦截模型请求；PWA 行为由单独的冒烟文件覆盖。
+test.use({ serviceWorkers: 'block' });
+
 const equipment3d = { modelId: 'demo-aircraft', assetVersion: '1', attachments: [] };
 const fixture = (configured = false, locked = false) => ({
   format: 'milxly',
@@ -206,6 +209,57 @@ test('快速切换详情和画布中断后可重新打开', async ({ page }) => 
   await page.getByRole('button', { name: '重新加载模型' }).click();
   await expect(page.getByRole('button', { name: '重置视角' })).toBeEnabled();
   expect(errors).toEqual([]);
+});
+
+test('加载期间画布中断不会被加载成功覆盖', async ({ page }) => {
+  let release = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/models/demo-v1/aircraft.glb', async (route) => {
+    await gate;
+    await route.continue();
+  });
+  await seed(page, true);
+  await expect(page.locator('.equipment-canvas canvas')).toBeVisible();
+  await page.locator('.equipment-canvas canvas').evaluate((canvas: HTMLCanvasElement) => {
+    canvas.getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext();
+  });
+  await expect(page.getByRole('button', { name: '重新加载模型' })).toBeVisible();
+  const loaded = page.waitForResponse('**/models/demo-v1/aircraft.glb');
+  release();
+  await (await loaded).finished();
+  // 等待加载器消费已收到的响应，再检查是否仍保留错误状态。
+  await page.waitForTimeout(200);
+  await expect(page.getByRole('button', { name: '重新加载模型' })).toBeVisible();
+  await page.getByRole('button', { name: '重新加载模型' }).click();
+  await expect(page.getByRole('button', { name: '重置视角' })).toBeEnabled();
+});
+
+test('新增详情文案随五种语言实时切换，帮助弹窗可覆盖详情', async ({ page }) => {
+  await seed(page, true);
+  await expect(page.getByRole('button', { name: '重置视角' })).toBeEnabled();
+  const languages = [
+    ['en', '3D model', 'Reset view'],
+    ['de', '3D-Modell', 'Ansicht zurücksetzen'],
+    ['fr', 'Modèle 3D', 'Réinitialiser la vue'],
+    ['it', 'Modello 3D', 'Ripristina vista'],
+    ['zh', '三维模型', '重置视角'],
+  ];
+  for (const [language, tab, reset] of languages) {
+    await page.getByRole('button', { name: '选项', exact: true }).click();
+    await page.getByRole('combobox', { name: '语言', exact: true }).selectOption(language);
+    await page
+      .getByRole('dialog', { name: '选项' })
+      .getByRole('button', { name: '×', exact: true })
+      .click();
+    await expect(page.getByRole('tab', { name: tab, exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: reset, exact: true })).toBeEnabled();
+  }
+  await page.keyboard.press('Shift+?');
+  await expect(page.getByRole('dialog', { name: '快捷键帮助' })).toBeVisible();
+  await page.getByRole('button', { name: '关闭快捷键帮助' }).click();
+  await expect(page.getByRole('dialog', { name: '快捷键帮助' })).toHaveCount(0);
 });
 
 test.describe('移动端替代操作', () => {

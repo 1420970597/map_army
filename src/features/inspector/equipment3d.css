@@ -115,10 +115,3 @@
   border: 1px solid var(--c-border);
   margin: 3px 4px 3px 0;
 }
-
-.inspector-edit-fields {
-  border: 0;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
-}

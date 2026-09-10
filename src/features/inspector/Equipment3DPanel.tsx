@@ -5,6 +5,7 @@ import {
   createEquipment3D,
   equipment3DProblem,
   mountAttachment,
+  canMountAttachment,
 } from '@/core/model/equipment3d';
 import type { Equipment3D } from '@/core/model/equipment3d';
 import type { MapFeature } from '@/core/model';
@@ -12,6 +13,8 @@ import { useDocumentStore } from '@/stores/useDocumentStore';
 import { createEquipmentPreview } from './equipmentPreview';
 import type { SocketMarker } from './equipmentPreview';
 import './equipment3d.css';
+import { usePreferencesStore } from '@/stores/usePreferencesStore';
+import { equipmentText } from './equipmentText';
 
 /** 三维关联、查看与装配入口；只读时相机仍然可操作。 */
 export default function Equipment3DPanel({
@@ -22,14 +25,16 @@ export default function Equipment3DPanel({
   disabled: boolean;
 }) {
   const update = useDocumentStore((state) => state.updateFeature);
+  const language = usePreferencesStore((state) => state.language);
+  const t = (text: string) => equipmentText(language, text);
   if (feature.geometry.kind !== 'point' || feature.symbolKind === 'multiPoint')
-    return <p className="field-hint">线、面和控制措施不对应单台装备模型。</p>;
+    return <p className="field-hint">{t('线、面和控制措施不对应单台装备模型。')}</p>;
   if (!feature.equipment3d)
     return (
       <div className="equipment-intro">
-        <p>此军标尚未关联三维模型。</p>
+        <p>{t('此军标尚未关联三维模型。')}</p>
         <p className="field-hint">
-          可关联通用飞机验证旋转、缩放和挂载。当前资产为类别示意，不代表具体型号。
+          {t('可关联通用飞机验证旋转、缩放和挂载。当前资产为类别示意，不代表具体型号。')}
         </p>
         <button
           type="button"
@@ -37,17 +42,17 @@ export default function Equipment3DPanel({
           disabled={disabled}
           onClick={() => update(feature.id, { equipment3d: createEquipment3D() })}
         >
-          关联示意飞机
+          {t('关联示意飞机')}
         </button>
       </div>
     );
   const problem = equipment3DProblem(feature.equipment3d);
   return (
     <div className="equipment-panel">
-      <strong>{problem ? feature.equipment3d.modelId : AIRCRAFT_MODEL.name}</strong>
-      <p className="field-hint">类别示意 · 三维装配为本项目扩展</p>
+      <strong>{problem ? feature.equipment3d.modelId : t(AIRCRAFT_MODEL.name)}</strong>
+      <p className="field-hint">{t('类别示意 · 三维装配为本项目扩展')}</p>
       {problem ? (
-        <p role="status">{problem}</p>
+        <p role="status">{t(problem)}</p>
       ) : (
         <ModelAssembly featureId={feature.id} value={feature.equipment3d} disabled={disabled} />
       )}
@@ -57,9 +62,9 @@ export default function Equipment3DPanel({
         disabled={disabled}
         onClick={() => update(feature.id, { equipment3d: undefined })}
       >
-        移除模型与所有挂载
+        {t('移除模型与所有挂载')}
       </button>
-      <p className="field-hint">装配随文档保存，可撤销。真实装备型号仍需另行建模和关联。</p>
+      <p className="field-hint">{t('装配随文档保存，可撤销。真实装备型号仍需另行建模和关联。')}</p>
     </div>
   );
 }
@@ -74,6 +79,10 @@ function ModelAssembly({
   disabled: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
+  const language = usePreferencesStore((state) => state.language);
+  const t = (text: string) => equipmentText(language, text);
+  const socketName = (id: string) =>
+    t(AIRCRAFT_MODEL.sockets.find((socket) => socket.id === id)?.name ?? id);
   const preview = useRef<ReturnType<typeof createEquipmentPreview> | null>(null);
   const [markers, setMarkers] = useState<SocketMarker[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -107,6 +116,11 @@ function ModelAssembly({
   useEffect(() => {
     preview.current?.setValue(value);
   }, [value]);
+  useEffect(() => {
+    host.current
+      ?.querySelector('canvas')
+      ?.setAttribute('aria-label', equipmentText(language, '三维装备预览，拖动旋转、滚轮缩放'));
+  }, [language, retry]);
   useEffect(() => {
     preview.current?.setDrag(
       Boolean(drag) && !disabled,
@@ -147,8 +161,7 @@ function ModelAssembly({
     if (useDocumentStore.getState().document !== store.document)
       setNotice(partId ? '挂载已安装，可撤销。' : '挂载已拆卸，可撤销。');
   };
-  const canMount = (socketId: string, part = selectedPart) =>
-    AIRCRAFT_MODEL.sockets.find((entry) => entry.id === socketId)?.accepts.includes(part) === true;
+  const canMount = (socketId: string, part = selectedPart) => canMountAttachment(socketId, part);
 
   return (
     <>
@@ -177,11 +190,11 @@ function ModelAssembly({
                 data-socket-id={marker.id}
                 className={`equipment-socket ${canMount(marker.id, drag ?? selectedPart) ? 'is-compatible' : ''} ${target === marker.id ? 'is-target' : ''}`}
                 style={{ left: marker.x, top: marker.y }}
-                aria-label={`${AIRCRAFT_MODEL.sockets.find((socket) => socket.id === marker.id)?.name}挂点`}
+                aria-label={`${socketName(marker.id)}${t('挂点')}`}
                 title={
                   canMount(marker.id, drag ?? selectedPart)
-                    ? '点击或拖入所选部件'
-                    : '此挂点不接受所选部件'
+                    ? t('点击或拖入所选部件')
+                    : t('此挂点不接受所选部件')
                 }
                 disabled={disabled || !canMount(marker.id, drag ?? selectedPart)}
                 onClick={() => install(marker.id, selectedPart)}
@@ -200,12 +213,12 @@ function ModelAssembly({
                   if (drag) install(marker.id, drag);
                 }}
               >
-                {AIRCRAFT_MODEL.sockets.find((socket) => socket.id === marker.id)?.name}
+                {socketName(marker.id)}
               </button>
             ))}
         {status !== 'ready' && (
           <div className="equipment-loading" role="status">
-            {status === 'loading' ? '正在加载三维模型…' : error}
+            {t(status === 'loading' ? '正在加载三维模型…' : error)}
           </div>
         )}
       </div>
@@ -219,7 +232,7 @@ function ModelAssembly({
             setRetry((count) => count + 1);
           }}
         >
-          重新加载模型
+          {t('重新加载模型')}
         </button>
       ) : (
         <button
@@ -227,7 +240,7 @@ function ModelAssembly({
           disabled={status !== 'ready'}
           onClick={() => preview.current?.resetCamera()}
         >
-          重置视角
+          {t('重置视角')}
         </button>
       )}
       <button
@@ -236,15 +249,15 @@ function ModelAssembly({
         disabled={status !== 'ready'}
         onClick={() => preview.current?.viewUnderside()}
       >
-        查看机腹
+        {t('查看机腹')}
       </button>
       <p className="field-hint">
-        拖动模型旋转，滚轮或双指缩放。
+        {t('拖动模型旋转，滚轮或双指缩放。')}
         {disabled
-          ? '当前只读，可自由查看模型。'
-          : '拖动部件到绿色挂点，或选择部件后点击挂点安装；Esc 取消拖动。'}
+          ? t('当前只读，可自由查看模型。')
+          : t('拖动部件到绿色挂点，或选择部件后点击挂点安装；Esc 取消拖动。')}
       </p>
-      <div className="equipment-parts" aria-label="可挂载部件">
+      <div className="equipment-parts" aria-label={t('可挂载部件')}>
         {ATTACHMENTS.map((part) => (
           <button
             type="button"
@@ -265,34 +278,34 @@ function ModelAssembly({
               setTarget(null);
             }}
           >
-            {part.name}
+            {t(part.name)}
           </button>
         ))}
       </div>
-      <ul className="equipment-mounts" aria-label="当前装配">
+      <ul className="equipment-mounts" aria-label={t('当前装配')}>
         {AIRCRAFT_MODEL.sockets.map((socket) => {
           const mounted = value.attachments.find((item) => item.socketId === socket.id);
           return (
             <li key={socket.id}>
               <span>
-                {socket.name}：
-                {ATTACHMENTS.find((part) => part.id === mounted?.attachmentId)?.name ?? '空'}
+                {t(socket.name)}：
+                {t(ATTACHMENTS.find((part) => part.id === mounted?.attachmentId)?.name ?? '空')}
               </span>
               {mounted ? (
                 <button
                   disabled={disabled || status !== 'ready'}
                   onClick={() => install(socket.id, null)}
-                  aria-label={`拆卸${socket.name}挂载`}
+                  aria-label={`${t('拆卸')}${t(socket.name)}${t('挂载')}`}
                 >
-                  拆卸
+                  {t('拆卸')}
                 </button>
               ) : (
                 <button
                   disabled={disabled || status !== 'ready' || !canMount(socket.id)}
                   onClick={() => install(socket.id, selectedPart)}
-                  aria-label={`安装到${socket.name}`}
+                  aria-label={`${t('安装到')}${t(socket.name)}`}
                 >
-                  安装
+                  {t('安装')}
                 </button>
               )}
             </li>
@@ -300,7 +313,7 @@ function ModelAssembly({
         })}
       </ul>
       <p className="field-hint" role="status">
-        {notice || '三维装配示意：机翼支持两类部件，机腹支持传感器。'}
+        {t(notice || '三维装配示意：机翼支持两类部件，机腹支持传感器。')}
       </p>
     </>
   );

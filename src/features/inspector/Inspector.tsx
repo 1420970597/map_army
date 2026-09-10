@@ -24,6 +24,8 @@ import { useEditStore } from '@/stores/useEditStore';
 import { useViewStore } from '@/stores/useViewStore';
 
 import { canResetVertexBearing, deriveInspectorSelection, targetLayers } from './inspectorLogic';
+import { equipmentText } from './equipmentText';
+import { usePreferencesStore } from '@/stores/usePreferencesStore';
 
 const Equipment3DPanel = lazy(() => import('./Equipment3DPanel'));
 
@@ -172,6 +174,7 @@ function SingleFeaturePanel({
   onResetVertexBearing: (id: string, index?: number | 'all') => void;
 }) {
   const mode = useSymbolStore((s) => s.symbolMode);
+  const language = usePreferencesStore((state) => state.language);
   const [editorTab, setEditorTab] = useState<'edit' | 'preview' | 'about' | '3d'>('edit');
   const nativeExternal = feature.sidc.length === 15 && feature.nativeMss !== undefined;
   let sidc = createSidc();
@@ -206,7 +209,7 @@ function SingleFeaturePanel({
             className={editorTab === value ? 'is-active' : ''}
             onClick={() => setEditorTab(value)}
           >
-            {label}
+            {value === '3d' ? equipmentText(language, label) : label}
           </button>
         ))}
       </div>
@@ -491,7 +494,7 @@ function SingleFeaturePanel({
           </div>
         </fieldset>
       ) : editorTab === '3d' ? (
-        <Suspense fallback={<p role="status">正在加载三维组件…</p>}>
+        <Suspense fallback={<p role="status">{equipmentText(language, '正在加载三维组件…')}</p>}>
           <Equipment3DPanel feature={feature} disabled={disabled} />
         </Suspense>
       ) : editorTab === 'preview' ? (

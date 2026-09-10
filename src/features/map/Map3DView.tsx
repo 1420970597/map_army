@@ -67,8 +67,13 @@ export function Map3DView() {
   const [terrainStatus, setTerrainStatus] = useState<'loading' | 'ready' | 'offline'>('loading');
   const layers = useDocumentStore((s) => s.document.layers);
   const features = useDocumentStore((s) => s.document.features);
+  const inspectorOpen = useViewStore((s) => s.inspectorOpen);
   const updateLayer = useDocumentStore((s) => s.updateLayer);
   const customSymbols = useCustomSymbolStore((s) => s.symbols);
+  useEffect(() => {
+    // 关闭详情时同步取消 Cesium 的选择，使再次点击同一军标仍会触发详情。
+    if (!inspectorOpen && viewer.current) viewer.current.selectedEntity = undefined;
+  }, [inspectorOpen]);
   useEffect(() => {
     let disposed = false;
     void import('cesium')
