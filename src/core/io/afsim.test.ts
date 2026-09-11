@@ -202,8 +202,8 @@ describe('AFSIM 想定导入', () => {
     ).rejects.toThrow('路径无效');
   });
 
-  it('损坏块、二进制、过大依赖和预处理宏中止解析', async () => {
-    for (const text of ['platform unit WSF_PLATFORM', '\0binary', '$define X 1']) {
+  it('损坏块、二进制和过大依赖中止解析', async () => {
+    for (const text of ['platform unit WSF_PLATFORM', '\0binary']) {
       await expect(afsimFilesToDocument(files({ 'main.txt': text }), 'main.txt')).rejects.toThrow();
     }
     const readText = vi.fn(async () => unit);
@@ -304,5 +304,136 @@ describe('AFSIM 想定导入', () => {
       entityType: '00',
       entitySubtype: '00',
     });
+  });
+
+  it('组件缺省类型时不会吞掉 end_sensor，预处理宏可展开平台类型', async () => {
+    const result = await afsimFilesToDocument(
+      files({
+        'main.txt': `
+          $define PLATFORM_TYPE WSF_PLATFORM
+          platform_type A $<PLATFORM_TYPE:WSF_PLATFORM>$
+            side blue
+            sensor radar WSF_RADAR_SENSOR
+              processor track-proc
+            end_sensor
+            position 12N 34E
+          end_platform_type
+          platform unit A end_platform
+        `,
+      }),
+      'main.txt',
+    );
+    expect(result.document.features).toHaveLength(1);
+    expect(result.skipped).toBe(0);
+  });
+
+  it('execute 运行块及版本标记不会阻断静态平台导入', async () => {
+    const result = await afsimFilesToDocument(
+      files({
+        'main.txt': `
+          log version $Id: main.txt,v 1.1 2020/01/01 $
+          execute at_time 1 sec relative
+            writeln("动态逻辑")
+          end_execute
+          platform unit WSF_PLATFORM position 12N 34E end_platform
+        `,
+      }),
+      'main.txt',
+    );
+    expect(result.document.features).toHaveLength(1);
+    expect(result.skipped).toBe(0);
+  });
+
+  it('支持省略组件类型、嵌套多分辨率组件和 mover 类型参数', async () => {
+    const result = await afsimFilesToDocument(
+      files({
+        'main.txt': `
+          multiresolution_processor MR WSF_MULTIRESOLUTION_PROCESSOR
+            model low
+              processor WSF_SCRIPT_PROCESSOR
+              end_processor
+            end_model
+          end_multiresolution_processor
+          multiresolution_mover MM WSF_MULTIRESOLUTION_MOVER
+            model low
+              mover WSF_SPACE_MOVER
+              end_mover
+            end_model
+          end_multiresolution_mover
+          platform_type A WSF_PLATFORM
+            mover WSF_SPACE_MOVER
+              update_interval 5 sec
+            end_mover
+            sensor radar WSF_RADAR_SENSOR
+              processor track-proc
+            end_sensor
+          end_platform_type
+          platform unit A position 12N 34E end_platform
+        `,
+      }),
+      'main.txt',
+    );
+    expect(result.document.features).toHaveLength(1);
+    expect(result.skipped).toBe(0);
+  });
+
+  it('ignore_block 参数和 track/target 内嵌 platform 不会改变块边界', async () => {
+    const result = await afsimFilesToDocument(
+      files({
+        'main.txt': `
+          ignore_block route
+          platform_type A WSF_PLATFORM mover WSF_AIR_MOVER end_mover end_platform_type
+          platform target A position 12N 34E end_platform
+          platform fighter A position 20N 30E
+            track
+              target
+                offset ntw -50 0 30 m
+                platform target
+              end_target
+            end_track
+          end_platform
+        `,
+      }),
+      'main.txt',
+    );
+    expect(result.document.features.map((feature) => feature.name)).toEqual(['target', 'fighter']);
+    expect(result.skipped).toBe(0);
+  });
+
+  it('平台引用型 inherent_contrast 与 p6dof_object_type 不会被当作嵌套块', async () => {
+    const result = await afsimFilesToDocument(
+      files({
+        'main.txt': `
+          inherent_contrast CONTRAST
+            constant 1.0
+          end_inherent_contrast
+          platform_type A WSF_PLATFORM
+            inherent_contrast CONTRAST
+            mover WSF_AIR_MOVER
+              p6dof_object_type AIRCRAFT
+            end_mover
+          end_platform_type
+          platform unit A position 12N 34E end_platform
+        `,
+      }),
+      'main.txt',
+    );
+    expect(result.document.features).toHaveLength(1);
+    expect(result.skipped).toBe(0);
+  });
+
+  it('入口候选排除文档、原始数据和日志文件', () => {
+    const paths = afsimEntryPaths(
+      files({
+        'demo.afproj': '<project/>',
+        'main.txt': unit,
+        'doc/README.txt': unit,
+        'doc/changelog/update.txt': unit,
+        'satcat_raw_data.txt': unit,
+        'mission.log': unit,
+        'scenarios/strike.txt': unit,
+      }),
+    );
+    expect(paths).toEqual(['demo.afproj', 'main.txt', 'scenarios/strike.txt']);
   });
 });

@@ -28,7 +28,16 @@
 
 这是静态部署导入器，不是 AFSIM 解释器。脚本、轨道/六自由度初始化、随机生成和路径规划不执行；没有静态位置的单位会跳过。延迟创建平台显示声明位置并报告。仿真过程中航向/地形高度变化不还原，路径不导入为折线。
 
-支持 route 的经纬度、MGRS、命名引用、标签起点和相对转向首点回退；插入/变换/offset 路线会报告并跳过受影响单位。宏预处理尚不支持，会中止而非静默忽略。浏览器要求 UTF-8 文本；没有进程环境变量，未定义路径变量不替换为空以免命中错误文件。目录最多 10000 个文件、依赖文本 32 MiB、展开 500000 个词元、include 64 层、10000 个平台。
+支持 route 的经纬度、MGRS、命名引用、标签起点和相对转向首点回退；插入/变换/offset 路线会报告并跳过受影响单位。支持 `$define NAME VALUE`、`$<NAME>$` 和 `$<NAME:default>$` 的静态宏展开，未知条件预处理会记录警告并保留静态声明；不执行宏中的脚本表达式。浏览器要求 UTF-8 文本；没有进程环境变量，未定义路径变量不替换为空以免命中错误文件。目录最多 10000 个文件、依赖文本 32 MiB、展开 500000 个词元、include 64 层、10000 个平台。
+
+组件定义的名称和类型参数可按 AFSIM 语法省略，支持多分辨率 `comm`、`processor`、`mover` 嵌套模型、`ignore_block`、`track/target` 中的单参数 `platform`，以及 `inherent_contrast`、`acoustic_signature` 和 `p6dof_object_type` 引用。`execute <callback>` 路线回调不会被误判为脚本块；带 `at_time`、`when` 等调度条件的 `execute` 仍按脚本隔离。入口候选会排除 README、changelog、原始数据和日志文件，并优先项目文件、main 和根目录启动文件。
+
+### 兼容性回归（2026-09-11）
+
+- `/root/afsim/demo` 共 5550 个文件；按入口候选扫描 260 个文本入口，0 个直接解析异常。
+- `node scripts/verify-afsim-demo.mjs /root/afsim/demo`：`0_sensor/main.txt` 和 `.afproj` 各 6 个单位，`simple_scenario/simple_scenario.txt` 1 个单位，均 0 跳过。
+- 按项目文件夹扫描 `iads`、`space_operations`、`multiresolution_demos`、`new_guidance`：共 71 个入口，0 个直接解析异常。
+- 卫星轨道、脚本动态创建和没有静态地理位置的平台仍会进入跳过报告，不把运行时位置伪装成静态坐标。
 
 AFSIM icon 与标准 SIDC 无一一对应证明。默认按运动域生成通用符号，明确的 fighter/bomber/rotary/UAV/carrier/destroyer/frigate 分类使用对应符号。用户可在导入后编辑军标。裸带符号十进制坐标属于导入器兼容扩展。多个项目主源中已经被前序入口加载的文件只解析一次并报告，这不是仿真器重复定义行为的无损复现。
 
@@ -42,7 +51,7 @@ AFSIM icon 与标准 SIDC 无一一对应证明。默认按运动域生成通用
 
 ## 质量验收
 
-- `npm run ci`：66 个测试文件、999 个 Vitest 用例及 3 个服务端用例通过，生产构建成功。
+- `npm run ci`：67 个测试文件、1014 个 Vitest 用例及 3 个服务端用例通过，生产构建成功。
 - `npx playwright test e2e/afsim-import.spec.ts`：2 个 Chromium 用例通过；刷新后沿用既有的“恢复”按钮。
 - Standards/Spec 独立评审发现的未闭合组件、关键字参数、转向首航点与分类清空问题均已修复并补充回归。
 - 因原工作区的另一开发者正在使用 8080，Compose 使用独立项目 `map_army_afsim` 和 8081，保留原服务及数据卷。复现命令：`docker compose -p map_army_afsim -f docker-compose.yml -f /tmp/map-army-afsim-compose.yml up --build -d`，临时覆盖文件仅将前端端口替换为 `8081:80`。
