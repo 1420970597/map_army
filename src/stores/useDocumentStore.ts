@@ -1,4 +1,5 @@
 import { useAccessStore } from './useAccessStore';
+import { equipment3DProblem } from '@/core/model/equipment3d';
 /**
  * 标图文档的状态容器。
  *
@@ -279,6 +280,18 @@ export const useDocumentStore = create<DocumentState>((rawSet, get) => {
         const feature = state.document.features.find((item) => item.id === id);
         const layer = feature && state.document.layers.find((item) => item.id === feature.layerId);
         if (!feature || layer?.locked) return state;
+        if ('equipment3d' in patch) {
+          if (
+            patch.equipment3d &&
+            (feature.geometry.kind !== 'point' || equipment3DProblem(patch.equipment3d))
+          )
+            return state;
+          if (
+            JSON.stringify(feature.equipment3d) === JSON.stringify(patch.equipment3d) &&
+            Object.keys(patch).length === 1
+          )
+            return state;
+        }
         return commit(state, {
           ...state.document,
           features: state.document.features.map((feature) =>

@@ -45,6 +45,9 @@ jobs:
       - name: 单元测试
         run: npm run test -- --reporter=verbose
 
+      - name: 三维资产格式与挂点校验
+        run: npm run models:check
+
       - name: 分享服务测试
         run: npm run test:server
 

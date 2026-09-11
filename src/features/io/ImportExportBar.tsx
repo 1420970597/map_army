@@ -18,9 +18,12 @@ import { applyImportedDocument } from './importDocument';
 import { PrintDialog } from './PrintDialog';
 import { OverlayDialog } from './OverlayDialog';
 import { ShareDialog } from './ShareDialog';
+import { usePreferencesStore } from '@/stores/usePreferencesStore';
+import { equipmentText } from '@/features/inspector/equipmentText';
 
 export function ImportExportBar() {
   const doc = useDocumentStore((s) => s.document);
+  const language = usePreferencesStore((state) => state.language);
   const activeLayerId = useDocumentStore((s) => s.activeLayerId);
   const setActiveLayer = useDocumentStore((s) => s.setActiveLayer);
   const readOnly = useAccessStore((s) => s.readOnly);
@@ -66,8 +69,16 @@ export function ImportExportBar() {
           format === 'json' || format === 'geojson' ? 'application/json' : 'application/xml',
       });
     }
-    const warnings = format === 'milxly' || format === 'milx' ? milxExportWarnings(output) : [];
-    setMessage(warnings.length ? `文件已导出；${warnings.join('；')}` : '文件已导出');
+    const warnings = ['milxly', 'milx', 'milxlyz'].includes(format)
+      ? milxExportWarnings(output)
+      : [];
+    if (format === 'kml' && output.features.some((feature) => feature.equipment3d))
+      warnings.push('KML 不保留三维装配；如需继续编辑装配，请另存项目 JSON');
+    setMessage(
+      warnings.length
+        ? `文件已导出；${warnings.map((warning) => equipmentText(language, warning)).join('；')}`
+        : '文件已导出',
+    );
   };
   useEffect(() => {
     const onLayerExport = (event: Event) => {

@@ -163,6 +163,8 @@ export function documentToMilxXml(doc: MapDocument): string {
 /** 返回原生 MilX 导出时需要向用户说明的字段降级或排除项。 */
 export function milxExportWarnings(doc: MapDocument): string[] {
   const warnings: string[] = [];
+  if (doc.features.some((feature) => feature.equipment3d))
+    warnings.push('三维模型与挂载仅保存在本项目私有扩展中，原站及其他 MilX 软件不显示装配。');
   const sidcCount = doc.features.filter((feature) => feature.sidc.length !== 15).length;
   if (sidcCount > 0)
     warnings.push(`${sidcCount} 个内部 20 位 SIDC 将映射为 15 位原生 SIDC，请复核符号身份`);

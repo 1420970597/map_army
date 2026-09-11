@@ -1,0 +1,166 @@
+[
+  {
+    "name": "aircraft",
+    "bytes": 106044,
+    "sha256": "f37a5c7d5dac5428ea912358c93e184f9ec71cce75fa498ef4fc346867627485",
+    "triangles": 3900,
+    "dimensionsMeters": [
+      11.800000190734863,
+      3.199999988079071,
+      13.599996089935303
+    ],
+    "nodes": [
+      {
+        "name": "center",
+        "mapArmySchemaVersion": 1,
+        "mapArmyNodeRole": "attachmentSocket",
+        "socketId": "center",
+        "socketClass": "demo_external_mount",
+        "position": [
+          0,
+          -0.20000000298023224,
+          0.800000011920929
+        ]
+      },
+      {
+        "name": "left_wing",
+        "mapArmySchemaVersion": 1,
+        "mapArmyNodeRole": "attachmentSocket",
+        "socketId": "left_wing",
+        "socketClass": "demo_external_mount",
+        "position": [
+          3,
+          0.20000000298023224,
+          -0.699999988079071
+        ]
+      },
+      {
+        "name": "right_wing",
+        "mapArmySchemaVersion": 1,
+        "mapArmyNodeRole": "attachmentSocket",
+        "socketId": "right_wing",
+        "socketClass": "demo_external_mount",
+        "position": [
+          -3,
+          0.20000000298023224,
+          -0.699999988079071
+        ]
+      }
+    ],
+    "issues": {
+      "numErrors": 0,
+      "numWarnings": 0,
+      "numInfos": 4,
+      "numHints": 0,
+      "messages": [
+        {
+          "code": "UNUSED_OBJECT",
+          "message": "This object may be unused.",
+          "severity": 2,
+          "pointer": "/meshes/2/primitives/0/attributes/TEXCOORD_0"
+        },
+        {
+          "code": "UNUSED_OBJECT",
+          "message": "This object may be unused.",
+          "severity": 2,
+          "pointer": "/meshes/3/primitives/0/attributes/TEXCOORD_0"
+        },
+        {
+          "code": "UNUSED_OBJECT",
+          "message": "This object may be unused.",
+          "severity": 2,
+          "pointer": "/meshes/5/primitives/0/attributes/TEXCOORD_0"
+        },
+        {
+          "code": "UNUSED_OBJECT",
+          "message": "This object may be unused.",
+          "severity": 2,
+          "pointer": "/meshes/6/primitives/0/attributes/TEXCOORD_0"
+        }
+      ],
+      "truncated": false
+    }
+  },
+  {
+    "name": "tank",
+    "bytes": 26708,
+    "sha256": "5bcfa4487dc6686c44ceb133c57a12428b0733acaf7298901a246cd0a0886fd6",
+    "triangles": 972,
+    "dimensionsMeters": [
+      0.7199995517730713,
+      0.8799999952316284,
+      3.3999990224838257
+    ],
+    "nodes": [
+      {
+        "name": "mount_anchor",
+        "mapArmySchemaVersion": 1,
+        "mapArmyNodeRole": "attachmentAnchor",
+        "position": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "issues": {
+      "numErrors": 0,
+      "numWarnings": 0,
+      "numInfos": 1,
+      "numHints": 0,
+      "messages": [
+        {
+          "code": "UNUSED_OBJECT",
+          "message": "This object may be unused.",
+          "severity": 2,
+          "pointer": "/meshes/0/primitives/0/attributes/TEXCOORD_0"
+        }
+      ],
+      "truncated": false
+    }
+  },
+  {
+    "name": "sensor",
+    "bytes": 51428,
+    "sha256": "f64624d7221da9ee9e8dc249236e85f18b204013b40e4986af48db674538987c",
+    "triangles": 1932,
+    "dimensionsMeters": [
+      0.5799996256828308,
+      0.75,
+      2.1599997878074646
+    ],
+    "nodes": [
+      {
+        "name": "mount_anchor",
+        "mapArmySchemaVersion": 1,
+        "mapArmyNodeRole": "attachmentAnchor",
+        "position": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "issues": {
+      "numErrors": 0,
+      "numWarnings": 0,
+      "numInfos": 2,
+      "numHints": 0,
+      "messages": [
+        {
+          "code": "UNUSED_OBJECT",
+          "message": "This object may be unused.",
+          "severity": 2,
+          "pointer": "/meshes/0/primitives/0/attributes/TEXCOORD_0"
+        },
+        {
+          "code": "UNUSED_OBJECT",
+          "message": "This object may be unused.",
+          "severity": 2,
+          "pointer": "/meshes/1/primitives/0/attributes/TEXCOORD_0"
+        }
+      ],
+      "truncated": false
+    }
+  }
+]

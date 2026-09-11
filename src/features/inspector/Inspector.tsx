@@ -7,7 +7,7 @@
 import { militarySvg } from '@/core/symbology/military';
 import { useSymbolStore } from '@/stores/useSymbolStore';
 import { useAccessStore } from '@/stores/useAccessStore';
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 
 import {
   Affiliation,
@@ -24,6 +24,10 @@ import { useEditStore } from '@/stores/useEditStore';
 import { useViewStore } from '@/stores/useViewStore';
 
 import { canResetVertexBearing, deriveInspectorSelection, targetLayers } from './inspectorLogic';
+import { equipmentText } from './equipmentText';
+import { usePreferencesStore } from '@/stores/usePreferencesStore';
+
+const Equipment3DPanel = lazy(() => import('./Equipment3DPanel'));
 
 /** 属性面板组件。 */
 export function Inspector() {
@@ -37,6 +41,7 @@ export function Inspector() {
   const moveFeaturesToLayer = useDocumentStore((state) => state.moveFeaturesToLayer);
   const resetVertexBearing = useDocumentStore((state) => state.resetVertexBearing);
   const readOnly = useAccessStore((s) => s.readOnly);
+  const is3d = useViewStore((state) => state.is3d);
   const activeVertex = useEditStore((state) => state.activeVertex);
   const selection = useMemo(
     () => deriveInspectorSelection(selectedIds, features),
@@ -45,36 +50,44 @@ export function Inspector() {
 
   if (!open || selection.mode === 'none') return null;
 
+  const disabled =
+    readOnly ||
+    is3d ||
+    Boolean(
+      selection.primary && layers.find((layer) => layer.id === selection.primary?.layerId)?.locked,
+    );
+
   return (
-    <fieldset
-      className="inspector"
-      disabled={
-        readOnly ||
-        (selection.primary
-          ? layers.find((l) => l.id === selection.primary?.layerId)?.locked
-          : false)
-      }
-    >
+    <aside className="inspector" aria-label="要素属性">
       <div className="panel-header">
         <span>要素属性</span>
-        <button type="button" className="icon-button" title="关闭" onClick={() => setOpen(false)}>
+        <button
+          type="button"
+          className="icon-button"
+          title="关闭"
+          aria-label="关闭"
+          onClick={() => setOpen(false)}
+        >
           ×
         </button>
       </div>
       {selection.mode === 'multiple' ? (
-        <MultiFeaturePanel
-          selectedIds={selection.selectedIds}
-          layers={targetLayers(layers)}
-          onMove={moveFeaturesToLayer}
-          onDelete={() => {
-            removeFeatures(selection.selectedIds);
-            setOpen(false);
-          }}
-        />
+        <fieldset className="inspector-edit-fields" disabled={disabled}>
+          <MultiFeaturePanel
+            selectedIds={selection.selectedIds}
+            layers={targetLayers(layers)}
+            onMove={moveFeaturesToLayer}
+            onDelete={() => {
+              removeFeatures(selection.selectedIds);
+              setOpen(false);
+            }}
+          />
+        </fieldset>
       ) : selection.primary ? (
         <SingleFeaturePanel
           key={selection.primary.id}
           feature={selection.primary}
+          disabled={disabled}
           activeVertex={activeVertex}
           onUpdate={updateFeature}
           onDelete={() => {
@@ -84,7 +97,7 @@ export function Inspector() {
           onResetVertexBearing={resetVertexBearing}
         />
       ) : null}
-    </fieldset>
+    </aside>
   );
 }
 
@@ -147,19 +160,22 @@ function MultiFeaturePanel({
 /** 单要素属性编辑表单。 */
 function SingleFeaturePanel({
   feature,
+  disabled,
   activeVertex,
   onUpdate,
   onDelete,
   onResetVertexBearing,
 }: {
   feature: NonNullable<ReturnType<typeof deriveInspectorSelection>['primary']>;
+  disabled: boolean;
   activeVertex: number | null;
   onUpdate: (id: string, patch: Partial<typeof feature>) => void;
   onDelete: () => void;
   onResetVertexBearing: (id: string, index?: number | 'all') => void;
 }) {
   const mode = useSymbolStore((s) => s.symbolMode);
-  const [editorTab, setEditorTab] = useState<'edit' | 'preview' | 'about'>('edit');
+  const language = usePreferencesStore((state) => state.language);
+  const [editorTab, setEditorTab] = useState<'edit' | 'preview' | 'about' | '3d'>('edit');
   const nativeExternal = feature.sidc.length === 15 && feature.nativeMss !== undefined;
   let sidc = createSidc();
   try {
@@ -181,6 +197,7 @@ function SingleFeaturePanel({
           [
             ['edit', '编辑'],
             ['preview', '预览'],
+            ['3d', '三维模型'],
             ['about', '关于 MSS'],
           ] as const
         ).map(([value, label]) => (
@@ -192,12 +209,12 @@ function SingleFeaturePanel({
             className={editorTab === value ? 'is-active' : ''}
             onClick={() => setEditorTab(value)}
           >
-            {label}
+            {value === '3d' ? equipmentText(language, label) : label}
           </button>
         ))}
       </div>
       {editorTab === 'edit' ? (
-        <>
+        <fieldset className="inspector-edit-fields" disabled={disabled}>
           <div className="panel-section" style={{ textAlign: 'center' }}>
             <img
               src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(
@@ -475,7 +492,11 @@ function SingleFeaturePanel({
               删除要素
             </button>
           </div>
-        </>
+        </fieldset>
+      ) : editorTab === '3d' ? (
+        <Suspense fallback={<p role="status">{equipmentText(language, '正在加载三维组件…')}</p>}>
+          <Equipment3DPanel feature={feature} disabled={disabled} />
+        </Suspense>
       ) : editorTab === 'preview' ? (
         <div className="symbol-editor-preview">
           <img

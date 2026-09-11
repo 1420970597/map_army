@@ -67,6 +67,7 @@ button {
 }
 
 .app-body {
+  position: relative;
   display: flex;
   flex: 1;
   min-height: 0;
@@ -579,7 +580,7 @@ button {
   position: absolute;
   top: calc(var(--h-toolbar) + 12px);
   right: 12px;
-  z-index: 500;
+  z-index: 1100;
   width: 300px;
   max-height: calc(100% - var(--h-toolbar) - 40px);
   overflow-y: auto;
@@ -587,6 +588,13 @@ button {
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+}
+
+.inspector-edit-fields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
 }
 
 .field {
@@ -764,7 +772,7 @@ button {
 .shortcut-help-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 10000;
   display: grid;
   place-items: center;
   padding: 16px;
@@ -1025,8 +1033,8 @@ button {
   .panel-right {
     position: absolute;
     z-index: 950;
-    top: 130px;
-    bottom: 28px;
+    top: 0;
+    bottom: 0;
     box-shadow: var(--shadow);
   }
   .panel-right {

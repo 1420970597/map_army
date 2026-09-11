@@ -116,6 +116,10 @@
 下一轮继续核对原站差距，AFSIM 后续兼容项为宏、编码、路线变换及浏览器矩阵。
 
 ### 原站功能来源
+2026-09-10 用户扩展：Blender 关联装备详情与挂点装配单独记录于
+[TODO-blender-unit-models-2026-09.md](TODO-blender-unit-models-2026-09.md)。
+已重新核对官方三维地图与符号编辑器文档；此能力属于用户要求的扩展，不计入原站免费版复刻完成率。
+本清单已有的真实符号目录、DEM、导航与浏览器矩阵等未完成项继续保留。
 
 - 官方索引：`https://www.map.army/doc/en/llms.txt`
 - 坐标搜索：`https://www.map.army/doc/en/map-tools/coordinate-search/`

@@ -1,0 +1,34 @@
+{
+  "format": "milxly",
+  "version": 1,
+  "document": {
+    "name": "三维飞机装配示例",
+    "schemaVersion": 2,
+    "createdAt": 1789041600000,
+    "updatedAt": 1789041600000,
+    "layers": [
+      { "id": "demo-aircraft-layer", "name": "三维示意", "visible": true, "locked": false, "opacity": 1, "order": 0 }
+    ],
+    "features": [
+      {
+        "id": "demo-aircraft-unit",
+        "layerId": "demo-aircraft-layer",
+        "name": "通用飞机（类别示意）",
+        "sidc": "10030100001101000000",
+        "geometry": { "kind": "point", "position": { "lon": 7.45, "lat": 46.95 } },
+        "textFields": { "uniqueDesignation": "DEMO-01" },
+        "equipment3d": {
+          "modelId": "demo-aircraft",
+          "assetVersion": "1",
+          "attachments": [
+            { "socketId": "left_wing", "attachmentId": "demo-tank", "assetVersion": "1" },
+            { "socketId": "right_wing", "attachmentId": "demo-tank", "assetVersion": "1" },
+            { "socketId": "center", "attachmentId": "demo-sensor", "assetVersion": "1" }
+          ]
+        },
+        "createdAt": 1789041600000,
+        "updatedAt": 1789041600000
+      }
+    ]
+  }
+}
