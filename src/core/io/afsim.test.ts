@@ -344,6 +344,18 @@ describe('AFSIM 想定导入', () => {
     expect(result.skipped).toBe(0);
   });
 
+  it('内联 CVS 版本标记不会吞掉后续平台', async () => {
+    const result = await afsimFilesToDocument(
+      files({
+        'main.txt':
+          'log version $Id:main.txt$ platform unit WSF_PLATFORM position 12N 34E end_platform',
+      }),
+      'main.txt',
+    );
+    expect(result.document.features).toHaveLength(1);
+    expect(result.skipped).toBe(0);
+  });
+
   it('支持省略组件类型、嵌套多分辨率组件和 mover 类型参数', async () => {
     const result = await afsimFilesToDocument(
       files({
