@@ -11,6 +11,7 @@ import {
   milxExportWarnings,
 } from '@/core/io';
 import { parseMapFile, exportMilxArchive } from '@/core/io/files';
+import { AfsimImportDialog } from './AfsimImportDialog';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useAccessStore } from '@/stores/useAccessStore';
 import { applyImportedDocument } from './importDocument';
@@ -27,6 +28,7 @@ export function ImportExportBar() {
   const setActiveLayer = useDocumentStore((s) => s.setActiveLayer);
   const readOnly = useAccessStore((s) => s.readOnly);
   const fileInput = useRef<HTMLInputElement>(null);
+  const [afsimOpen, setAfsimOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [overlay, setOverlay] = useState(false);
   const [share, setShare] = useState(false);
@@ -167,6 +169,15 @@ export function ImportExportBar() {
                 disabled={readOnly}
                 onClick={() => {
                   setOpen(false);
+                  setAfsimOpen(true);
+                }}
+              >
+                导入 AFSIM 想定文件夹
+              </button>
+              <button
+                disabled={readOnly}
+                onClick={() => {
+                  setOpen(false);
                   setOverlay(true);
                 }}
               >
@@ -198,6 +209,13 @@ export function ImportExportBar() {
         </div>
       )}
       {overlay && <OverlayDialog onClose={() => setOverlay(false)} />}
+      {afsimOpen && (
+        <AfsimImportDialog
+          mode={importMode}
+          targetLayerId={targetLayerId}
+          onClose={() => setAfsimOpen(false)}
+        />
+      )}
       {share && <ShareDialog onClose={() => setShare(false)} />}
       {print && <PrintDialog onClose={() => setPrint(false)} />}
     </div>

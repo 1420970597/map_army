@@ -1,0 +1,6 @@
+platform_type AIR WSF_PLATFORM
+  side blue
+  icon fighter
+  mover WSF_AIR_MOVER
+  end_mover
+end_platform_type

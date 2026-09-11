@@ -98,6 +98,21 @@ docker compose down
 若浏览器曾打开过旧版本，首次部署新镜像后请执行一次强制刷新（Ctrl+F5）。Nginx 已对入口
 和 Service Worker 禁止缓存，后续发布会自动清理旧资源缓存。
 
+## 导入 AFSIM 想定
+
+在“文件”中选择“导入 AFSIM 想定文件夹”，选取包含入口及公共类型库的目录，确认 `.txt` 或
+`.afproj` 入口后点击“解析想定”。检查单位数和诊断报告，再点击“绘制到地图”。导入沿用追加、
+活动图层、指定图层或替换文档模式，整批操作可撤销；刷新后点击会话横幅的“恢复”继续编辑。
+
+这是本项目的扩展功能。它解析静态平台、类型继承、include 依赖及路线起点，按阵营和运动域生成
+军标；不执行 AFSIM 脚本或仿真。缺少类型、无法解析的位置等会报告并跳过，不能将导入结果视为
+任意仿真时刻的状态。完整语法依据和兼容范围见
+[AFSIM 格式研究](docs/RESEARCH-afsim-import-2026-09.md) 与
+[导入验收记录](docs/QA-afsim-import-2026-09.md)。
+
+例如选择 `/root/afsim/demo/0_sensor` 后使用 `main.txt`；`simple_scenario` 引用相邻的
+`base_types`，因此应选择 `/root/afsim/demo`，再选 `simple_scenario/simple_scenario.txt`。
+
 ## 开发规范
 
 本项目的长期复刻约束、原站差异审计流程和每轮迭代完成门槛记录在
