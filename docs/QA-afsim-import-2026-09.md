@@ -34,7 +34,7 @@
 
 ### 兼容性回归（2026-09-11）
 
-- `/root/afsim/demo` 共 5550 个文件；按入口候选扫描 260 个文本入口，0 个直接解析异常。
+- `/root/afsim/demo` 共 5550 个文件；按入口候选扫描 234 个文本入口，0 个直接解析异常；候选中排除嵌套 `setup.txt` 支持文件。
 - `node scripts/verify-afsim-demo.mjs /root/afsim/demo`：`0_sensor/main.txt` 和 `.afproj` 各 6 个单位，`simple_scenario/simple_scenario.txt` 1 个单位，均 0 跳过。
 - 按项目文件夹扫描 `iads`、`space_operations`、`multiresolution_demos`、`new_guidance`：共 71 个入口，0 个直接解析异常。
 - 卫星轨道、脚本动态创建和没有静态地理位置的平台仍会进入跳过报告，不把运行时位置伪装成静态坐标。
