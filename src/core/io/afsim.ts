@@ -1,7 +1,7 @@
 import { createDocument, createFeature, createLayer, type MapDocument } from '../model';
 import { Affiliation, Context, SymbolSet, createSidc } from '../symbology';
 import { type LonLat, mgrsStringToLonLat } from '../geo';
-import { blockEnd, isScript, location, type Token } from './afsim/lexer';
+import { blockEnd, isScript, isScriptBlock, location, type Token } from './afsim/lexer';
 import { AFSIM_LIMITS, loadAfsimSources, type AfsimSourceFile } from './afsim/source';
 
 export { afsimEntryPaths, AFSIM_LIMITS } from './afsim/source';
@@ -106,7 +106,8 @@ function readRoute(tokens: Token[]): Route {
       !route.points.length
     ) {
       route.points.push({ position: null, label, relative: true });
-    } else if (isScript(token.value)) i = blockEnd(tokens, i);
+    } else if (isScriptBlock(tokens, i)) i = blockEnd(tokens, i);
+    else if (token.value === 'execute') i++;
   }
   return route;
 }
@@ -279,6 +280,8 @@ export async function afsimFilesToDocument(
           'optical_signature',
           'infrared_signature',
           'acoustic_signature',
+          'inherent_contrast',
+          'p6dof_object_type',
           'marking',
           'on_broken',
         ].includes(value)
@@ -362,7 +365,8 @@ export async function afsimFilesToDocument(
           readState(body.slice(i + (adding ? 2 : 1), end), { ...state, ...moverState }, moverChain),
         );
         i = end;
-      } else if (isScript(value) || blockNames.has(value)) i = blockEnd(body, i);
+      } else if (isScriptBlock(body, i) || blockNames.has(value)) i = blockEnd(body, i);
+      else if (value === 'execute') i++;
     }
     return state;
   };

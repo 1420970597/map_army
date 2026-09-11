@@ -1,5 +1,5 @@
 import { parseXml, record, list, xmlText } from '../xml';
-import { blockEnd, isScript, location, tokenize, type Token } from './lexer';
+import { blockEnd, isScriptBlock, location, tokenize, type Token } from './lexer';
 
 // 自由字符串参数可与 script/include 等命令同名，预处理时必须保留参数身份。
 const ARGUMENT_COUNTS: Readonly<Record<string, number>> = {
@@ -23,7 +23,157 @@ const ARGUMENT_COUNTS: Readonly<Record<string, number>> = {
   radar_signature: 1,
   optical_signature: 1,
   infrared_signature: 1,
+  acoustic_signature: 1,
+  inherent_contrast: 1,
+  p6dof_object_type: 1,
+  ignore_block: 1,
 };
+
+const COMPONENT_BLOCKS = new Set([
+  'sensor',
+  'processor',
+  'weapon',
+  'comm',
+  'mover',
+  'fuel',
+  'track',
+  'zone',
+  'antenna_pattern',
+  'radar_signature',
+  'optical_signature',
+  'infrared_signature',
+  'acoustic_signature',
+  'multiresolution_comm',
+  'multiresolution_processor',
+  'multiresolution_mover',
+  'inherent_contrast',
+  'p6dof_object_type',
+]);
+
+// 组件名称和类型都是自由字符串，第二个词只能在明确遇到下一个命令时省略。
+const STRUCTURAL_WORDS = new Set([
+  'add',
+  'on',
+  'off',
+  'debug',
+  'position',
+  'altitude',
+  'heading',
+  'speed',
+  'route',
+  'track',
+  'target',
+  'side',
+  'icon',
+  'category',
+  'spatial_domain',
+  'start_at',
+  'use_route',
+  'clear_categories',
+  'internal_link',
+  'transfer_rate',
+  'transmitter',
+  'receiver',
+  'on_initialize',
+  'on_update',
+  'on_message',
+  'script_variables',
+  'model',
+  'fidelity_range',
+  'common',
+  'default_radial_acceleration',
+  'integrator',
+  'dynamics',
+  'mission_sequence',
+  'event_output',
+  'event_pipe',
+  'horizontal_map',
+]);
+
+function isStructuralToken(token: Token | undefined): boolean {
+  if (!token || token.quoted) return false;
+  return (
+    token.value.startsWith('end_') ||
+    STRUCTURAL_WORDS.has(token.value) ||
+    COMPONENT_BLOCKS.has(token.value)
+  );
+}
+
+function isTargetBlockStart(tokens: readonly Token[], index: number): boolean {
+  return ['offset', 'position', 'velocity', 'heading', 'platform', 'end_target'].includes(
+    tokens[index + 1]?.value ?? '',
+  );
+}
+
+function enclosingBlock(tokens: readonly Token[], index: number): string | undefined {
+  const stack: string[] = [];
+  for (let i = 0; i < index; i++) {
+    const token = tokens[i];
+    if (token.quoted || token.argument) continue;
+    if (token.value.startsWith('end_')) {
+      if (stack.at(-1) === token.value.slice(4)) stack.pop();
+    } else if (token.value === 'target' && isTargetBlockStart(tokens, i)) {
+      stack.push('target');
+    } else if (COMPONENT_BLOCKS.has(token.value)) {
+      stack.push(token.value);
+    }
+  }
+  return stack.at(-1);
+}
+
+function componentArgumentCount(tokens: readonly Token[], index: number): number {
+  const first = tokens[index + 1];
+  if (!first) return 1;
+  const second = tokens[index + 2];
+  // WSF_* 是组件类型本身；嵌套模型也常以自定义类型作为唯一参数。
+  if (first.value.startsWith('WSF_') && (!second || isStructuralToken(second))) return 1;
+  return second && !isStructuralToken(second) ? 2 : 1;
+}
+
+function moverArgumentCount(tokens: readonly Token[], index: number): number {
+  const first = tokens[index + 1];
+  const second = tokens[index + 2];
+  if (!first) return 1;
+  if (first.value.startsWith('WSF_')) return 1;
+  return second && !isStructuralToken(second) ? 2 : 1;
+}
+
+function isEditedPlatformMover(tokens: readonly Token[], index: number): boolean {
+  for (let i = index - 1; i >= 1; i--) {
+    if (tokens[i].quoted || tokens[i].argument) continue;
+    if (tokens[i].value === 'end_platform') return false;
+    if (tokens[i].value === 'platform' && tokens[i - 1]?.value === 'edit') return true;
+  }
+  return false;
+}
+
+const ROUTE_COMMANDS = new Set([
+  'position',
+  'mgrs_coordinate',
+  'altitude',
+  'heading',
+  'speed',
+  'time',
+  'label',
+  'execute',
+  'turn_right',
+  'turn_left',
+  'pause',
+  'extrapolate',
+  'end_route',
+]);
+
+const ROOT_SUPPORT_FILES = new Set([
+  'setup.txt',
+  'event_output.txt',
+  'event_pipe.txt',
+  'csv_event_output.txt',
+  'terrain.txt',
+  'dis_data.txt',
+  'dis_realtime.txt',
+  'xio_interface.txt',
+  'multi_thread.txt',
+]);
 
 /** 只读取入口实际引用的文件，目录内的大型输出和资源不会载入内存。 */
 export interface AfsimSourceFile {
@@ -72,13 +222,34 @@ export function indexAfsimFiles(files: readonly AfsimSourceFile[]): Map<string, 
 
 /** 返回可选入口，优先展示项目文件和 main；不会合并多个独立想定。 */
 export function afsimEntryPaths(files: readonly AfsimSourceFile[]): string[] {
-  return [...indexAfsimFiles(files).keys()]
-    .filter((path) => /\.(?:afproj|txt|afsim|wsf)$/i.test(path))
-    .sort((a, b) => {
-      const rank = (path: string) =>
-        /\.afproj$/i.test(path) ? 0 : /(?:^|\/)main\.txt$/i.test(path) ? 1 : 2;
-      return rank(a) - rank(b) || a.localeCompare(b);
-    });
+  const all = [...indexAfsimFiles(files).keys()].filter((path) =>
+    /\.(?:afproj|txt|afsim|wsf)$/i.test(path),
+  );
+  const candidates = all.filter((path) => {
+    const lower = path.toLowerCase();
+    const base = lower.slice(lower.lastIndexOf('/') + 1);
+    return (
+      !/(?:^|\/)(?:doc|docs|documentation|changelog)(?:\/|$)/.test(lower) &&
+      !/(?:^|\/)(?:readme|aaa_readme)(?:\.[^.]+)?$/.test(lower) &&
+      !/(?:raw[_-]?data|mission|\.log$)/.test(base)
+    );
+  });
+  const likely = candidates.filter((path) => {
+    const lower = path.toLowerCase();
+    const base = lower.slice(lower.lastIndexOf('/') + 1);
+    return (
+      /\.afproj$/i.test(path) ||
+      (!lower.includes('/') && !ROOT_SUPPORT_FILES.has(base)) ||
+      /^(?:main|setup|startup|scenario)\.(?:txt|afsim|wsf)$/i.test(base) ||
+      /(?:^|\/)(?:scenario|scenarios|demo|demos)(?:\/|$)/.test(lower) ||
+      /(?:_demo|_scenario)\.(?:txt|afsim|wsf)$/i.test(base)
+    );
+  });
+  return (likely.length ? likely : candidates).sort((a, b) => {
+    const rank = (path: string) =>
+      /\.afproj$/i.test(path) ? 0 : /(?:^|\/)main\.txt$/i.test(path) ? 1 : 2;
+    return rank(a) - rank(b) || a.localeCompare(b);
+  });
 }
 
 /** 根据入口展开 include 输入流，不执行脚本，不读取目录外文件或网络资源。 */
@@ -91,12 +262,16 @@ export async function loadAfsimSources(files: readonly AfsimSourceFile[], entry:
   const searchPaths: string[] = [];
   let bytes = 0;
   let tokenCount = 0;
+  const macros = new Map<string, string>();
   let cwd = directory(entry);
-  let platformMode: 'type' | 'instance' | null = null;
-  let inMover = false;
   // 路径变量只做一次替换；浏览器没有进程环境，未定义变量保留以阻止误命中。
-  const expandVariables = (value: string) =>
+  const expandMacros = (value: string) =>
     value.replace(
+      /\$<([A-Za-z_][A-Za-z0-9_]*)(?::([^>]*))?>\$/g,
+      (_match, name: string, fallback?: string) => macros.get(name) ?? fallback ?? _match,
+    );
+  const expandVariables = (value: string) =>
+    expandMacros(value).replace(
       /\$\$|\$\(([^)]+)\)|\$\{([^}]+)\}/g,
       (match, parenthesized: string | undefined, braced: string | undefined) =>
         match === '$$' ? '$' : (variables.get(parenthesized ?? braced ?? '') ?? match),
@@ -132,12 +307,15 @@ export async function loadAfsimSources(files: readonly AfsimSourceFile[], entry:
     const output: Token[] = [];
     for (let i = 0; i < input.length; i++) {
       const token = input[i];
-      const value = token.value;
-      if (!token.quoted && isScript(value)) {
+      const value = token.quoted ? token.value : expandMacros(token.value);
+      if (!token.quoted && isScriptBlock(input, i)) {
         const end = blockEnd(input, i);
         warnings.add('含脚本：仅导入静态声明，运行时创建、删除和位置修改未执行');
         tokenCount += end - i;
         i = end;
+      } else if (!token.quoted && value === 'execute') {
+        // route 航点中的 execute <callback> 只有一个回调名，不是脚本块。
+        i++;
       } else if (!token.quoted && (value === 'include' || value === 'include_once')) {
         const requested = input[++i];
         if (!requested) throw new Error(`${location(token)}：include 缺少文件名`);
@@ -169,41 +347,56 @@ export async function loadAfsimSources(files: readonly AfsimSourceFile[], entry:
           : normalizePath(`${base ? `${base}/` : ''}${expanded}`);
         if (resolved !== null) searchPaths.push(resolved);
         else warnings.add(`${location(token)}：搜索路径不在所选目录内：${item.value}`);
+      } else if (!token.quoted && value === '$define') {
+        const name = input[++i];
+        const replacement = input[++i];
+        if (!name || !replacement) throw new Error(`${location(token)}：宏定义不完整`);
+        macros.set(name.value, expandMacros(replacement.value));
+      } else if (!token.quoted && /^(?:\$Id:|\$Header:|\$Log:)/.test(value)) {
+        while (i + 1 < input.length && input[++i].value !== '$') {
+          // 版本控制标记不参与静态地图导入。
+        }
       } else if (!token.quoted && (value.startsWith('$') || value === 'include_if_exists')) {
-        throw new Error(`${location(token)}：暂不支持条件预处理 ${value}`);
+        warnings.add(`${location(token)}：忽略不影响静态部署的预处理或条件命令 ${value}`);
+        if (value === 'include_if_exists') i++;
       } else {
-        output.push(token);
-        let count = ARGUMENT_COUNTS[value] ?? 0;
-        // edit/delete mover 没有类型参数；platform 编辑只提供名称。
         const previous = input[i - 1]?.value;
+        const expressionReference = value === 'comm' && previous === 'via';
+        output.push(
+          expressionReference
+            ? { ...token, value, argument: true }
+            : value === token.value
+              ? token
+              : { ...token, value },
+        );
+        let count = expressionReference ? 0 : (ARGUMENT_COUNTS[value] ?? 0);
+        if (['sensor', 'processor', 'weapon', 'comm'].includes(value)) {
+          count = componentArgumentCount(input, i);
+          if (previous === 'edit' || previous === 'delete') count = 1;
+          if (expressionReference) count = 0;
+        }
         if (
-          ['sensor', 'processor', 'weapon', 'comm'].includes(value) &&
-          (previous === 'edit' ||
-            previous === 'delete' ||
-            (platformMode === 'instance' && previous !== 'add'))
+          value === 'platform' &&
+          (previous === 'track' ||
+            previous === 'target' ||
+            ['track', 'target'].includes(enclosingBlock(input, i) ?? ''))
         )
           count = 1;
-        if (value === 'route' && platformMode === null && !inMover) count = 1;
-        if (value === 'mover')
+        if (value === 'route') count = ROUTE_COMMANDS.has(input[i + 1]?.value ?? '') ? 0 : 1;
+        if (value === 'mover') {
           count =
-            previous === 'edit' ||
-            previous === 'delete' ||
-            (platformMode === 'instance' && previous !== 'add')
+            previous === 'edit' || previous === 'delete' || isEditedPlatformMover(input, i)
               ? 0
-              : platformMode === null
-                ? 2
-                : 1;
+              : moverArgumentCount(input, i);
+        }
         const args =
           value === 'platform' && (previous === 'edit' || previous === 'delete') ? 1 : count;
-        if (value === 'platform' && previous !== 'delete') platformMode = 'instance';
-        if (value === 'platform_type') platformMode = 'type';
-        if (value === 'end_platform' || value === 'end_platform_type') platformMode = null;
-        if (value === 'mover' && previous !== 'delete') inMover = true;
-        if (value === 'end_mover') inMover = false;
         for (let n = 0; n < args; n++) {
           const arg = input[++i];
-          if (!arg) throw new Error(`${location(token)}：${value} 参数不完整`);
-          output.push({ ...arg, argument: true });
+          if (!arg || (!arg.quoted && arg.value.startsWith('end_')))
+            throw new Error(`${location(token)}：${value} 参数不完整`);
+          const expandedArgument = expandMacros(arg.value);
+          output.push({ ...arg, value: expandedArgument, argument: true });
           tokenCount++;
         }
       }
