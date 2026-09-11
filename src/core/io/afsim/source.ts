@@ -240,7 +240,8 @@ export function afsimEntryPaths(files: readonly AfsimSourceFile[]): string[] {
     return (
       /\.afproj$/i.test(path) ||
       (!lower.includes('/') && !ROOT_SUPPORT_FILES.has(base)) ||
-      /^(?:main|setup|startup|scenario)\.(?:txt|afsim|wsf)$/i.test(base) ||
+      /^(?:main|scenario)\.(?:txt|afsim|wsf)$/i.test(base) ||
+      (!lower.includes('/') && /^(?:setup|startup)\.(?:txt|afsim|wsf)$/i.test(base)) ||
       /(?:^|\/)(?:scenario|scenarios|demo|demos)(?:\/|$)/.test(lower) ||
       /(?:_demo|_scenario)\.(?:txt|afsim|wsf)$/i.test(base)
     );

@@ -427,6 +427,7 @@ describe('AFSIM 想定导入', () => {
       files({
         'demo.afproj': '<project/>',
         'main.txt': unit,
+        'nested/setup/setup.txt': unit,
         'doc/README.txt': unit,
         'doc/changelog/update.txt': unit,
         'satcat_raw_data.txt': unit,
