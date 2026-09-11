@@ -354,8 +354,10 @@ export async function loadAfsimSources(files: readonly AfsimSourceFile[], entry:
         if (!name || !replacement) throw new Error(`${location(token)}：宏定义不完整`);
         macros.set(name.value, expandMacros(replacement.value));
       } else if (!token.quoted && /^(?:\$Id:|\$Header:|\$Log:)/.test(value)) {
-        while (i + 1 < input.length && input[++i].value !== '$') {
-          // 版本控制标记不参与静态地图导入。
+        if (!value.endsWith('$')) {
+          while (i + 1 < input.length && input[++i].value !== '$') {
+            // 版本控制标记不参与静态地图导入。
+          }
         }
       } else if (!token.quoted && (value.startsWith('$') || value === 'include_if_exists')) {
         warnings.add(`${location(token)}：忽略不影响静态部署的预处理或条件命令 ${value}`);
