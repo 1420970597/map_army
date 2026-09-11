@@ -113,6 +113,25 @@ test('三维挂载可拖放、替换、撤销并刷新恢复', async ({ page }) 
   expect(errors).toEqual([]);
 });
 
+test('页面内置模型库可直接选择并切换模型', async ({ page }) => {
+  await seed(page);
+  await expect(page.getByRole('button', { name: '关联示意飞机' })).toBeVisible();
+  await expect(page.locator('.equipment-catalog')).toBeVisible();
+  await page.getByRole('button', { name: '关联通用装甲车辆（类别示意）' }).click();
+  await expect(page.locator('.equipment-model.is-selected')).toContainText(
+    '通用装甲车辆（类别示意）',
+  );
+  await expect(page.getByRole('button', { name: '重置视角' })).toBeEnabled();
+  await page.getByRole('button', { name: '关联通用飞机（类别示意）' }).click();
+  await expect(page.getByRole('button', { name: '重置视角' })).toBeEnabled();
+  await expect(page.getByRole('list', { name: '当前装配' })).toContainText('左翼：空');
+  await page.keyboard.press('Control+z');
+  await selectFeature(page);
+  await expect(page.locator('.equipment-model.is-selected')).toContainText(
+    '通用装甲车辆（类别示意）',
+  );
+});
+
 test('取消拖动和不兼容安装不改变装配，旋转缩放可用', async ({ page }) => {
   await seed(page, true);
   await expect(page.getByRole('button', { name: '重置视角' })).toBeEnabled();

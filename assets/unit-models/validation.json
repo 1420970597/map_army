@@ -2,7 +2,7 @@
   {
     "name": "aircraft",
     "bytes": 106044,
-    "sha256": "f37a5c7d5dac5428ea912358c93e184f9ec71cce75fa498ef4fc346867627485",
+    "sha256": "1a2e7fce2437ad026b46565f10d8549e0ddd955ef938df68591e145b4a3a8113",
     "triangles": 3900,
     "dimensionsMeters": [
       11.800000190734863,
@@ -84,7 +84,7 @@
   {
     "name": "tank",
     "bytes": 26708,
-    "sha256": "5bcfa4487dc6686c44ceb133c57a12428b0733acaf7298901a246cd0a0886fd6",
+    "sha256": "1c15b59639a4cb21d0611f4a72f171249dccf4bf29e901b05e7ae248f0dc9a93",
     "triangles": 972,
     "dimensionsMeters": [
       0.7199995517730713,
@@ -122,7 +122,7 @@
   {
     "name": "sensor",
     "bytes": 51428,
-    "sha256": "f64624d7221da9ee9e8dc249236e85f18b204013b40e4986af48db674538987c",
+    "sha256": "acdb3a51b82aaf0ecfb426b3af99fa715a03d190902adb6b3d4307f70fee7866",
     "triangles": 1932,
     "dimensionsMeters": [
       0.5799996256828308,
@@ -158,6 +158,45 @@
           "message": "This object may be unused.",
           "severity": 2,
           "pointer": "/meshes/1/primitives/0/attributes/TEXCOORD_0"
+        }
+      ],
+      "truncated": false
+    }
+  },
+  {
+    "name": "vehicle",
+    "bytes": 78028,
+    "sha256": "9467e70ad10ddba5366349de1ed30890c970eae86b113fd419241779049911bf",
+    "triangles": 2916,
+    "dimensionsMeters": [
+      3.3799996376037598,
+      2.300000011920929,
+      4.599998474121094
+    ],
+    "nodes": [],
+    "issues": {
+      "numErrors": 0,
+      "numWarnings": 0,
+      "numInfos": 3,
+      "numHints": 0,
+      "messages": [
+        {
+          "code": "UNUSED_OBJECT",
+          "message": "This object may be unused.",
+          "severity": 2,
+          "pointer": "/meshes/1/primitives/0/attributes/TEXCOORD_0"
+        },
+        {
+          "code": "UNUSED_OBJECT",
+          "message": "This object may be unused.",
+          "severity": 2,
+          "pointer": "/meshes/2/primitives/0/attributes/TEXCOORD_0"
+        },
+        {
+          "code": "UNUSED_OBJECT",
+          "message": "This object may be unused.",
+          "severity": 2,
+          "pointer": "/meshes/3/primitives/0/attributes/TEXCOORD_0"
         }
       ],
       "truncated": false

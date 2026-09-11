@@ -1,6 +1,53 @@
 /** 三维详情新增文案覆盖现有五种界面语言；键同时作为中文回退文案。 */
 const messages: Record<string, readonly [string, string, string, string]> = {
   三维模型: ['3D model', '3D-Modell', 'Modèle 3D', 'Modello 3D'],
+  内置模型库: [
+    'Built-in model library',
+    'Integrierte Modellbibliothek',
+    'Bibliothèque de modèles intégrée',
+    'Libreria modelli integrata',
+  ],
+  选择三维模型: [
+    'Choose a 3D model',
+    '3D-Modell auswählen',
+    'Choisir un modèle 3D',
+    'Scegli un modello 3D',
+  ],
+  类别示意: [
+    'Schematic category',
+    'Kategorieschema',
+    'Catégorie schématique',
+    'Categoria schematica',
+  ],
+  航空器: ['Aircraft', 'Luftfahrzeug', 'Aéronef', 'Aeromobile'],
+  车辆: ['Vehicle', 'Fahrzeug', 'Véhicule', 'Veicolo'],
+  三维装配为本项目扩展: [
+    '3D assembly is a project extension',
+    '3D-Montage ist eine Projekterweiterung',
+    'L’assemblage 3D est une extension du projet',
+    'L’assemblaggio 3D è un’estensione del progetto',
+  ],
+  '内置模型库当前仅提供类别示意模型，后续可扩展真实型号。': [
+    'The built-in library currently contains schematic category models; real types can be added later.',
+    'Die integrierte Bibliothek enthält derzeit Kategorieschemata; reale Typen können später ergänzt werden.',
+    'La bibliothèque intégrée contient actuellement des modèles schématiques ; des types réels pourront être ajoutés.',
+    'La libreria integrata contiene attualmente modelli schematici; in seguito si potranno aggiungere tipi reali.',
+  ],
+  模型版本不可用: [
+    'Model version unavailable',
+    'Modellversion nicht verfügbar',
+    'Version du modèle indisponible',
+    'Versione modello non disponibile',
+  ],
+  关联: ['Link ', 'Verknüpfen: ', 'Associer : ', 'Associa '],
+  当前模型: ['Current model', 'Aktuelles Modell', 'Modèle actuel', 'Modello attuale'],
+  选择: ['Choose', 'Auswählen', 'Choisir', 'Scegli'],
+  正在检查模型: [
+    'Checking model',
+    'Modell wird geprüft',
+    'Vérification du modèle',
+    'Verifica modello',
+  ],
   '正在加载三维组件…': [
     'Loading 3D viewer…',
     '3D-Ansicht wird geladen…',

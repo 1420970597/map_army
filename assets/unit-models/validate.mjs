@@ -6,7 +6,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Box3, Vector3 } from 'three';
 
 const results = [];
-for (const name of ['aircraft', 'tank', 'sensor']) {
+for (const name of ['aircraft', 'tank', 'sensor', 'vehicle']) {
   const path = new URL(`../../public/models/demo-v1/${name}.glb`, import.meta.url);
   const bytes = await readFile(path);
   const validation = await validateBytes(bytes, { uri: path.pathname });
@@ -28,7 +28,7 @@ for (const name of ['aircraft', 'tank', 'sensor']) {
     assert.ok(Math.abs(dimensions[0] - 11.8) < 0.01 && Math.abs(dimensions[2] - 13.6) < 0.01, '轴向或米制尺寸不符');
     assert.ok(nodes.find((node) => node.socketId === 'left_wing').position[0] > 0, '左侧应为 +X');
     assert.ok(nodes.find((node) => node.socketId === 'center').position[2] > 0, '机腹前挂点应在 +Z');
-  } else {
+  } else if (name === 'tank' || name === 'sensor') {
     assert.equal(nodes.length, 1);
     assert.equal(nodes[0].mapArmyNodeRole, 'attachmentAnchor');
     assert.ok(nodes[0].position.every((value) => Math.abs(value) < 0.0001));
