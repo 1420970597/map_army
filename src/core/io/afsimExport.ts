@@ -62,7 +62,10 @@ function layerFileName(layer: Layer, used: Set<string>): string {
 }
 
 function quote(value: string): string {
-  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\r\n]/g, ' ')}"`;
+  return `"${value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/[\r\n]/g, ' ')}"`;
 }
 
 function finiteCoordinate(feature: MapFeature): { lat: number; lon: number } | null {
@@ -79,7 +82,13 @@ function sideOf(layer: Layer, feature: MapFeature): string {
     return group === 'friendly' ? 'blue' : group;
   try {
     const affiliation = parseSidc(feature.sidc).affiliation;
-    return affiliation === 3 ? 'blue' : affiliation === 6 ? 'red' : affiliation === 4 ? 'neutral' : 'unknown';
+    return affiliation === 3
+      ? 'blue'
+      : affiliation === 6
+        ? 'red'
+        : affiliation === 4
+          ? 'neutral'
+          : 'unknown';
   } catch {
     return 'unknown';
   }
@@ -101,7 +110,8 @@ function domainOf(feature: MapFeature): string {
 function altitudeLine(feature: MapFeature): string | null {
   const value = feature.textFields.altitudeDepth?.trim();
   if (!value) return null;
-  const match = /^([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*(m|km|ft|feet|yd|mi|nm)?(?:\s+(?:agl|msl))?$/i.exec(value);
+  const match =
+    /^([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*(m|km|ft|feet|yd|mi|nm)?(?:\s+(?:agl|msl))?$/i.exec(value);
   if (!match) return null;
   const amount = Number(match[1]);
   if (!Number.isFinite(amount)) return null;
@@ -131,7 +141,7 @@ function platformText(feature: MapFeature, layer: Layer, name: string): string {
   return lines.join('\n');
 }
 
-function projectFile(name: string): string {
+function projectFile(): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<wsf-ide-project-file>\n <wsf-ide-project project-directory="">\n  <wsf-ide-scenario command-line-args="$(SCENARIO_FILES)" working-directory="">\n   <file-item file-path="main.txt" file-type="file-main-source"/>\n  </wsf-ide-scenario>\n </wsf-ide-project>\n</wsf-ide-project-file>\n`;
 }
 
@@ -203,7 +213,7 @@ export function documentToAfsim(
   const files: AfsimExportFile[] = [
     { path: 'main.txt', content: main },
     ...platformFiles,
-    { path: `${projectName}.afproj`, content: projectFile(projectName) },
+    { path: `${projectName}.afproj`, content: projectFile() },
     { path: 'README.txt', content: readme(projectName, exported, skipped) },
   ];
   const archive = zipSync(
