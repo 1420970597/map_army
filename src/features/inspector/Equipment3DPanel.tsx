@@ -9,6 +9,7 @@ import {
   canMountAttachment,
 } from '@/core/model/equipment3d';
 import type { Equipment3D, EquipmentModelDefinition } from '@/core/model/equipment3d';
+import { AFSIM_MODEL_CATALOG } from '@/core/model/afsimCatalog';
 import type { MapFeature } from '@/core/model';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { createEquipmentPreview } from './equipmentPreview';
@@ -38,7 +39,9 @@ export default function Equipment3DPanel({
           disabled={disabled}
           onSelect={(model) => update(feature.id, { equipment3d: createEquipment3D(model) })}
         />
-        <p className="field-hint">{t('内置模型库当前仅提供类别示意模型，后续可扩展真实型号。')}</p>
+        <p className="field-hint">
+          {t('内置模型库包含类别示意和已获许可的 AFSIM 模型；受限源文件仅显示索引。')}
+        </p>
       </div>
     );
   const problem = equipment3DProblem(feature.equipment3d);
@@ -97,6 +100,14 @@ function ModelCatalog({
   const t = (text: string) => equipmentText(language, text);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState('');
+  const [filter, setFilter] = useState('all');
+  const embeddedAfsimModels = EQUIPMENT_MODELS.filter((model) => model.source === 'afsim');
+  const restrictedAfsimModels = AFSIM_MODEL_CATALOG.filter(
+    (entry) => entry.status === 'restricted',
+  ).length;
+  const visibleModels = EQUIPMENT_MODELS.filter(
+    (model) => filter === 'all' || (model.source === 'afsim' && model.equipmentType === filter),
+  );
 
   const choose = async (model: EquipmentModelDefinition) => {
     setLoadingId(model.id);
@@ -118,8 +129,27 @@ function ModelCatalog({
   return (
     <section className="equipment-catalog" aria-label={t('内置模型库')}>
       <strong>{t('选择三维模型')}</strong>
+      <div className="equipment-catalog-controls">
+        <label>
+          {t('类型')}
+          <select value={filter} onChange={(event) => setFilter(event.target.value)}>
+            <option value="all">{t('全部')}</option>
+            {[
+              ...new Set(embeddedAfsimModels.map((model) => model.equipmentType).filter(Boolean)),
+            ].map((type) => (
+              <option key={type} value={type}>
+                {t(typeLabel(type!))}
+              </option>
+            ))}
+          </select>
+        </label>
+        <span className="field-hint">
+          {t('AFSIM 模型索引')}：{AFSIM_MODEL_CATALOG.length} · {t('可嵌入')}：
+          {embeddedAfsimModels.length} · {t('受限')}：{restrictedAfsimModels}
+        </span>
+      </div>
       <div className="equipment-models">
-        {EQUIPMENT_MODELS.map((model) => {
+        {visibleModels.map((model) => {
           const selected = selectedId === model.id;
           return (
             <article className={`equipment-model ${selected ? 'is-selected' : ''}`} key={model.id}>
@@ -128,8 +158,12 @@ function ModelCatalog({
               </div>
               <div className="equipment-model-copy">
                 <strong>{t(model.name)}</strong>
-                <span>{t(model.category)}</span>
+                <span>
+                  {t(model.category)}
+                  {model.source === 'afsim' ? ` · AFSIM ${model.variant ?? ''}` : ''}
+                </span>
                 <p>{t(model.description)}</p>
+                {model.attribution && <small>{model.attribution}</small>}
               </div>
               <button
                 type="button"
@@ -155,6 +189,22 @@ function ModelCatalog({
         </p>
       )}
     </section>
+  );
+}
+
+function typeLabel(type: string): string {
+  return (
+    {
+      aircraft: '航空器',
+      helicopter: '直升机',
+      drone: '无人机',
+      weapon: '武器',
+      launcher: '发射/雷达',
+      naval: '舰船',
+      space: '航天器',
+      ground: '地面装备',
+      unknown: '未分类',
+    }[type] ?? type
   );
 }
 

@@ -6,8 +6,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Box3, Vector3 } from 'three';
 
 const results = [];
-for (const name of ['aircraft', 'tank', 'sensor', 'vehicle']) {
-  const path = new URL(`../../public/models/demo-v1/${name}.glb`, import.meta.url);
+const names = ['aircraft', 'tank', 'sensor', 'vehicle'];
+const afsimManifest = JSON.parse(await readFile(new URL('../../public/models/afsim/manifest.json', import.meta.url), 'utf8'));
+for (const item of afsimManifest.items ?? []) if (item.status === 'embedded') names.push(`afsim/${item.name}`);
+for (const name of names) {
+  const path = new URL(name.startsWith('afsim/') ? `../../public/models/afsim/${name.slice(6)}.glb` : `../../public/models/demo-v1/${name}.glb`, import.meta.url);
   const bytes = await readFile(path);
   const validation = await validateBytes(bytes, { uri: path.pathname });
   assert.equal(validation.issues.numErrors, 0, `${name} 格式无效`);

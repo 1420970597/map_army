@@ -132,6 +132,16 @@ test('页面内置模型库可直接选择并切换模型', async ({ page }) => 
   );
 });
 
+test('AFSIM 许可模型可按自动识别类型筛选并加载', async ({ page }) => {
+  await seed(page);
+  await page.getByLabel('类型').selectOption('space');
+  await expect(page.getByRole('button', { name: '关联Cubesat', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '关联Cubesat', exact: true }).click();
+  await expect(page.getByRole('button', { name: '重置视角' })).toBeEnabled();
+  await expect(page.locator('.equipment-canvas canvas')).toBeVisible();
+  await expect(page.getByRole('list', { name: '当前装配' })).toBeEmpty();
+});
+
 test('取消拖动和不兼容安装不改变装配，旋转缩放可用', async ({ page }) => {
   await seed(page, true);
   await expect(page.getByRole('button', { name: '重置视角' })).toBeEnabled();

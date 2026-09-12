@@ -12,6 +12,29 @@
   margin-bottom: 8px;
 }
 
+.equipment-catalog-controls {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+
+.equipment-catalog-controls label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.equipment-catalog-controls select {
+  min-width: 150px;
+  padding: 4px 6px;
+  border: 1px solid var(--c-border);
+  border-radius: 4px;
+  background: var(--c-surface);
+  color: var(--c-text);
+}
+
 .equipment-models {
   display: grid;
   gap: 8px;
@@ -53,6 +76,14 @@
 .equipment-model-copy span,
 .equipment-model-copy p {
   display: block;
+}
+
+.equipment-model-copy small {
+  display: block;
+  margin-top: 4px;
+  color: var(--c-muted);
+  font-size: 10px;
+  line-height: 1.3;
 }
 
 .equipment-model-copy span {

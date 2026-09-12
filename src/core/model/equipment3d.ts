@@ -1,3 +1,6 @@
+import { AFSIM_MODEL_CATALOG } from './afsimCatalog';
+import type { AfsimCatalogEntry } from './afsimCatalog';
+
 /** 版本化三维资产引用；几何和挂点变换由静态资产提供。 */
 export interface Equipment3D {
   modelId: string;
@@ -28,6 +31,14 @@ export interface EquipmentModelDefinition {
   url: string;
   sockets: readonly SocketDefinition[];
   attachments: readonly AttachmentDefinition[];
+  source?: 'project' | 'afsim';
+  sourcePath?: string;
+  distributionStatus?: AfsimCatalogEntry['status'];
+  attribution?: string;
+  variant?: string;
+  wingTip?: readonly number[];
+  engines?: readonly Record<string, unknown>[];
+  equipmentType?: string;
 }
 
 const AIRCRAFT_ATTACHMENTS: readonly AttachmentDefinition[] = [
@@ -70,7 +81,29 @@ const ARMORED_VEHICLE_MODEL: EquipmentModelDefinition = {
 export const EQUIPMENT_MODELS: readonly EquipmentModelDefinition[] = [
   AIRCRAFT_MODEL,
   ARMORED_VEHICLE_MODEL,
+  ...AFSIM_MODEL_CATALOG.filter((entry) => entry.status === 'embedded').map(afsimModel),
 ];
+
+function afsimModel(entry: AfsimCatalogEntry): EquipmentModelDefinition {
+  return {
+    id: entry.id,
+    version: 'afsim-v1',
+    name: entry.displayName,
+    category: entry.category,
+    description: `AFSIM ${entry.variant} · ${entry.sourcePath}`,
+    url: entry.url ?? '',
+    sockets: entry.sockets,
+    attachments: entry.attachments,
+    source: 'afsim',
+    sourcePath: entry.sourcePath ?? undefined,
+    distributionStatus: entry.status,
+    attribution: entry.attribution ?? undefined,
+    variant: entry.variant,
+    wingTip: entry.wingTip ?? undefined,
+    engines: entry.engines,
+    equipmentType: entry.type,
+  };
+}
 
 /** 兼容现有调用方：默认飞机的部件目录。 */
 export const ATTACHMENTS = AIRCRAFT_ATTACHMENTS;
