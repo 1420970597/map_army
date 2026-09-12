@@ -9,7 +9,10 @@ import {
   documentToKml,
   documentToMilxXml,
   milxExportWarnings,
+  documentToAfsim,
 } from '@/core/io';
+import type { AfsimExportResult } from '@/core/io';
+import { afsimExportText } from '@/core/io/afsim/exportText';
 import { parseMapFile, exportMilxArchive } from '@/core/io/files';
 import { AfsimImportDialog } from './AfsimImportDialog';
 import { useDocumentStore } from '@/stores/useDocumentStore';
@@ -40,9 +43,46 @@ export function ImportExportBar() {
   );
   const [targetLayerId, setTargetLayerId] = useState(activeLayerId);
   const [message, setMessage] = useState('');
-  const exportFile = (layerId = activeLayerId) => {
+  const [afsimReport, setAfsimReport] = useState<AfsimExportResult | null>(null);
+
+  const afsimText = (
+    key: Parameters<typeof afsimExportText>[1],
+    values?: Record<string, string | number>,
+  ) => afsimExportText(language, key, values);
+
+  /** 导出静态单位为标准 AFSIM 想定目录压缩包。 */
+  const exportAfsim = (layerId = activeLayerId, forceLayer = false): void => {
+    try {
+      const result = documentToAfsim(doc, {
+        name: doc.name,
+        layerIds: forceLayer || scope === 'active' ? [layerId] : undefined,
+        language,
+      });
+      setAfsimReport(result);
+      if (!result.exported) {
+        setMessage(afsimText('empty'));
+        return;
+      }
+      downloadBytes(result.archive, {
+        filename: toSafeFilename(doc.name, '.zip'),
+        mimeType: 'application/zip',
+      });
+      setMessage(afsimText('done', { count: result.exported, skipped: result.skipped }));
+    } catch (error) {
+      setAfsimReport(null);
+      setMessage(
+        error instanceof Error ? `${afsimText('failed')}: ${error.message}` : afsimText('failed'),
+      );
+    }
+  };
+
+  const exportFile = (layerId = activeLayerId, forceLayer = false) => {
+    if (format === 'afsim') {
+      exportAfsim(layerId, forceLayer);
+      return;
+    }
     const output =
-      scope === 'all'
+      scope === 'all' && !forceLayer
         ? doc
         : {
             ...doc,
@@ -79,12 +119,13 @@ export function ImportExportBar() {
         ? `文件已导出；${warnings.map((warning) => equipmentText(language, warning)).join('；')}`
         : '文件已导出',
     );
+    setAfsimReport(null);
   };
   useEffect(() => {
     const onLayerExport = (event: Event) => {
       const layerId = (event as CustomEvent<{ layerId?: string }>).detail?.layerId;
       if (layerId && doc.layers.some((layer) => layer.id === layerId)) {
-        exportFile(layerId);
+        exportFile(layerId, true);
       }
     };
     window.addEventListener('map-army:export-layer', onLayerExport);
@@ -185,15 +226,16 @@ export function ImportExportBar() {
               </button>
               <hr />
               <label className="field">
-                导出范围
+                {afsimText('scope')}
                 <select value={scope} onChange={(e) => setScope(e.target.value)}>
-                  <option value="all">全部图层</option>
-                  <option value="active">活动图层</option>
+                  <option value="all">{afsimText('all')}</option>
+                  <option value="active">{afsimText('active')}</option>
                 </select>
               </label>
               <label className="field">
                 格式
                 <select value={format} onChange={(e) => setFormat(e.target.value)}>
+                  <option value="afsim">{afsimText('format')}</option>
                   <option value="milxlyz">MilX ZIP 压缩图层</option>
                   <option value="milxly">MilX XML 图层</option>
                   <option value="milx">MilX XML</option>
@@ -203,7 +245,49 @@ export function ImportExportBar() {
                 </select>
               </label>
               <button onClick={() => exportFile()}>下载文件</button>
+              <button onClick={() => exportAfsim()}>{afsimText('export')}</button>
+              <p className="empty-hint">{afsimText('snapshot')}</p>
               <p role="status">{message}</p>
+              {afsimReport && (
+                <details>
+                  <summary>{afsimText('report', { count: afsimReport.warnings.length })}</summary>
+                  <p>
+                    {afsimText('entry', {
+                      entry: afsimReport.entry,
+                      count: afsimReport.files.length,
+                    })}
+                  </p>
+                  {afsimReport.warnings.length > 0 && (
+                    <ul>
+                      {afsimReport.warnings.slice(0, 100).map((warning, index) => (
+                        <li key={index}>{warning}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {afsimReport.warnings.length > 100 && <p>{afsimText('more')}</p>}
+                  <button
+                    onClick={() =>
+                      downloadText(
+                        [
+                          afsimText('entry', {
+                            entry: afsimReport.entry,
+                            count: afsimReport.files.length,
+                          }),
+                          afsimText('done', {
+                            count: afsimReport.exported,
+                            skipped: afsimReport.skipped,
+                          }),
+                          '',
+                          ...afsimReport.warnings,
+                        ].join('\n'),
+                        { filename: 'afsim-export-report.txt', mimeType: 'text/plain' },
+                      )
+                    }
+                  >
+                    {afsimText('downloadReport')}
+                  </button>
+                </details>
+              )}
             </div>
           </section>
         </div>

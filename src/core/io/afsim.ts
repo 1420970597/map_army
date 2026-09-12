@@ -3,6 +3,7 @@ import { Affiliation, Context, SymbolSet, createSidc } from '../symbology';
 import { type LonLat, mgrsStringToLonLat } from '../geo';
 import { blockEnd, isScript, isScriptBlock, location, type Token } from './afsim/lexer';
 import { AFSIM_LIMITS, loadAfsimSources, type AfsimSourceFile } from './afsim/source';
+import { afsimSymbolForSidc } from './afsim/symbol';
 
 export { afsimEntryPaths, AFSIM_LIMITS } from './afsim/source';
 export type { AfsimSourceFile } from './afsim/source';
@@ -21,6 +22,8 @@ interface Route {
 }
 
 interface State {
+  mapArmySidc?: string;
+  marking?: string;
   side?: string;
   domain?: string;
   icon?: string;
@@ -274,7 +277,24 @@ export async function afsimFilesToDocument(
       const token = body[i];
       if (token.quoted || token.argument) continue;
       const value = token.value;
-      if (
+      if (value === 'aux_data') {
+        const end = blockEnd(body, i);
+        // 仅识别本项目输出的标准字符串属性，不执行辅助数据表达式或解释嵌套组件。
+        for (let j = i + 1; j + 3 < end; j++) {
+          if (
+            body[j].value === 'string' &&
+            body[j + 1].value === 'map_army_sidc' &&
+            body[j + 2].value === '=' &&
+            body[j + 3].quoted
+          ) {
+            const sidc = body[j + 3].value;
+            if (afsimSymbolForSidc(sidc)) state.mapArmySidc = sidc;
+          }
+        }
+        i = end;
+      } else if (value === 'marking') {
+        state.marking = body[++i]?.value;
+      } else if (
         [
           'radar_signature',
           'optical_signature',
@@ -282,7 +302,6 @@ export async function afsimFilesToDocument(
           'acoustic_signature',
           'inherent_contrast',
           'p6dof_object_type',
-          'marking',
           'on_broken',
         ].includes(value)
       ) {
@@ -420,8 +439,8 @@ export async function afsimFilesToDocument(
       document.features.push(
         createFeature({
           layerId: layer.id,
-          name,
-          sidc: sidcForState(state),
+          name: state.mapArmySidc ? (state.marking ?? name) : name,
+          sidc: state.mapArmySidc ?? sidcForState(state),
           geometry: { kind: 'point', position },
           direction: state.heading,
           textFields: {
