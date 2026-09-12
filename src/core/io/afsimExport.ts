@@ -1,50 +1,45 @@
-import { strToU8, zipSync } from 'fflate';
-import type { MapDocument, MapFeature, Layer } from '../model';
-import { parseSidc } from '../symbology';
+import { strToU8, zipSync, type Zippable } from 'fflate';
+import type { MapDocument, MapFeature } from '../model';
+import { AFSIM_LIMITS } from './afsim/source';
+import { afsimSymbolForSidc } from './afsim/symbol';
+import { afsimExportText } from './afsim/exportText';
 
-/** AFSIM 想定导出选项。未传 layerIds 时导出文档中的全部图层。 */
+/** 未传 layerIds 时导出全部图层，包括隐藏和锁定的图层；导出不修改文档。 */
 export interface AfsimExportOptions {
-  /** 导出的项目名称；同时作为 .afproj 文件名。 */
   name?: string;
-  /** 只导出指定图层。空数组表示导出空想定。 */
   layerIds?: readonly string[];
+  language?: string;
 }
 
+/** 想定目录中的 UTF-8 文本文件。 */
 export interface AfsimExportFile {
   path: string;
   content: string;
 }
 
+/** 静态想定及诊断；ZIP 中只引用同一目录内生成的文件。 */
 export interface AfsimExportResult {
-  /** 按标准 AFSIM 目录层级打包的 ZIP。 */
   archive: Uint8Array;
-  /** ZIP 中的文本文件，便于预览、审计和无损测试。 */
   files: readonly AfsimExportFile[];
-  /** AFSIM 入口文件。 */
   entry: 'main.txt';
-  /** 成功写入的静态 platform 数量。 */
   exported: number;
-  /** 因无静态点坐标或不支持的要素而跳过的数量。 */
   skipped: number;
-  /** 面向用户的兼容性诊断。 */
   warnings: readonly string[];
 }
 
-const MAX_NAME_LENGTH = 48;
-
-/** 使用户输入成为跨平台且不会改变 AFSIM 词法的文件/标识符。 */
+/** 避免路径穿越、Windows 保留名称和闭合关键字；跨平台使用 ASCII 文件名。 */
 function safeName(value: string, fallback: string): string {
-  const normalized = value
-    .normalize('NFKC')
-    .replace(/[^A-Za-z0-9_-]+/g, '_')
-    .replace(/^[_\-.]+|[_\-.]+$/g, '')
-    .slice(0, MAX_NAME_LENGTH);
-  const safe = normalized || fallback;
-  return /^\d/.test(safe) ? `_${safe}` : safe;
+  const name =
+    value
+      .normalize('NFKC')
+      .replace(/[^A-Za-z0-9_-]+/g, '_')
+      .replace(/^[_-]+|[_-]+$/g, '')
+      .slice(0, 48) || fallback;
+  return /^(?:\d|end_|con$|prn$|aux$|nul$|com[1-9]$|lpt[1-9]$)/i.test(name) ? `map_${name}` : name;
 }
 
-function uniqueName(value: string, used: Set<string>): string {
-  const base = safeName(value, 'unit');
+function uniqueName(value: string, fallback: string, used: Set<string>): string {
+  const base = safeName(value, fallback);
   let name = base;
   let index = 2;
   while (used.has(name.toLowerCase())) name = `${base}_${index++}`;
@@ -52,178 +47,184 @@ function uniqueName(value: string, used: Set<string>): string {
   return name;
 }
 
-function layerFileName(layer: Layer, used: Set<string>): string {
-  const preferred = layer.group?.trim() || layer.name;
-  const base = safeName(preferred, `layer_${layer.order + 1}`);
-  let value = base;
-  let index = 2;
-  while (used.has(value.toLowerCase())) value = `${base}_${index++}`;
-  used.add(value.toLowerCase());
-  return value;
+/** UtInputBuffer 不解码反斜杠转义；转换危险字符，不允许名称成为宏或额外命令。 */
+function displayText(value: string): string {
+  return Array.from(value)
+    .map((char) => {
+      const code = char.codePointAt(0)!;
+      if (code < 32 || (code >= 127 && code <= 159) || /\s/.test(char)) return ' ';
+      if (char === '"') return '＂';
+      if (char === '\\') return '＼';
+      if (char === '$') return '＄';
+      return char;
+    })
+    .join('')
+    .slice(0, 256);
 }
 
-function quote(value: string): string {
-  return `"${value
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/[\r\n]/g, ' ')}"`;
+function coordinate(value: number, positive: string, negative: string): string {
+  // 固定小数避免极小坐标变为指数形式；精度约为 0.01 毫米。
+  const degrees = Math.abs(value)
+    .toFixed(10)
+    .replace(/\.?0+$/, '');
+  return `${degrees || '0'}${value < 0 ? negative : positive}`;
 }
 
-function finiteCoordinate(feature: MapFeature): { lat: number; lon: number } | null {
-  if (feature.geometry.kind !== 'point') return null;
-  const { lat, lon } = feature.geometry.position;
-  return Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180
-    ? { lat, lon }
-    : null;
-}
-
-function sideOf(layer: Layer, feature: MapFeature): string {
-  const group = (layer.group ?? '').trim().toLowerCase();
-  if (group === 'blue' || group === 'red' || group === 'neutral' || group === 'friendly')
-    return group === 'friendly' ? 'blue' : group;
-  try {
-    const affiliation = parseSidc(feature.sidc).affiliation;
-    return affiliation === 3
-      ? 'blue'
-      : affiliation === 6
-        ? 'red'
-        : affiliation === 4
-          ? 'neutral'
-          : 'unknown';
-  } catch {
-    return 'unknown';
-  }
-}
-
-function domainOf(feature: MapFeature): string {
-  try {
-    const symbolSet = parseSidc(feature.sidc).symbolSet;
-    if (symbolSet === 1 || symbolSet === 2) return 'air';
-    if (symbolSet === 30 || symbolSet === 36) return 'surface';
-    if (symbolSet === 35) return 'subsurface';
-    if (symbolSet === 5 || symbolSet === 6) return 'space';
-  } catch {
-    /* 非标准内部 SIDC 使用陆上静态平台作为安全默认值。 */
-  }
-  return 'land';
-}
-
-function altitudeLine(feature: MapFeature): string | null {
-  const value = feature.textFields.altitudeDepth?.trim();
-  if (!value) return null;
+function altitude(value: string): string | null {
   const match =
-    /^([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*(m|km|ft|feet|yd|mi|nm)?(?:\s+(?:agl|msl))?$/i.exec(value);
-  if (!match) return null;
-  const amount = Number(match[1]);
-  if (!Number.isFinite(amount)) return null;
-  const unit = (match[2] ?? 'm').toLowerCase().replace('feet', 'ft');
-  return `  altitude ${amount} ${unit}`;
-}
-
-function platformText(feature: MapFeature, layer: Layer, name: string): string {
-  const point = finiteCoordinate(feature)!;
-  const lines = [
-    `# Generated by map.army AFSIM exporter; source layer: ${layer.name}`,
-    `# Source name: ${feature.name || name}`,
-    `platform ${name} WSF_PLATFORM`,
-    `  side ${sideOf(layer, feature)}`,
-    `  spatial_domain ${domainOf(feature)}`,
-    `  icon MAP_ARMY_UNIT`,
-    `  marking ${quote(feature.name || name)}`,
-    `  position ${point.lat} ${point.lon}`,
-  ];
-  if (feature.direction !== undefined && Number.isFinite(feature.direction)) {
-    const heading = ((feature.direction % 360) + 360) % 360;
-    lines.push(`  heading ${heading} deg`);
-  }
-  const altitude = altitudeLine(feature);
-  if (altitude) lines.push(altitude);
-  lines.push('end_platform', '');
-  return lines.join('\n');
+    /^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)\s+(m|meter|meters|km|ft|feet|yd|mi|nm)(?:\s+(agl|msl))?$/i.exec(
+      value.trim(),
+    );
+  if (!match || !Number.isFinite(Number(match[1]))) return null;
+  const units: Record<string, string> = { meter: 'm', meters: 'm', feet: 'ft' };
+  const unit = match[2].toLowerCase();
+  return `${Number(match[1])} ${units[unit] ?? unit} ${(match[3] ?? 'msl').toLowerCase()}`;
 }
 
 function projectFile(): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<wsf-ide-project-file>\n <wsf-ide-project project-directory="">\n  <wsf-ide-scenario command-line-args="$(SCENARIO_FILES)" working-directory="">\n   <file-item file-path="main.txt" file-type="file-main-source"/>\n  </wsf-ide-scenario>\n </wsf-ide-project>\n</wsf-ide-project-file>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<wsf-ide-project-file>
+ <wsf-ide-project project-directory="">
+  <wsf-ide-scenario command-line-args="$(SCENARIO_FILES)" working-directory="">
+   <file-item file-path="main.txt" file-type="file-main-source"/>
+  </wsf-ide-scenario>
+ </wsf-ide-project>
+</wsf-ide-project-file>
+`;
 }
 
-function readme(name: string, exported: number, skipped: number): string {
-  return [
-    `# ${name}`,
-    '',
-    '此目录由 map.army 导出，入口为 `main.txt`。平台文件位于 `platforms/`，可在 AFSIM/Wizard 中作为普通想定打开。',
-    '',
-    `静态平台：${exported}；跳过要素：${skipped}。`,
-    '仅点军标可以转换为 AFSIM platform；折线、面和缺少有效 WGS84 点坐标的要素需要在 AFSIM 中另行建模。',
-    '导出器不会执行脚本、生成轨道或复制仿真组件库；平台统一使用 WSF_PLATFORM 和 MAP_ARMY_UNIT 图标。',
-    '',
-  ].join('\n');
-}
-
-/** 将地图文档转换为标准 AFSIM 文本目录并返回 ZIP。 */
+/** 生成 AFSIM 原生静态平台目录。SIDC 经标准 aux_data 保留，不推断仿真动力学和组件。 */
 export function documentToAfsim(
   document: MapDocument,
   options: AfsimExportOptions = {},
 ): AfsimExportResult {
-  const projectName = safeName(options.name ?? document.name, 'map_army_scenario');
+  const language = options.language ?? 'zh';
+  const t = (
+    key: Parameters<typeof afsimExportText>[1],
+    values?: Record<string, string | number>,
+  ) => afsimExportText(language, key, values);
   const selected = options.layerIds ? new Set(options.layerIds) : null;
+  const layerIds = new Set(document.layers.map((layer) => layer.id));
+  if (selected && [...selected].some((id) => !layerIds.has(id))) throw new Error(t('invalidLayer'));
   const layers = document.layers
     .filter((layer) => !selected || selected.has(layer.id))
     .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
-  const warnings: string[] = [];
-  let exported = 0;
+  if (layers.length + 3 > AFSIM_LIMITS.files || layerIds.size !== document.layers.length)
+    throw new Error(t('limit'));
+  const warnings: string[] = [t('snapshot')];
+  const grouped = new Map(layers.map((layer) => [layer.id, [] as MapFeature[]]));
   let skipped = 0;
+  let exported = 0;
+  for (const feature of document.features) {
+    const group = grouped.get(feature.layerId);
+    if (group) group.push(feature);
+    else if (!selected && !layerIds.has(feature.layerId)) {
+      skipped++;
+      warnings.push(t('skipped', { name: displayText(feature.name || feature.id) }));
+    }
+  }
   const usedPlatformNames = new Set<string>();
   const usedLayerNames = new Set<string>();
   const platformFiles: AfsimExportFile[] = [];
   const includes: string[] = [];
-
-  for (const layer of layers) {
-    const features = document.features.filter((feature) => feature.layerId === layer.id);
-    const layerName = layerFileName(layer, usedLayerNames);
-    const rows: string[] = [];
-    for (const feature of features) {
-      const point = finiteCoordinate(feature);
-      if (!point) {
+  for (const [index, layer] of layers.entries()) {
+    const path = `platforms/${uniqueName(layer.group || layer.name, `layer_${index + 1}`, usedLayerNames)}.txt`;
+    const rows: string[] = [`# 图层：${displayText(layer.name)}`, ''];
+    if (layer.image || layer.sourceUrl)
+      warnings.push(t('external', { name: displayText(layer.name) }));
+    for (const feature of grouped.get(layer.id)!) {
+      const name = displayText(feature.name || feature.textFields.uniqueDesignation || feature.id);
+      const symbol = afsimSymbolForSidc(feature.sidc);
+      const point = feature.geometry.kind === 'point' ? feature.geometry.position : null;
+      if (
+        !point ||
+        !Number.isFinite(point.lat) ||
+        !Number.isFinite(point.lon) ||
+        Math.abs(point.lat) > 90 ||
+        Math.abs(point.lon) > 180 ||
+        !symbol ||
+        feature.symbolKind === 'multiPoint' ||
+        feature.graphicType ||
+        feature.measurement
+      ) {
         skipped++;
-        warnings.push(
-          `${feature.name || feature.id}：仅支持带有效 WGS84 点坐标的军标，已跳过 ${feature.geometry.kind} 要素`,
-        );
+        warnings.push(t('skipped', { name }));
         continue;
       }
-      const name = uniqueName(feature.name || `unit_${exported + 1}`, usedPlatformNames);
-      rows.push(platformText(feature, layer, name));
-      exported++;
+      if (++exported > AFSIM_LIMITS.platforms) throw new Error(t('limit'));
+      if (feature.name && name !== feature.name) warnings.push(t('nameChanged', { name }));
+      if (feature.customSymbolId || feature.customSymbolSvg) warnings.push(t('custom', { name }));
+      const rawAltitude = feature.textFields.altitudeDepth?.trim();
+      const height = rawAltitude ? altitude(rawAltitude) : '0 m msl';
+      if (!height) warnings.push(t('altitude', { name }));
+      let heading = 0;
+      if (feature.direction !== undefined) {
+        if (Number.isFinite(feature.direction)) heading = ((feature.direction % 360) + 360) % 360;
+        else warnings.push(t('heading', { name }));
+      }
+      const identifier = uniqueName(
+        feature.name || feature.textFields.uniqueDesignation || '',
+        `unit_${exported}`,
+        usedPlatformNames,
+      );
+      rows.push(
+        `platform ${identifier} WSF_PLATFORM`,
+        `  side ${symbol.side}`,
+        `  spatial_domain ${symbol.domain}`,
+        `  icon ${symbol.icon}`,
+        `  marking "${name}"`,
+        `  position ${coordinate(point.lat, 'N', 'S')} ${coordinate(point.lon, 'E', 'W')}`,
+        `  altitude ${height ?? '0 m msl'}`,
+        `  heading ${heading} deg`,
+        '  aux_data',
+        `    string map_army_sidc = "${feature.sidc}"`,
+        '  end_aux_data',
+        'end_platform',
+        '',
+      );
     }
-    const path = `platforms/${layerName}.txt`;
-    platformFiles.push({
-      path,
-      content:
-        rows.join('\n') ||
-        `# Layer ${layer.name} contains no static point platforms exportable to AFSIM.\n`,
-    });
+    platformFiles.push({ path, content: rows.join('\n') });
     includes.push(`include_once ${path}`);
   }
-
-  const main = [
-    '# Generated by map.army. Open this file as the AFSIM scenario entry.',
-    ...includes,
-    '',
-    'end_time 1 sec',
-    '',
-  ].join('\n');
   const files: AfsimExportFile[] = [
-    { path: 'main.txt', content: main },
+    {
+      path: 'main.txt',
+      content: ['# map.army 静态部署想定入口', ...includes, '', 'end_time 1 sec', ''].join('\n'),
+    },
     ...platformFiles,
-    { path: `${projectName}.afproj`, content: projectFile() },
-    { path: 'README.txt', content: readme(projectName, exported, skipped) },
+    {
+      path: `${safeName(options.name ?? document.name, 'map_army_scenario')}.afproj`,
+      content: projectFile(),
+    },
+    {
+      path: 'README.txt',
+      content: [
+        displayText(document.name),
+        '',
+        t('done', { count: exported, skipped }),
+        '',
+        'main.txt / *.afproj',
+        'platforms/*.txt',
+        '',
+        ...warnings,
+        '',
+        'SIDC: aux_data.string map_army_sidc',
+        '',
+      ].join('\n'),
+    },
   ];
-  const archive = zipSync(
-    Object.fromEntries(files.map((file) => [file.path, strToU8(file.content)])),
-  );
-  return { archive, files, entry: 'main.txt', exported, skipped, warnings };
+  let bytes = 0;
+  const entries: Zippable = {};
+  for (const file of files) {
+    const content = strToU8(file.content);
+    bytes += content.length;
+    if (bytes > AFSIM_LIMITS.bytes) throw new Error(t('limit'));
+    entries[file.path] = [content, { mtime: new Date(1980, 0, 1) }];
+  }
+  return { archive: zipSync(entries), files, entry: 'main.txt', exported, skipped, warnings };
 }
 
-/** 便捷导出入口，供下载按钮直接取得 ZIP 字节。 */
+/** 直接取得想定目录的 ZIP 字节。需要诊断时使用 documentToAfsim。 */
 export function exportAfsimArchive(
   document: MapDocument,
   options: AfsimExportOptions = {},
