@@ -1,6 +1,6 @@
 # AFSIM 想定导出验收记录
 
-验收日期：2026-09-12。实现分支：`feature-afsim-export`。本记录只覆盖本项目新增的静态导出；动态脚本、航路仿真、传感器、武器和三维装配仍由 AFSIM 工程另行配置。
+验收日期：2026-09-12。主线提交：`6869771`（现已合入 `main`）。本记录只覆盖本项目新增的静态导出；动态脚本、航路仿真、传感器、武器和三维装配仍由 AFSIM 工程另行配置。
 
 ## 格式依据
 
@@ -28,7 +28,7 @@ platforms/<layer>.txt
 ## 自动化证据
 
 - `npx vitest run src/core/io/afsimExport.test.ts src/core/io/afsim.test.ts`：36 项通过，覆盖目录往返、ZIP、重名、特殊文本、半球坐标、极点、微小坐标、AGL/MSL、15/20 位 SIDC、隐藏/锁定图层、非法输入和大小限制。
-- `npm run ci`：68 个测试文件、1017 个 Vitest 测试、3 个服务端测试、模型校验、生产构建均通过。
+- `npm run ci`：68 个测试文件、1031 个 Vitest 测试、3 个服务端测试、模型校验、生产构建均通过。
 - 使用 `/root/afsim/demo/0_sensor/main.txt` 作为官方样例入口完成“导入 → 导出 → 再导入”：首次导入 6 个、跳过 0 个；导出 6 个、跳过 0 个；再导入 6 个、跳过 0 个。生成 `main.txt`、`platforms/red.txt`、`platforms/blue.txt`、`.afproj` 和 README 五个文件。
 - 本机 AFSIM 2.9 `mission` 实际验收：导出含空中、地面、海面、水下和太空 5 个静态平台的目录，执行
   `/home/kasm-user/afsim-build/mission -es -sm main.txt`，初始化、运行和退出均成功，退出码 `0`。
