@@ -9,7 +9,9 @@ import {
   documentToKml,
   documentToMilxXml,
   milxExportWarnings,
+  documentToAfsim,
 } from '@/core/io';
+import type { AfsimExportResult } from '@/core/io';
 import { parseMapFile, exportMilxArchive } from '@/core/io/files';
 import { AfsimImportDialog } from './AfsimImportDialog';
 import { useDocumentStore } from '@/stores/useDocumentStore';
@@ -40,7 +42,36 @@ export function ImportExportBar() {
   );
   const [targetLayerId, setTargetLayerId] = useState(activeLayerId);
   const [message, setMessage] = useState('');
+  const [afsimReport, setAfsimReport] = useState<AfsimExportResult | null>(null);
+
+  /** 导出静态单位为标准 AFSIM 想定目录压缩包。 */
+  const exportAfsim = (layerId = activeLayerId): void => {
+    try {
+      const result = documentToAfsim(doc, {
+        name: doc.name,
+        layerIds: scope === 'active' ? [layerId] : undefined,
+      });
+      downloadBytes(result.archive, {
+        filename: toSafeFilename(doc.name, '.zip'),
+        mimeType: 'application/zip',
+      });
+      setAfsimReport(result);
+      setMessage(
+        `AFSIM 想定已导出：${result.exported} 个单位` +
+          (result.skipped ? `，跳过 ${result.skipped} 个` : '') +
+          (result.warnings.length ? `，诊断 ${result.warnings.length} 项` : ''),
+      );
+    } catch (error) {
+      setAfsimReport(null);
+      setMessage(error instanceof Error ? `AFSIM 导出失败：${error.message}` : 'AFSIM 导出失败');
+    }
+  };
+
   const exportFile = (layerId = activeLayerId) => {
+    if (format === 'afsim') {
+      exportAfsim(layerId);
+      return;
+    }
     const output =
       scope === 'all'
         ? doc
@@ -79,6 +110,7 @@ export function ImportExportBar() {
         ? `文件已导出；${warnings.map((warning) => equipmentText(language, warning)).join('；')}`
         : '文件已导出',
     );
+    setAfsimReport(null);
   };
   useEffect(() => {
     const onLayerExport = (event: Event) => {
@@ -174,6 +206,7 @@ export function ImportExportBar() {
               >
                 导入 AFSIM 想定文件夹
               </button>
+              <button onClick={() => exportAfsim()}>导出 AFSIM 想定 ZIP</button>
               <button
                 disabled={readOnly}
                 onClick={() => {
@@ -194,6 +227,7 @@ export function ImportExportBar() {
               <label className="field">
                 格式
                 <select value={format} onChange={(e) => setFormat(e.target.value)}>
+                  <option value="afsim">AFSIM 想定 ZIP（标准目录）</option>
                   <option value="milxlyz">MilX ZIP 压缩图层</option>
                   <option value="milxly">MilX XML 图层</option>
                   <option value="milx">MilX XML</option>
@@ -204,6 +238,38 @@ export function ImportExportBar() {
               </label>
               <button onClick={() => exportFile()}>下载文件</button>
               <p role="status">{message}</p>
+              {afsimReport && (
+                <details>
+                  <summary>AFSIM 导出诊断（{afsimReport.warnings.length} 项）</summary>
+                  <p>
+                    入口：{afsimReport.entry}；压缩包包含 {afsimReport.files.length} 个文件。
+                  </p>
+                  {afsimReport.warnings.length > 0 && (
+                    <ul>
+                      {afsimReport.warnings.slice(0, 100).map((warning, index) => (
+                        <li key={index}>{warning}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {afsimReport.warnings.length > 100 && <p>其余诊断未在此显示。</p>}
+                  <button
+                    onClick={() =>
+                      downloadText(
+                        [
+                          `入口：${afsimReport.entry}`,
+                          `导出单位：${afsimReport.exported}`,
+                          `跳过单位：${afsimReport.skipped}`,
+                          '',
+                          ...afsimReport.warnings,
+                        ].join('\n'),
+                        { filename: 'afsim-export-report.txt', mimeType: 'text/plain' },
+                      )
+                    }
+                  >
+                    下载诊断报告
+                  </button>
+                </details>
+              )}
             </div>
           </section>
         </div>
