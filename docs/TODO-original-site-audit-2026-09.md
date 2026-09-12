@@ -115,6 +115,19 @@
 [RESEARCH-afsim-import-2026-09.md](RESEARCH-afsim-import-2026-09.md)。官方导入页未列 AFSIM；
 下一轮继续核对原站差距，AFSIM 后续兼容项为宏、编码、路线变换及浏览器矩阵。
 
+### AFSIM 手动军标导出（2026-09-12）
+
+本轮由用户追加“将地图上手动拖拽的军标导出为 AFSIM 想定”。该能力已在主线
+`6869771` 合并，文件菜单提供“AFSIM 想定 ZIP（标准目录）”格式，可导出全部图层或活动图层。
+验收记录见 [QA-afsim-export-2026-09.md](QA-afsim-export-2026-09.md)。导出 ZIP 的入口为
+`main.txt`，按 `platforms/<layer>.txt` 分层，并提供 `.afproj` 项目文件和 README；每个可表达的
+点单位生成可由 AFSIM 2.9 `mission` 执行的静态 `WSF_PLATFORM`。15 位原生 SIDC 和 20 位内部 SIDC
+均通过 `aux_data.string map_army_sidc` 保留，重新导入可恢复原值。
+
+以下边界仍是后续工作，不计入“动态 AFSIM 想定已支持”：宏和脚本、route/mover、武器、传感器、
+动态创建/删除/移动、真实装备模型与三维装配；自定义 SVG、线面战术图形和在线/图像图层会跳过并写入
+诊断报告。浏览器下载 E2E 需在提供 Chromium 的环境复验，不能以当前机器缺少浏览器的超时作为通过证据。
+
 ### 原站功能来源
 2026-09-10 用户扩展：Blender 关联装备详情与挂点装配单独记录于
 [TODO-blender-unit-models-2026-09.md](TODO-blender-unit-models-2026-09.md)。
