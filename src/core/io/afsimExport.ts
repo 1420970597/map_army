@@ -36,10 +36,11 @@ const MAX_NAME_LENGTH = 48;
 function safeName(value: string, fallback: string): string {
   const normalized = value
     .normalize('NFKC')
-    .replace(/[^A-Za-z0-9_\-\u0080-\uffff]+/g, '_')
+    .replace(/[^A-Za-z0-9_-]+/g, '_')
     .replace(/^[_\-.]+|[_\-.]+$/g, '')
     .slice(0, MAX_NAME_LENGTH);
-  return normalized || fallback;
+  const safe = normalized || fallback;
+  return /^\d/.test(safe) ? `_${safe}` : safe;
 }
 
 function uniqueName(value: string, used: Set<string>): string {

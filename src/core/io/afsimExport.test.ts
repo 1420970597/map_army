@@ -44,7 +44,7 @@ describe('AFSIM 想定导出', () => {
       'main.txt',
       'platforms/blue.txt',
       'platforms/red.txt',
-      '演训态势.afproj',
+      'map_army_scenario.afproj',
       'README.txt',
     ]);
     expect(result.files.find((file) => file.path === 'main.txt')?.content).toContain(
