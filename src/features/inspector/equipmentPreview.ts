@@ -2,8 +2,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { AIRCRAFT_MODEL, ATTACHMENTS } from '@/core/model/equipment3d';
-import type { Equipment3D } from '@/core/model/equipment3d';
+import type { Equipment3D, EquipmentModelDefinition } from '@/core/model/equipment3d';
 
 /** 挂点投影到预览容器的屏幕位置。 */
 export interface SocketMarker {
@@ -18,6 +17,7 @@ export function createEquipmentPreview(
   host: HTMLDivElement,
   onMarkers: (markers: SocketMarker[]) => void,
   onStatus: (status: 'ready' | 'error', message?: string) => void,
+  model: EquipmentModelDefinition,
 ) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -118,9 +118,7 @@ export function createEquipmentPreview(
 
   const loader = new GLTFLoader();
   void Promise.allSettled(
-    [AIRCRAFT_MODEL.url, ...ATTACHMENTS.map((part) => part.url)].map((url) =>
-      loader.loadAsync(url),
-    ),
+    [model.url, ...model.attachments.map((part) => part.url)].map((url) => loader.loadAsync(url)),
   )
     .then((results) => {
       for (const result of results)
@@ -142,11 +140,11 @@ export function createEquipmentPreview(
         }
       });
       if (
-        sockets.size !== AIRCRAFT_MODEL.sockets.length ||
-        AIRCRAFT_MODEL.sockets.some((socket) => !sockets.has(socket.id))
+        sockets.size !== model.sockets.length ||
+        model.sockets.some((socket) => !sockets.has(socket.id))
       )
         throw new Error('模型挂点与资产目录不一致。');
-      for (const [index, part] of ATTACHMENTS.entries()) {
+      for (const [index, part] of model.attachments.entries()) {
         const model = resources[index + 1];
         model.updateMatrixWorld(true);
         let anchor: THREE.Object3D | undefined;

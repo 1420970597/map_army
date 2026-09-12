@@ -3,6 +3,106 @@
   padding: 12px;
 }
 
+.equipment-catalog {
+  margin: 12px 0;
+}
+
+.equipment-catalog > strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.equipment-catalog-controls {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+
+.equipment-catalog-controls label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.equipment-catalog-controls select {
+  min-width: 150px;
+  padding: 4px 6px;
+  border: 1px solid var(--c-border);
+  border-radius: 4px;
+  background: var(--c-surface);
+  color: var(--c-text);
+}
+
+.equipment-models {
+  display: grid;
+  gap: 8px;
+}
+
+.equipment-model {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  background: var(--c-surface);
+}
+
+.equipment-model.is-selected {
+  border-color: #168458;
+  background: #16845812;
+}
+
+.equipment-model-preview {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 5px;
+  background: #d7e1e5;
+  color: #304552;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.equipment-model-copy {
+  min-width: 0;
+}
+
+.equipment-model-copy strong,
+.equipment-model-copy span,
+.equipment-model-copy p {
+  display: block;
+}
+
+.equipment-model-copy small {
+  display: block;
+  margin-top: 4px;
+  color: var(--c-muted);
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.equipment-model-copy span {
+  margin-top: 2px;
+  color: var(--c-muted);
+  font-size: 11px;
+}
+
+.equipment-model-copy p {
+  margin: 4px 0 0;
+  color: var(--c-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.equipment-model .tb-button {
+  white-space: nowrap;
+}
+
 .inspector:has(.equipment-panel),
 .inspector:has(.equipment-intro) {
   width: min(400px, calc(100vw - 24px));

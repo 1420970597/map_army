@@ -6,8 +6,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Box3, Vector3 } from 'three';
 
 const results = [];
-for (const name of ['aircraft', 'tank', 'sensor']) {
-  const path = new URL(`../../public/models/demo-v1/${name}.glb`, import.meta.url);
+const names = ['aircraft', 'tank', 'sensor', 'vehicle'];
+const afsimManifest = JSON.parse(await readFile(new URL('../../public/models/afsim/manifest.json', import.meta.url), 'utf8'));
+for (const item of afsimManifest.items ?? []) if (item.status === 'embedded') names.push(`afsim/${item.name}`);
+for (const name of names) {
+  const path = new URL(name.startsWith('afsim/') ? `../../public/models/afsim/${name.slice(6)}.glb` : `../../public/models/demo-v1/${name}.glb`, import.meta.url);
   const bytes = await readFile(path);
   const validation = await validateBytes(bytes, { uri: path.pathname });
   assert.equal(validation.issues.numErrors, 0, `${name} 格式无效`);
@@ -28,7 +31,7 @@ for (const name of ['aircraft', 'tank', 'sensor']) {
     assert.ok(Math.abs(dimensions[0] - 11.8) < 0.01 && Math.abs(dimensions[2] - 13.6) < 0.01, '轴向或米制尺寸不符');
     assert.ok(nodes.find((node) => node.socketId === 'left_wing').position[0] > 0, '左侧应为 +X');
     assert.ok(nodes.find((node) => node.socketId === 'center').position[2] > 0, '机腹前挂点应在 +Z');
-  } else {
+  } else if (name === 'tank' || name === 'sensor') {
     assert.equal(nodes.length, 1);
     assert.equal(nodes[0].mapArmyNodeRole, 'attachmentAnchor');
     assert.ok(nodes[0].position.every((value) => Math.abs(value) < 0.0001));

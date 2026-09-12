@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   createEquipment3D,
+  EQUIPMENT_MODELS,
   equipment3DProblem,
+  findEquipmentModel,
   mountAttachment,
   readEquipment3D,
 } from './equipment3d';
@@ -13,6 +15,7 @@ import { exportMilxArchive, parseMapFile } from '../io/files';
 import { createShareUrl, readShareUrl } from '../io/share';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useAccessStore } from '@/stores/useAccessStore';
+import { AFSIM_MODEL_CATALOG } from './afsimCatalog';
 
 const configured = () => mountAttachment(createEquipment3D(), 'left_wing', 'demo-tank');
 const fixture = () => {
@@ -29,6 +32,36 @@ const fixture = () => {
 };
 
 describe('三维挂点装配', () => {
+  it('导入 AFSIM 完整索引并自动识别类型与分发状态', () => {
+    expect(AFSIM_MODEL_CATALOG.length).toBe(325);
+    expect(AFSIM_MODEL_CATALOG.some((entry) => entry.status === 'restricted')).toBe(true);
+    expect(AFSIM_MODEL_CATALOG.some((entry) => entry.status === 'embedded')).toBe(true);
+    expect(AFSIM_MODEL_CATALOG.find((entry) => entry.name === 'f16')?.type).toBe('aircraft');
+    expect(AFSIM_MODEL_CATALOG.find((entry) => entry.name === 'rocket')?.type).toBe('space');
+  });
+
+  it('提供页面内置模型目录并可创建不同模型的空装配', () => {
+    expect(EQUIPMENT_MODELS.length).toBeGreaterThanOrEqual(2);
+    const vehicle = findEquipmentModel('demo-vehicle', '1');
+    expect(vehicle?.category).toBe('车辆');
+    expect(createEquipment3D(vehicle)).toEqual({
+      modelId: 'demo-vehicle',
+      assetVersion: '1',
+      attachments: [],
+    });
+    expect(equipment3DProblem(createEquipment3D(vehicle!))).toBeNull();
+  });
+
+  it('切换模型时不保留旧模型的挂载', () => {
+    const mounted = configured();
+    const vehicle = findEquipmentModel('demo-vehicle', '1')!;
+    const switched = createEquipment3D(vehicle);
+    expect(switched.attachments).toEqual([]);
+    expect(equipment3DProblem({ ...switched, attachments: mounted.attachments })).toContain(
+      '已保留',
+    );
+  });
+
   it('兼容安装、替换、拆卸且不修改源对象', () => {
     const initial = createEquipment3D();
     const tank = mountAttachment(initial, 'left_wing', 'demo-tank');

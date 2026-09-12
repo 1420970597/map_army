@@ -12,3 +12,6 @@ https://creativecommons.org/publicdomain/zero/1.0/ 。没有使用第三方纹�
 `demo-sensor@1`；`center` 只接受 `demo-sensor@1`。这是可视化规则，不是实际装备兼容性。
 挂点与安装锚点通过 Empty 的 `extras` 导出；部件安装锚点位于本地原点。
 尺寸、坐标、元数据与格式检查见 `validation.json`。
+
+车辆模型 `demo-armored-vehicle@1` 是独立的通用装甲车辆类别示意，当前没有外挂挂点，
+用于验证页面内置模型库的直接选择和模型切换。它与 `tank.glb` 副油箱部件是不同资产。

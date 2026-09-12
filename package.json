@@ -23,6 +23,7 @@
   },
   "scripts": {
     "models:build": "blender --background --python-exit-code 1 --python assets/unit-models/build_models.py",
+    "models:afsim": "python3 assets/afsim/import_models.py",
     "models:check": "node assets/unit-models/validate.mjs",
     "dev": "vite",
     "site": "node site/generate.mjs && node site/icons.mjs && node site/cesium.mjs",
