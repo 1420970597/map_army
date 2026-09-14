@@ -142,3 +142,9 @@
 - 导出：`https://www.map.army/doc/en/export-and-prints/create-export/`
 - 分享：`https://www.map.army/doc/en/data-exchange/create-a-share/`
 - 3D：`https://www.map.army/doc/en/map/3d_map_view/`
+
+## 后端迁移合并后复核（2026-09-14）
+
+PR #40 已合并到 `main`（提交 `f9cc4f1`）。合并后重新访问官方索引、分享、导入、MilX 格式和 FAQ 页面，均返回 200；页面字节数与 SHA-256 记录于 `docs/evidence/backend-2026-09/original-site-post-merge.json`。
+
+本轮后端迁移的扩展能力已接入自托管 Python/MySQL/MinIO 服务，但原站差异仍按既有清单推进：真实 MSS 全量覆盖、真实 DEM、3D 图层控制和量测细节、完整原生 MilX 语义、完整符号目录及跨浏览器矩阵未因后端迁移而标记完成。AFSIM Mover Creator 受许可 OSGB 全量转换仍是专项后续 ToDo。
