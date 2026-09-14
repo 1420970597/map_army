@@ -375,9 +375,15 @@ def meshes(bundle, instances=False):
                 a[1] * 0.3048,
                 1,
             ]
-            if kind == "surface":
+            if kind in ("surface", "brake", "gear"):
                 # 翼面原生的 roll 绕渲染 X，pitch 绕渲染 Z，使用列向量组合。
-                d, i = math.radians(-a[8]), math.radians(a[9])
+                d, i = (
+                    (math.radians(-a[8]), math.radians(a[9]))
+                    if kind == "surface"
+                    else (math.radians(a[5]), math.radians(-a[6]))
+                    if kind == "brake"
+                    else (0, math.radians(a[7] - 180))
+                )
                 cd, sd, ci, si = math.cos(d), math.sin(d), math.cos(i), math.sin(i)
                 matrix[:12] = [ci, cd * si, sd * si, 0, -si, cd * ci, sd * ci, 0, 0, -sd, cd, 0]
             mesh["matrix"] = matrix

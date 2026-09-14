@@ -138,7 +138,7 @@ def test_design_versions_cas_permissions_and_export(client):
 
 def test_publish_mounts_and_immutable_asset_versions(client):
     value = bundle()
-    part = {"id": "afsim-amc-TNK-370-1", "version": "amc-5"}
+    part = {"id": "afsim-amc-TNK-370-1", "version": "amc-6"}
     value["mounts"] = [
         {
             "id": "right",
@@ -197,7 +197,7 @@ def test_invalid_imports_and_dependencies_are_recoverable(client):
 
 def test_parent_mount_follows_geometry_and_assembly_export(client):
     value = bundle()
-    part = {"id": "afsim-amc-TNK-370-1", "version": "amc-5"}
+    part = {"id": "afsim-amc-TNK-370-1", "version": "amc-6"}
     value["attachments"] = [part]
     value["mounts"] = [
         {
@@ -299,3 +299,36 @@ def test_custom_engines_gear_and_shape_options():
     value["amc"]["VehicleType"] = "Weapon"
     with pytest.raises(ValueError, match="Aircraft"):
         geometry.glb(value)
+
+
+@pytest.mark.parametrize(
+    "kind,parameters",
+    [
+        ("GeometrySpeedBrake", {"Length": 2, "Width": 1}),
+        (
+            "GeometryLandingGear",
+            {"Uncompressed Length": 5, "Strut Diam": 0.25, "Tire Diam": 1.5, "Tire Width": 0.6},
+        ),
+    ],
+)
+def test_articulated_parent_rotates_mount(kind, parameters):
+    component = {"GeometryObjectType": kind, "Max Angle": 0, **parameters}
+    value = {
+        "amc": {"VehicleType": "Aircraft", "geometry": {"Part": component}},
+        "mounts": [
+            {
+                "id": "test",
+                "role": "socket",
+                "parent": "Part::1",
+                "position": [-0.3048, 0, 0],
+                "rotation": [0, 0, 0],
+            }
+        ],
+    }
+    original = geometry.read_mounts(geometry.glb(value))[0]
+    component["Max Angle"] = 90
+    rotated = geometry.read_mounts(geometry.glb(value))[0]
+    assert abs(original["position"][0]) == pytest.approx(0.3048)
+    assert abs(rotated["position"][0]) < 1e-10
+    assert abs(rotated["position"][1]) == pytest.approx(0.3048)
+    assert abs(rotated["rotation"][2] - original["rotation"][2]) == pytest.approx(90)
