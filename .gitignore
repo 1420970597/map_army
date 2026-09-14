@@ -75,3 +75,5 @@ __pycache__/
 *.pyc
 backend/tool/
 backups/
+!.env.example
+.playwright-cli/
