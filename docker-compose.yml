@@ -66,7 +66,11 @@ services:
     cpus: 2
     pids_limit: 256
     healthcheck:
-      disable: true
+      # worker 没有 HTTP 端口，以 Blender 可执行文件作为进程镜像就绪探针。
+      test: ['CMD', 'python', '-c', "import shutil,sys; sys.exit(0 if shutil.which('blender') else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
 
 volumes:
   mysql-data:
