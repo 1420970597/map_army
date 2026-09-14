@@ -47,3 +47,5 @@
 规范评审追加发现并修复了原始 JSON 字段同步、非均匀缩放父节点、临时预览节点选择、初次模型加载竞态。挂点辅助对象现采用真实父子矩阵；不可无损分解的重新绑定会明确拒绝。需求复审发现的减速板/起落架挂点旋转跟随也已通过两项参数化测试。
 
 官方索引、3D Map View、Symbol Editor、Create Share 已重新访问，均 200；[哈希记录](evidence/mover-creator-2026-09/original-site-pre-pr.json)。浏览器 Mover Creator 为用户指定扩展，原站免费版文档没有对应建模器，不能计入原站复刻完成率。原站已有未完成清单继续保留。
+
+PR [#41](https://github.com/1420970597/map_army/pull/41) 的 Node 20/22 CI 均通过，2026-09-14 合并至 `main`，提交 `be2c06bd8a6df2c081477ddd20e890d3d7c7c228`。主线已快进核对。合并后官方页面响应与哈希复核见 [记录](evidence/mover-creator-2026-09/original-site-post-merge.json)，下一轮差异仍由 `TODO-after-mover-2026-09.md` 统一管理。
