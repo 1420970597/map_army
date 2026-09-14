@@ -1,6 +1,7 @@
 /** 在线文件处理进入后端；离线时明确使用现有本地交换能力。 */
 import { api, type AssetRecord } from './api';
 import { backendAvailable } from './sync';
+import { shareQuery } from './shareContext';
 import { parseMapFile } from '@/core/io/files';
 import type { MapDocument } from '@/core/model';
 import type { AfsimExportResult, AfsimSourceFile, AfsimImportResult } from '@/core/io';
@@ -37,10 +38,7 @@ export async function exportMapData(
   format: string,
   options?: Record<string, unknown>,
 ): Promise<BackendExport> {
-  const params = new URLSearchParams(window.location.search);
-  const query = new URLSearchParams();
-  for (const key of ['share', 'version']) if (params.has(key)) query.set(key, params.get(key)!);
-  return api(`/exchange/export?${query}`, {
+  return api(`/exchange/export?${shareQuery()}`, {
     method: 'POST',
     body: JSON.stringify({ document, format, options }),
   });

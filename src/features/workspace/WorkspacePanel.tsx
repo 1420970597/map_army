@@ -13,6 +13,8 @@ import {
   reloadServerProject,
   saveAsProject,
   workspaceCode,
+  listLocalDrafts,
+  restoreLocalDraft,
 } from '@/core/backend/sync';
 import { useBackendStore } from '@/stores/useBackendStore';
 import { listEquipmentModels, type EquipmentModelDefinition } from '@/core/model/equipment3d';
@@ -89,6 +91,7 @@ export function WorkspacePanel({ onClose }: { onClose(): void }) {
   const allModels = listEquipmentModels();
   const latestModels = [...new Map(allModels.map((model) => [model.id, model])).values()];
   const anchors = latestModels.filter((model) => model.hasAttachmentAnchor);
+  const drafts = listLocalDrafts();
 
   return (
     <div className="modal-backdrop">
@@ -165,6 +168,17 @@ export function WorkspacePanel({ onClose }: { onClose(): void }) {
                 </button>
               </div>
               <ul className="workspace-list">
+                {drafts.map((draft) => (
+                  <li key={draft.key}>
+                    <span>{draft.name} · 本机未同步草稿</span>
+                    <button
+                      disabled={busy}
+                      onClick={() => void run(async () => restoreLocalDraft(draft.key))}
+                    >
+                      恢复草稿
+                    </button>
+                  </li>
+                ))}
                 {state.projects.map((project) => (
                   <li key={project.id}>
                     <div>

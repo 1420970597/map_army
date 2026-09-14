@@ -1,6 +1,8 @@
 /** 文档与资料分别保留待保存快照，所有写入串行执行，版本冲突必须显式处理。 */
 import { ensureApiNetworkOnly } from './serviceWorker';
 import { api, ApiError } from './api';
+import { shareQuery } from './shareContext';
+import { readTabValue, writeTabValue, removeTabValue, readDraft, localDrafts } from './tabStorage';
 import { useBackendStore, type ProjectSummary } from '@/stores/useBackendStore';
 import { committedDocument, gestureInProgress, useDocumentStore } from '@/stores/useDocumentStore';
 import { usePreferencesStore } from '@/stores/usePreferencesStore';
@@ -61,8 +63,11 @@ let clientId = '';
 const unlockedLayers = new Set<string>();
 let stopSubscriptions = () => {};
 
+const tabKey = (key: string) =>
+  key === 'map-army.connection' || /map-army\.(pending|settings-pending|project-cache)\./.test(key);
 function stored<T>(key: string): T | null {
   try {
+    if (tabKey(key)) return readTabValue<T>(key);
     return JSON.parse(localStorage.getItem(key) ?? 'null') as T | null;
   } catch {
     return null;
@@ -70,14 +75,16 @@ function stored<T>(key: string): T | null {
 }
 function store(key: string, value: unknown) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    if (tabKey(key)) writeTabValue(key, value);
+    else localStorage.setItem(key, JSON.stringify(value));
   } catch {
     useBackendStore.setState({ message: '浏览器备份不可用，请保持页面打开直到保存成功。' });
   }
 }
 function remove(key: string) {
   try {
-    localStorage.removeItem(key);
+    if (tabKey(key)) removeTabValue(key);
+    else localStorage.removeItem(key);
   } catch {
     /* 后端保存不依赖缓存清理。 */
   }
@@ -214,14 +221,7 @@ function fail(error: unknown, kind?: 'project' | 'settings') {
   });
 }
 export async function refreshCatalog(signal?: AbortSignal) {
-  const params = new URLSearchParams(window.location.search);
-  const query = new URLSearchParams();
-  for (const key of ['share', 'version']) if (params.has(key)) query.set(key, params.get(key)!);
-  const opened = useAccessStore.getState().shared;
-  if (params.has('share') && opened) {
-    query.set('share', opened.id);
-    query.set('version', String(opened.version));
-  }
+  const query = new URLSearchParams(shareQuery());
   const [models, catalog] = await Promise.all([
     api<EquipmentModelDefinition[]>(`/models?${query}`, { signal }),
     api<{ symbol: CatalogEntry[] }>('/catalog', { signal }),
@@ -432,8 +432,7 @@ export function initializeBackend(external: boolean, signal: AbortSignal): Promi
       remember();
       rememberSettings();
       rememberConnection();
-      remove(pendingKey('unbound'));
-      remove(settingsKey('unbound'));
+      // 未绑定空间的缓存可能属于另一标签页，不能在成功保存后盲目删除。
       schedule();
       return true;
     } catch (error) {
@@ -581,7 +580,7 @@ export async function openProject(id: string) {
 export async function saveAsProject(name?: string) {
   if (writing) await writing;
   const document = { ...committedDocument(), name: name ?? committedDocument().name + ' 副本' };
-  const saved = await api<SavedProject>(`/projects${window.location.search}`, {
+  const saved = await api<SavedProject>(`/projects?${shareQuery()}`, {
     method: 'POST',
     body: JSON.stringify({ document }),
   });
@@ -657,4 +656,43 @@ export function discardLegacyProject() {
 }
 export function workspaceCode() {
   return stored<string>('map-army.workspace-code') ?? '';
+}
+
+export function listLocalDrafts() {
+  return localDrafts(scope());
+}
+export function restoreLocalDraft(key: string) {
+  if (documentDirty || settingsDirty || writing)
+    throw new Error('请先保存当前修改或另存副本，再恢复其他页面的草稿。');
+  const entry = listLocalDrafts().find((draft) => draft.key === key);
+  if (!entry) throw new Error('草稿已不存在。');
+  if (entry.kind === 'project') {
+    const pending = readDraft<Pending>(key, pendingKey());
+    if (!pending) return;
+    leaveExternal();
+    muted = true;
+    useAccessStore.getState().setReadOnly(false);
+    useDocumentStore.getState().replaceDocument(pending.document);
+    useDocumentStore.setState({ past: [], future: [] });
+    useBackendStore.setState({
+      projectId: pending.projectId,
+      revision: pending.revision,
+      projectConflict: false,
+    });
+    muted = false;
+    clientId = pending.clientId;
+    unlockedLayers.clear();
+    for (const id of pending.unlockedLayerIds ?? []) unlockedLayers.add(id);
+    documentDirty = true;
+    remember();
+  } else {
+    const pending = readDraft<PendingSettings>(key, settingsKey());
+    if (!pending) return;
+    applySettings({ ...pending.settings, version: pending.version });
+    useBackendStore.setState({ settingsConflict: false });
+    settingsDirty = true;
+    rememberSettings();
+  }
+  rememberConnection();
+  schedule();
 }

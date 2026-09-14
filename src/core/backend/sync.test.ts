@@ -16,10 +16,20 @@ let online: boolean;
 let writes: { revision: string | null; document: MapDocument }[];
 let hold: (() => Promise<void>) | undefined;
 const cache = new Map<string, string>();
+const tabCache = new Map<string, string>();
+const tabStorage = {
+  getItem: (key: string) => tabCache.get(key) ?? null,
+  setItem: (key: string, value: string) => tabCache.set(key, value),
+  removeItem: (key: string) => tabCache.delete(key),
+};
 const storage = {
   getItem: (key: string) => cache.get(key) ?? null,
   setItem: (key: string, value: string) => cache.set(key, value),
   removeItem: (key: string) => cache.delete(key),
+  key: (index: number) => [...cache.keys()][index] ?? null,
+  get length() {
+    return cache.size;
+  },
 };
 async function modules() {
   sync = await import('./sync');
@@ -32,11 +42,13 @@ const response = (body: unknown, status = 200) =>
 beforeEach(async () => {
   vi.resetModules();
   cache.clear();
+  tabCache.clear();
   revision = 1;
   online = true;
   writes = [];
   hold = undefined;
   vi.stubGlobal('localStorage', storage);
+  vi.stubGlobal('sessionStorage', tabStorage);
   vi.stubGlobal('window', {
     localStorage: storage,
     location: { search: '', pathname: '/', href: 'http://localhost/' },
@@ -163,4 +175,52 @@ test('持续拖动只在手势完成后保存', async () => {
   await sync.flushBackend();
   expect(writes).toHaveLength(1);
   expect(data.layers[0].opacity).toBe(0.4);
+});
+
+test('另一标签页保存不覆盖或清理本页离线文档与偏好，刷新仍恢复原稿', async () => {
+  await start();
+  online = false;
+  rename('甲页离线稿');
+  preferences.getState().update({ language: 'de' });
+  await sync.flushBackend();
+  const firstTab = new Map(tabCache);
+  sync.stopBackend();
+  tabCache.clear();
+  vi.resetModules();
+  await modules();
+  online = true;
+  await start();
+  rename('乙页已保存');
+  await sync.flushBackend();
+  expect(data.name).toBe('乙页已保存');
+  sync.stopBackend();
+  tabCache.clear();
+  for (const [key, value] of firstTab) tabCache.set(key, value);
+  vi.resetModules();
+  await modules();
+  await start();
+  expect(documentStore.getState().document.name).toBe('甲页离线稿');
+  expect(preferences.getState().language).toBe('de');
+  expect(backendStore.getState().projectConflict).toBe(true);
+  expect(backendStore.getState().revision).toBe(1);
+});
+
+test('关闭标签页后可从工作空间恢复独立持久草稿', async () => {
+  await start();
+  online = false;
+  rename('关闭前的草稿');
+  await sync.flushBackend();
+  sync.stopBackend();
+  tabCache.clear();
+  vi.resetModules();
+  await modules();
+  online = true;
+  await start();
+  const draft = sync.listLocalDrafts().find((entry) => entry.name === '关闭前的草稿');
+  expect(draft).toBeDefined();
+  sync.restoreLocalDraft(draft!.key);
+  expect(documentStore.getState().document.name).toBe('关闭前的草稿');
+  await sync.flushBackend();
+  expect(data.name).toBe('关闭前的草稿');
+  expect(sync.listLocalDrafts()).toEqual([]);
 });
