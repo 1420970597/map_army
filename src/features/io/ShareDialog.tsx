@@ -1,5 +1,6 @@
 /** 分享权限与版本入口。读取地址不含编辑令牌，编辑覆盖必须单独授权。 */
 import { useState } from 'react';
+import { refreshCatalog } from '@/core/backend/sync';
 import { createShareUrl } from '@/core/io/share';
 import { serializeMilxly, deserializeMilxly } from '@/core/io/milxly';
 import { useDocumentStore } from '@/stores/useDocumentStore';
@@ -59,11 +60,14 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setMessage('');
     try {
-      const response = await fetch(`/api/shares/${shared.id}/copy`, { method: 'POST' });
+      const response = await fetch(`/api/shares/${shared.id}/copy?version=${shared.version}`, {
+        method: 'POST',
+      });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       const next = { id: data.id, token: data.token, version: data.version };
       useAccessStore.getState().setShared(next);
+      await refreshCatalog();
       setMode('edit');
       setUrl(buildUrl(data.id, data.token, 'edit'));
       setMessage(`已创建独立编辑副本 ${data.id}`);
@@ -116,6 +120,7 @@ export function ShareDialog({ onClose }: { onClose: () => void }) {
     useDocumentStore.getState().replaceDocument(loaded.document);
     useAccessStore.getState().setReadOnly(wasReadOnly);
     useAccessStore.getState().setShared({ ...shared, version: data.version });
+    await refreshCatalog();
     setSelected(loaded.document.layers.map((layer) => layer.id));
     setMessage(`已加载版本 ${data.version}`);
   };

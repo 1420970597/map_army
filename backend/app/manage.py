@@ -7,6 +7,7 @@ import re
 import tarfile
 from pathlib import Path
 
+from botocore.exceptions import ClientError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -124,12 +125,24 @@ def restore(source):
                 content = raw.read()
                 if hashlib.sha256(content).hexdigest() != asset["sha256"]:
                     raise ValueError("对象校验失败")
-                s3().put_object(
-                    Bucket=settings().s3_bucket,
-                    Key=asset["object_key"],
-                    Body=content,
-                    ContentType=asset["content_type"],
-                )
+                try:
+                    existing = s3().get_object(Bucket=settings().s3_bucket, Key=asset["object_key"])["Body"]
+                except ClientError as exc:
+                    if exc.response["Error"]["Code"] not in ("NoSuchKey", "404"):
+                        raise
+                    s3().put_object(
+                        Bucket=settings().s3_bucket,
+                        Key=asset["object_key"],
+                        Body=content,
+                        ContentType=asset["content_type"],
+                        IfNoneMatch="*",
+                    )
+                else:
+                    try:
+                        if hashlib.sha256(existing.read()).hexdigest() != asset["sha256"]:
+                            raise ValueError("恢复目标 S3 已有不同内容的对象，未覆盖")
+                    finally:
+                        existing.close()
             for table in Base.metadata.sorted_tables:
                 rows = document["tables"][table.name]
                 if rows:

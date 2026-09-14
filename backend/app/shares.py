@@ -90,10 +90,12 @@ def update(
 
 
 @router.post("/{share_id}/copy", status_code=201)
-def copy_share(share_id: str, db: Session = Depends(session, scope="function")):
+def copy_share(share_id: str, version: int | None = None, db: Session = Depends(session, scope="function")):
     original = db.scalar(select(Share).where(Share.id == share_id).with_for_update())
     require(original is not None, "分享不存在", 404)
-    source = db.get(ShareVersion, (share_id, original.version))
+    actual = version if version is not None else original.version
+    source = db.get(ShareVersion, (share_id, actual))
+    require(source is not None, "分享版本不存在", 404)
     token = credential()
     share = Share(token_hash=digest(token), version=1)
     db.add(share)
@@ -103,7 +105,7 @@ def copy_share(share_id: str, db: Session = Depends(session, scope="function")):
         select(AssetReference.asset_id).where(
             AssetReference.owner_type == "share",
             AssetReference.owner_id == share_id,
-            AssetReference.version == str(original.version),
+            AssetReference.version == str(actual),
         )
     )
     references(db, assets, "share", share.id, 1)

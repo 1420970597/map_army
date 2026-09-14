@@ -1,4 +1,5 @@
 /** 文档与资料分别保留待保存快照，所有写入串行执行，版本冲突必须显式处理。 */
+import { ensureApiNetworkOnly } from './serviceWorker';
 import { api, ApiError } from './api';
 import { useBackendStore, type ProjectSummary } from '@/stores/useBackendStore';
 import { committedDocument, gestureInProgress, useDocumentStore } from '@/stores/useDocumentStore';
@@ -216,6 +217,11 @@ export async function refreshCatalog(signal?: AbortSignal) {
   const params = new URLSearchParams(window.location.search);
   const query = new URLSearchParams();
   for (const key of ['share', 'version']) if (params.has(key)) query.set(key, params.get(key)!);
+  const opened = useAccessStore.getState().shared;
+  if (params.has('share') && opened) {
+    query.set('share', opened.id);
+    query.set('version', String(opened.version));
+  }
   const [models, catalog] = await Promise.all([
     api<EquipmentModelDefinition[]>(`/models?${query}`, { signal }),
     api<{ symbol: CatalogEntry[] }>('/catalog', { signal }),
@@ -317,6 +323,8 @@ export function initializeBackend(external: boolean, signal: AbortSignal): Promi
   startSubscriptions();
   const task = async () => {
     try {
+      await ensureApiNetworkOnly(signal);
+      if (!alive()) return false;
       let owner: { id: string; name: string };
       try {
         owner = await api('/workspace', { signal });

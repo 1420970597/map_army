@@ -418,3 +418,25 @@ def test_legacy_final_cutover_appends_new_source_versions(client, tmp_path):
     saved = client.get("/api/shares/" + identifier).json()
     assert saved["version"] == 2 and saved["document"]["name"] == newer["name"]
     assert client.get("/api/shares/" + identifier + "?version=1").json()["document"] == document()
+
+
+def test_copy_pinned_share_retains_that_versions_assets(client):
+    doc = document()
+    asset = client.post("/api/assets", files={"file": ("old.txt", b"old-file", "text/plain")}).json()
+    doc["nativeMetadata"]["asset"] = asset["url"]
+    share = client.post("/api/shares", json={"document": doc}).json()
+    latest = document()
+    latest["name"] = "当前版本"
+    assert (
+        client.put(
+            "/api/shares/" + share["id"],
+            json={"document": latest},
+            headers={"If-Match": "1", "Authorization": "Bearer " + share["token"]},
+        ).status_code
+        == 200
+    )
+    copied = client.post("/api/shares/" + share["id"] + "/copy?version=1").json()
+    with TestClient(app) as visitor:
+        saved = visitor.get("/api/shares/" + copied["id"]).json()
+        assert saved["document"]["name"] == doc["name"]
+        assert visitor.get(asset["url"] + "?share=" + copied["id"] + "&version=1").content == b"old-file"

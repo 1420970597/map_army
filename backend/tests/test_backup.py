@@ -42,6 +42,22 @@ def test_backup_restore_into_new_database(tmp_path):
             check=True,
             capture_output=True,
         )
+        s3().create_bucket(Bucket=bucket)
+        with Session(engine()) as db:
+            conflicting_key = db.scalar(select(Asset.object_key).limit(1))
+        s3().put_object(Bucket=bucket, Key=conflicting_key, Body=b"existing-object-must-survive")
+        conflict = subprocess.run(
+            [sys.executable, "-m", "backend.app.manage", "restore", str(archive)],
+            env=environment,
+            capture_output=True,
+        )
+        assert conflict.returncode != 0
+        protected = s3().get_object(Bucket=bucket, Key=conflicting_key)["Body"]
+        try:
+            assert protected.read() == b"existing-object-must-survive"
+        finally:
+            protected.close()
+        s3().delete_object(Bucket=bucket, Key=conflicting_key)
         subprocess.run(
             [sys.executable, "-m", "backend.app.manage", "restore", str(archive)],
             env=environment,

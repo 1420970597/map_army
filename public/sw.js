@@ -11,7 +11,7 @@
  */
 
 /** 缓存版本：发布新版本时递增 */
-const VERSION = 'v1.0.1';
+const VERSION = 'v2.0.0-api-network-only';
 
 /** 预缓存（应用外壳与静态站点页） */
 const SHELL_CACHE = `map-army-shell-${VERSION}`;
@@ -96,6 +96,8 @@ self.addEventListener('install', (event) => {
           }
         }),
       );
+      // API 缓存策略升级不刷新页面或清除编辑状态，安装后立即接管网络请求。
+      await self.skipWaiting();
     })(),
   );
 });
@@ -103,6 +105,7 @@ self.addEventListener('install', (event) => {
 // 页面确认新版本后由此消息立即切换到等待中的 Service Worker。
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data?.type === 'API_CACHE_POLICY') event.ports[0]?.postMessage({ apiNetworkOnly: true });
 });
 
 self.addEventListener('activate', (event) => {
@@ -127,6 +130,8 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
+  // 私有数据和版本接口必须到服务器校验身份，不能从静态缓存读取。
+  if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return;
 
   if (isTileUrl(url)) {
     event.respondWith(tileStrategy(request));
@@ -185,7 +190,7 @@ async function assetStrategy(request) {
   const cached = await caches.match(request);
   const network = fetch(request)
     .then((response) => {
-      if (response.ok) {
+      if (response.ok && !response.headers.get('Cache-Control')?.includes('no-store')) {
         caches
           .open(SHELL_CACHE)
           .then((cache) => cache.put(request, response.clone()))

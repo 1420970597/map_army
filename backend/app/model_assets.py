@@ -50,6 +50,11 @@ def inspect_glb(data):
         require(False, "GLB 元数据无效")
     require(isinstance(root, dict) and root.get("asset", {}).get("version") == "2.0", "glTF 版本无效")
     require(bool(root.get("meshes")), "GLB 没有可显示的网格")
+    unsupported = {"KHR_draco_mesh_compression", "EXT_meshopt_compression", "KHR_texture_basisu"}
+    require(
+        not (set(root.get("extensionsUsed", [])) & unsupported),
+        "当前预览不支持压缩几何或 KTX2 贴图，请导出未压缩的自包含 GLB",
+    )
     for group in ("buffers", "images"):
         for value in root.get(group, []):
             uri = value.get("uri")
