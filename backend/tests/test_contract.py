@@ -105,6 +105,32 @@ def test_locked_layer_and_geometry_checked_on_server(client):
     assert client.post("/api/projects", json={"document": doc}).status_code == 422
 
 
+def test_locked_layer_management_keeps_feature_protection(client):
+    doc = document()
+    doc["layers"][0]["locked"] = True
+    doc["layers"].append({**doc["layers"][0], "id": "layer-b", "name": "乙", "order": 1})
+    project = client.post("/api/projects", json={"document": doc}).json()
+    endpoint = "/api/projects/" + project["id"]
+    doc["layers"][0].update(name="重命名", order=1, status="approved", visible=False, opacity=0.5)
+    doc["layers"][1]["order"] = 0
+    saved = client.put(endpoint, json={"document": doc}, headers={"If-Match": "1"})
+    assert saved.status_code == 200, saved.text
+    assert client.get(endpoint).json()["document"] == doc
+    changed = copy.deepcopy(doc)
+    changed["features"][0]["name"] = "仍然锁定"
+    rejected = client.put(endpoint, json={"document": changed}, headers={"If-Match": "2"})
+    assert rejected.status_code == 409, rejected.text
+    assert client.get(endpoint).json()["revision"] == 2
+    # 删除整个图层是独立的管理操作，前端显式记录解锁，历史内容仍可恢复。
+    doc["layers"] = doc["layers"][1:]
+    doc["features"] = []
+    deleted = client.put(
+        endpoint, json={"document": doc, "unlockedLayerIds": ["layer-a"]}, headers={"If-Match": "2"}
+    )
+    assert deleted.status_code == 200, deleted.text
+    assert client.get(endpoint + "?revision=2").json()["document"]["features"][0]["name"] == "单位"
+
+
 def test_assets_and_snapshot_reference_protection(client):
     asset = client.post(
         "/api/assets", files={"file": ("note.txt", b"reference-data", "text/plain")}, data={"kind": "file"}

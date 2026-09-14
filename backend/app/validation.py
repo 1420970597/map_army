@@ -172,7 +172,12 @@ def check_locks(previous, current):
         require(new is not None, "锁定图层不能删除", 409)
 
         def unchanged(x):
-            return {k: v for k, v in x.items() if k not in ("locked", "visible", "opacity")}
+            # 页面允许管理锁定图层的名称、顺序和状态，锁定仍保护内容与数据源。
+            return {
+                k: v
+                for k, v in x.items()
+                if k not in ("locked", "visible", "opacity", "name", "order", "status")
+            }
 
         require(unchanged(new) == unchanged(layer), "锁定图层不能修改", 409)
         before = {f["id"]: f for f in previous["features"] if f["layerId"] == layer["id"]}
