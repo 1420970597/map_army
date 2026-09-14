@@ -42,3 +42,227 @@
 .backend-status > span:first-child {
   flex: 1;
 }
+.app-dialog.mover-dialog {
+  width: min(1500px, 98vw);
+  max-width: 98vw;
+  max-height: 94vh;
+}
+.mover-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: end;
+  flex-wrap: wrap;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.mover-toolbar label {
+  display: grid;
+  gap: 0.25rem;
+}
+.mover-workspace {
+  display: grid;
+  grid-template-columns: 270px 1fr;
+  min-height: 560px;
+}
+.mover-workspace aside {
+  overflow: auto;
+  padding: 0.75rem;
+  border-right: 1px solid var(--border);
+}
+.mover-workspace aside ul {
+  list-style: none;
+  padding: 0;
+  max-height: 280px;
+  overflow: auto;
+}
+.mover-workspace aside li button {
+  width: 100%;
+  text-align: left;
+}
+.mover-workspace aside li button.active {
+  background: var(--accent);
+  color: white;
+}
+.mover-workspace main {
+  min-width: 0;
+  padding: 0.75rem;
+}
+.mover-preview {
+  min-height: 430px;
+  width: 100%;
+  background: #e8eef2;
+  border-radius: 0.35rem;
+}
+.mover-preview-empty {
+  min-height: 430px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+.mover-backdrop {
+  z-index: 1200;
+}
+.mover-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(360px, 1fr) 310px;
+  height: min(740px, 74vh);
+}
+.mover-layout h3 {
+  font-size: 0.9rem;
+  margin: 0.6rem 0;
+}
+.mover-library,
+.mover-properties {
+  overflow-y: auto;
+  padding: 0.75rem;
+  background: var(--bg-panel, #fff);
+}
+.mover-library {
+  border-right: 1px solid #d1d9df;
+}
+.mover-properties {
+  border-left: 1px solid #d1d9df;
+}
+.mover-library select,
+.mover-library input,
+.mover-properties input:not([type='checkbox']),
+.mover-properties select {
+  max-width: 100%;
+  width: 100%;
+}
+.mover-template-list {
+  max-height: 310px;
+  overflow: auto;
+  margin-top: 0.6rem;
+}
+.mover-template-list button,
+.mover-component-tree button {
+  width: 100%;
+  display: grid;
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border: 0;
+  background: transparent;
+}
+.mover-template-list button:hover,
+.mover-component-tree button[aria-pressed='true'] {
+  background: #dceaf3;
+  color: #153951;
+}
+.mover-template-list small,
+.mover-component-tree small {
+  font-size: 0.68rem;
+  color: #61727d;
+}
+.mover-stage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #e8eef2;
+  position: relative;
+}
+.mover-view-tools,
+.mover-bottom,
+.mover-component-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 0.4rem;
+}
+.mover-toolbar button,
+.mover-bottom button,
+.mover-library > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.mover-canvas {
+  flex: 1;
+  min-height: 320px;
+  position: relative;
+  overflow: hidden;
+}
+.mover-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.mover-coordinate-note {
+  font-size: 0.69rem;
+  padding: 0.4rem;
+  color: #526574;
+}
+.mover-bottom {
+  background: #f8fafb;
+  font-size: 0.75rem;
+}
+.mover-error,
+.mover-notice {
+  padding: 0.6rem;
+  margin: 0;
+  background: #fff1d2;
+  color: #633e00;
+}
+.mover-component-tree {
+  max-height: 200px;
+  overflow: auto;
+  border: 1px solid #d1d9df;
+}
+.mover-parameters .field {
+  margin-bottom: 0.4rem;
+  font-size: 0.76rem;
+}
+.mover-parameters fieldset,
+.mover-properties fieldset {
+  min-width: 0;
+  margin: 0.6rem 0;
+  padding: 0.5rem;
+}
+.mover-checkbox,
+.mover-part {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.76rem;
+  margin: 0.4rem 0;
+}
+.mover-properties textarea {
+  width: 100%;
+  min-height: 150px;
+  font-size: 0.7rem;
+}
+.mover-toolbar > input {
+  width: 170px;
+}
+.app-dialog.mover-dialog
+  .mover-toolbar
+  > input:not([type='checkbox']):not([type='color']):not([type='range']) {
+  width: 170px;
+}
+@media (max-width: 1000px) {
+  .mover-layout {
+    grid-template-columns: 180px minmax(280px, 1fr) 250px;
+  }
+}
+@media (max-width: 760px) {
+  .mover-layout {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+  .mover-dialog {
+    overflow-y: auto;
+  }
+  .mover-library,
+  .mover-properties {
+    max-height: 380px;
+  }
+  .mover-template-list {
+    max-height: 120px;
+  }
+  .mover-stage {
+    min-height: 440px;
+  }
+}

@@ -28,12 +28,13 @@ export default defineConfig({
     },
   },
   server: {
+    watch: { ignored: ['**/.venv/**', '**/backend/mover/data/**', '**/.npm-cache/**'] },
     port: 5173,
-    proxy: { '/api': 'http://127.0.0.1:30881' },
+    proxy: { '/api': process.env.BACKEND_URL ?? 'http://127.0.0.1:30881' },
     host: true,
     open: false,
   },
-  preview: { proxy: { '/api': 'http://127.0.0.1:30881' } },
+  preview: { proxy: { '/api': process.env.BACKEND_URL ?? 'http://127.0.0.1:30881' } },
   build: {
     outDir: 'dist',
     sourcemap: true,

@@ -19,6 +19,8 @@ import {
 import { useBackendStore } from '@/stores/useBackendStore';
 import { listEquipmentModels, type EquipmentModelDefinition } from '@/core/model/equipment3d';
 import './workspace.css';
+import { MoverCreatorDialog } from './MoverCreatorDialog';
+import { useMoverText } from './moverText';
 
 interface ModelJob {
   id: string;
@@ -28,6 +30,7 @@ interface ModelJob {
   result?: EquipmentModelDefinition;
 }
 export function WorkspacePanel({ onClose }: { onClose(): void }) {
+  const t = useMoverText();
   const state = useBackendStore();
   const [tab, setTab] = useState<'projects' | 'models' | 'assets' | 'access'>('projects');
   const [name, setName] = useState('新项目');
@@ -38,6 +41,8 @@ export function WorkspacePanel({ onClose }: { onClose(): void }) {
   const [jobs, setJobs] = useState<ModelJob[]>([]);
   const [deleting, setDeleting] = useState('');
   const [editing, setEditing] = useState<EquipmentModelDefinition | null>(null);
+  const [moverCreator, setMoverCreator] = useState(false);
+  const [moverModel, setMoverModel] = useState<EquipmentModelDefinition>();
   const [historyProjectId, setHistoryProjectId] = useState<string | null>(null);
   const [versions, setVersions] = useState<{ revision: number; name: string; createdAt: number }[]>(
     [],
@@ -262,6 +267,20 @@ export function WorkspacePanel({ onClose }: { onClose(): void }) {
           )}
           {tab === 'models' && (
             <>
+              <button
+                onClick={() => {
+                  setMoverModel(undefined);
+                  setMoverCreator(true);
+                }}
+              >
+                {t('打开浏览器 Mover Creator')}
+              </button>
+              {moverCreator && (
+                <MoverCreatorDialog
+                  initialModel={moverModel}
+                  onClose={() => setMoverCreator(false)}
+                />
+              )}
               <p>内置模型可直接在军标详情中选择。自定义模型入库后，也会出现在同一目录。</p>
               <label className="field">
                 添加自定义模型
@@ -333,6 +352,14 @@ export function WorkspacePanel({ onClose }: { onClose(): void }) {
                         编辑模型资料
                       </button>
                     )}
+                    <button
+                      onClick={() => {
+                        setMoverModel(model);
+                        setMoverCreator(true);
+                      }}
+                    >
+                      {t('编辑挂点 / 派生模型')}
+                    </button>
                   </li>
                 ))}
               </ul>
