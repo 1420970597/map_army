@@ -1,0 +1,29 @@
+{
+  "date": "2026-09-14T10:33:48.869867+00:00",
+  "pages": [
+    {
+      "url": "https://www.map.army/doc/en/llms.txt",
+      "status": 200,
+      "bytes": 11432,
+      "sha256": "65fc0c3715015b59109cefdc6acf7c404484391e18eb6d7f2f751cb36cc3aa4b"
+    },
+    {
+      "url": "https://www.map.army/doc/en/map/3d_map_view/",
+      "status": 200,
+      "bytes": 56873,
+      "sha256": "1d9937f6d80ee59d043b9c9d66246104e2e5e3bfa4894f22fa463c0697ad1788"
+    },
+    {
+      "url": "https://www.map.army/doc/en/symbols/symbol-editor/",
+      "status": 200,
+      "bytes": 55485,
+      "sha256": "ae6896236c09746726faceaa4e6297770d6f71306b1874365bb611a52c2ed2c8"
+    },
+    {
+      "url": "https://www.map.army/doc/en/data-exchange/create-a-share/",
+      "status": 200,
+      "bytes": 58895,
+      "sha256": "a7c3dc3b6147974c74987ed5148e9b08826e23603f8660f08d5613f5da5de6a1"
+    }
+  ]
+}
