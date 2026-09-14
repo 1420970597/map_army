@@ -60,4 +60,4 @@
 - `src/core/backend/sync.test.ts` 5 项通过：保存期间继续编辑、409 后刷新恢复、启动断网后重连、待同步偏好恢复、拖动完成后保存。
 - 完整 `npm run ci` 已通过一轮（1,036 项 Vitest、当时的 18 项 Python 集成测试、3 项旧 Node 兼容测试、模型校验和生产构建）；后续变更完成后重跑最终门槛。
 - `APP_PORT=8088 docker compose -p map_army_backend up --build -d` 已启动完整服务；`/api/health` 返回 MySQL/S3/schema 0001。`scripts/backend-smoke.py` 经真实 HTTP 上传 OBJ、独立 Blender 转换、服务重启、再读取项目/OBJ/GLB 全部通过。旧 8080 服务尚未切换。
-- 浏览器验收、最终 CI、评审、PR 和主线合并仍在执行，不将 P04/P08/P11/P12 标为完成。
+- 浏览器验收、最终 CI、评审、PR 和主线合并均已完成；P04、P08、P11、P12 有对应代码与证据。
