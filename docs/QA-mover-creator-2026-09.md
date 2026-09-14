@@ -32,6 +32,8 @@
 
 ## 数据与实现边界
 
+最终 Compose 项目 `map_army_backend` 的前端/API/worker/MySQL/S3 均 healthy。首页与 `/api/health` 正常（mysql/s3/schema 0002）。`backend-smoke.py create` 完成项目创建、S3 上传和独立 Blender OBJ 转换；重启 api/worker/mysql/s3 后，`verify` 读取同一项目/原始文件/GLB 全部成功。既有数据卷未清除。
+
 - MySQL `mover_designs/mover_versions`，Alembic `0002`；源 AMC/冻结依赖及生成 GLB 在本地 S3。历史引用由 AssetReference 保护，使用中的旧版本不被新发布覆盖。
 - 本轮内置版本 `amc-6` 保留独立组件实例。开发验收产生的 `amc-1` 至 `amc-5` 仍保留，既有引用继续有效。
 - 原生 C++ 几何内核不依赖 Qt/OpenGL；与 Python GLB 封装配合。Blender 继续负责自定义 OBJ 转换；没有声称 AMC 经由 Blender 反向建模。
