@@ -66,3 +66,12 @@ test-results/
 # Codex 本地技能缓存，不属于项目源码
 .agents/
 skills-lock.json
+
+# Python 与本机后端运行数据
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+backend/tool/
+backups/
