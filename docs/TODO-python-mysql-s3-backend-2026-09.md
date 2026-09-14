@@ -35,7 +35,7 @@
 - [x] P09：图像叠加与打印产物进入资产库；分享引用的自定义资产按分享版本可读取；历史项目版本引用不被删除破坏。
 - [x] P10：Compose 完整服务编排、开发脚本、迁移/备份/恢复操作、环境示例、接口与部署文档；持久化重启验收。
 - [x] P11：Python 集成测试使用真实 MySQL 与 MinIO；完整前端 CI、Chromium 关键流程、旧分享迁移、并发、资源权限、离线与恢复检查；记录证据；真实 MySQL/MinIO、23 项 Python、1,036 项 Vitest、18 项 Playwright、8080 切换 smoke 均通过。
-- [x] P12：分阶段 Conventional Commits；创建 PR、评审、CI、Compose 验收后合并 main；合并前后复核原站与主线，更新差异 ToDo。PR 与主线复核待远端合并完成。
+- [x] P12：分阶段 Conventional Commits；创建 PR、评审、CI、Compose 验收后合并 main；合并前后复核原站与主线，更新差异 ToDo。PR #40 已合并；主线提交 `3d229dc` 已完成合并后原站复核与下一轮差异记录。
 
 ## 完成门槛与范围说明
 
