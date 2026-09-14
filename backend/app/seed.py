@@ -53,7 +53,8 @@ def seed():
                 part["url"] = f"/api/assets/{attachment.id}/content"
             old = db.get(ModelDefinition, (item["id"], item["version"]))
             if old:
-                old.payload, old.asset_id = item, asset.id
+                if old.payload != item or old.asset_id != asset.id:
+                    raise ValueError("内置模型内容变化时必须递增资产版本：" + item["id"])
             else:
                 db.add(
                     ModelDefinition(

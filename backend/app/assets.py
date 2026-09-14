@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from .auth import optional_workspace, workspace
 from .config import settings
 from .db import session
+from .documents import workspace_assets
 from .models import Asset, AssetReference, Job, Share
 from .storage import asset_json, read_asset, store_asset
 from .validation import require, sanitize_svg
@@ -23,6 +24,8 @@ def accessible(db, request, asset_id):
     require(asset is not None, "资产不存在", 404)
     owner = optional_workspace(request, db)
     if asset.workspace_id is None or (owner and asset.workspace_id == owner.id):
+        return asset
+    if owner and asset.id in workspace_assets(db, owner.id):
         return asset
     sid = request.query_params.get("share")
     share = db.get(Share, sid) if sid else None

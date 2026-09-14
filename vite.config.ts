@@ -7,8 +7,7 @@ import { fileURLToPath, URL } from 'node:url';
 /**
  * Vite 构建配置。
  *
- * 与原站一致，本应用是纯前端单页应用（SPA），全部数据保存在浏览器本地，
- * 不依赖任何后端接口；因此构建产物可以直接托管到任意静态服务器。
+ * 单页应用通过同源 /api 访问 Python 后端，浏览器缓存用于离线编辑与迁移。
  */
 export default defineConfig({
   plugins: [
@@ -30,10 +29,11 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    proxy: { '/api': 'http://127.0.0.1:3001' },
+    proxy: { '/api': 'http://127.0.0.1:30881' },
     host: true,
     open: false,
   },
+  preview: { proxy: { '/api': 'http://127.0.0.1:30881' } },
   build: {
     outDir: 'dist',
     sourcemap: true,

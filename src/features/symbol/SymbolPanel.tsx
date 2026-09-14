@@ -1,3 +1,4 @@
+import { useBackendStore } from '@/stores/useBackendStore';
 /** 六大分区符号库，支持别名搜索、收藏、标准身份及战术图形选择。 */
 import { useMemo, useState } from 'react';
 import type { TacticalGraphicType } from '@/core/model';
@@ -37,6 +38,7 @@ function entrySidc(entry: CatalogEntry, affiliation: Affiliation): string {
 }
 
 export function SymbolPanel() {
+  useBackendStore((state) => state.catalogVersion);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<SymbolCategory>(SymbolCategory.Formations);
   const [affiliation, setAffiliation] = useState<Affiliation>(Affiliation.Friend);

@@ -46,12 +46,19 @@ def run_one():
             with tempfile.TemporaryDirectory(prefix="maparmy-model-") as tmp:
                 path = Path(tmp)
                 # OBJ 原件只携带几何；材质依赖需要使用自包含 GLB 导入。
-                (path / "source.obj").write_bytes(data)
+                allowed = {"v", "vt", "vn", "f", "o", "g", "s"}
+                geometry = "\n".join(
+                    line
+                    for line in data.decode("utf-8-sig").splitlines()
+                    if line.split() and line.split()[0] in allowed
+                )
+                (path / "source.obj").write_text(geometry)
                 subprocess.run(
                     [
                         "blender",
                         "--background",
                         "--factory-startup",
+                        "--disable-autoexec",
                         "--python-exit-code",
                         "1",
                         "--python",

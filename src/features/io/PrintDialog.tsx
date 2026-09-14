@@ -1,3 +1,5 @@
+import { backendAvailable } from '@/core/backend/sync';
+import { uploadAsset } from '@/core/backend/api';
 /** 打印与地理配准图像导出；逐行重采样将 Web Mercator 截图转换为等经纬度影像。 */
 import { useState } from 'react';
 import { toCanvas } from 'html-to-image';
@@ -137,12 +139,27 @@ export function PrintDialog({ onClose }: { onClose: () => void }) {
           10,
           paperHeight - 10,
         );
+        if (backendAvailable())
+          await uploadAsset(pdf.output('blob'), toSafeFilename(doc.name, '.pdf'), 'export');
         pdf.save(toSafeFilename(doc.name, '.pdf'));
         setMessage(`PDF 已生成，中心纬度比例约 1:${denominator}；打印时使用 100% 原始尺寸。`);
       } else {
         const link = document.createElement('a');
         link.href = output.toDataURL(format === 'jpg' ? 'image/jpeg' : 'image/png', 0.95);
         link.download = toSafeFilename(doc.name, `.${format}`);
+        if (backendAvailable()) {
+          await uploadAsset(
+            await fetch(link.href).then((response) => response.blob()),
+            link.download,
+            'export',
+          );
+          if (georef)
+            await uploadAsset(
+              new Blob([worldFile(bounds, output.width, output.height)], { type: 'text/plain' }),
+              toSafeFilename(doc.name, format === 'jpg' ? '.jgw' : '.pgw'),
+              'export',
+            );
+        }
         link.click();
         if (georef)
           downloadText(worldFile(bounds, output.width, output.height), {

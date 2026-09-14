@@ -39,9 +39,12 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "ci": "npm run lint && npm run format:check && npm run models:check && npm run test && npm run test:server && npm run build",
-    "test:server": "node --test server/*.test.mjs",
-    "server": "node server/index.mjs",
-    "predev": "node site/cesium.mjs"
+    "test:server": "npm run backend:tool && python3 scripts/backend-run.py check && npm run test:legacy-shares",
+    "server": "python3 scripts/backend-run.py api",
+    "predev": "node site/cesium.mjs",
+    "backend:tool": "node scripts/build-backend-tool.mjs",
+    "backend:worker": "python3 scripts/backend-run.py worker",
+    "test:legacy-shares": "node --test server/*.test.mjs"
   },
   "dependencies": {
     "cesium": "^1.145.0",

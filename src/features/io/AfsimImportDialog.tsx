@@ -1,10 +1,6 @@
+import { importAfsimData } from '@/core/backend/exchange';
 import { useEffect, useRef, useState } from 'react';
-import {
-  afsimEntryPaths,
-  afsimFilesToDocument,
-  type AfsimImportResult,
-  type AfsimSourceFile,
-} from '@/core/io/afsim';
+import { afsimEntryPaths, type AfsimImportResult, type AfsimSourceFile } from '@/core/io/afsim';
 import { downloadText } from '@/core/io';
 import { useAccessStore } from '@/stores/useAccessStore';
 import { getMap } from '@/features/map/mapInstance';
@@ -52,7 +48,7 @@ export function AfsimImportDialog({
     setResult(null);
     setMessage('正在读取想定及依赖文件…');
     try {
-      const parsed = await afsimFilesToDocument(files, entry);
+      const parsed = await importAfsimData(files, entry);
       if (request !== generation.current) return;
       setResult(parsed);
       setApplied(false);

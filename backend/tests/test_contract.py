@@ -4,13 +4,12 @@ import copy
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
-
 from backend.app.db import engine
 from backend.app.main import app
 from backend.app.models import Feature, Layer
+from fastapi.testclient import TestClient
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 
 @pytest.fixture
@@ -213,3 +212,184 @@ def test_legacy_share_migration_preserves_old_token(client, tmp_path):
         ).status_code
         == 200
     )
+
+
+def test_create_retry_does_not_duplicate_project(client):
+    import uuid
+
+    payload = {"document": document(), "clientId": uuid.uuid4().hex}
+    first = client.post("/api/projects", json=payload)
+    retry = client.post("/api/projects", json=payload)
+    assert first.status_code == retry.status_code == 201
+    assert first.json()["id"] == retry.json()["id"]
+    assert len(client.get("/api/projects").json()) == 1
+
+
+def test_shared_image_export_and_independent_project_access(client):
+    import base64
+
+    doc = document()
+    content = b"test-image-bytes"
+    image = client.post(
+        "/api/assets", files={"file": ("map.png", content, "image/png")}, data={"kind": "image"}
+    ).json()
+    doc["layers"][0]["image"] = {
+        "url": image["url"],
+        "corners": [{"lon": 0, "lat": 1}, {"lon": 1, "lat": 1}, {"lon": 0, "lat": 0}],
+    }
+    share = client.post("/api/shares", json={"document": doc}).json()
+    with TestClient(app) as visitor:
+        visitor.post("/api/workspaces", json={})
+        shared = visitor.get(f"/api/shares/{share['id']}").json()["document"]
+        assert visitor.get(shared["layers"][0]["image"]["url"]).content == content
+        forbidden = visitor.post("/api/exchange/export", json={"document": doc, "format": "json"})
+        assert forbidden.status_code == 403
+        exported = visitor.post(
+            f"/api/exchange/export?share={share['id']}&version=1", json={"document": doc, "format": "json"}
+        )
+        assert exported.status_code == 200, exported.text
+        raw = visitor.get(exported.json()["asset"]["url"]).content
+        assert base64.b64encode(content) in raw
+        copied = visitor.post(f"/api/projects?share={share['id']}&version=1", json={"document": doc})
+        assert copied.status_code == 201, copied.text
+        assert visitor.get(image["url"]).content == content
+        assert client.delete("/api/assets/" + image["id"]).status_code == 409
+
+
+def test_model_metadata_mounts_and_failed_job_retry(client):
+    from pathlib import Path
+
+    from backend.app.worker import run_one
+
+    def import_model(filename):
+        source = client.post(
+            "/api/assets",
+            files={
+                "file": (
+                    filename,
+                    Path("public/models/demo-v1/" + filename).read_bytes(),
+                    "model/gltf-binary",
+                )
+            },
+            data={"kind": "model-source"},
+        ).json()
+        job = client.post("/api/model-imports", json={"assetId": source["id"]}).json()
+        for _ in range(100):
+            run_one()
+            found = next(j for j in client.get("/api/model-imports").json() if j["id"] == job["id"])
+            if found["status"] in ("complete", "failed"):
+                assert found["status"] == "complete", found
+                return found["result"]
+        raise AssertionError("任务未完成")
+
+    aircraft = import_model("aircraft.glb")
+    part_name = "sensor.glb"
+    part = import_model(part_name)
+    sockets = [{**socket, "accepts": [part["id"]]} for socket in aircraft["sockets"]]
+    endpoint = "/api/models/" + aircraft["id"] + "/metadata"
+    result = client.put(
+        endpoint,
+        json={
+            "baseVersion": "1",
+            "sockets": sockets,
+            "attachments": [{"id": part["id"], "version": part["version"]}],
+        },
+    )
+    assert result.status_code == 201, result.text
+    model = result.json()
+    assert model["version"] != "1"
+    assert client.put(endpoint, json={"baseVersion": "1", "sockets": [1]}).status_code == 422
+    doc = document()
+    doc["features"][0]["equipment3d"] = {
+        "modelId": model["id"],
+        "assetVersion": model["version"],
+        "attachments": [
+            {"socketId": sockets[0]["id"], "attachmentId": part["id"], "assetVersion": part["version"]}
+        ],
+    }
+    assert client.post("/api/projects", json={"document": doc}).status_code == 201
+    doc["features"][0]["equipment3d"]["attachments"][0]["socketId"] = "missing"
+    assert client.post("/api/projects", json={"document": doc}).status_code == 422
+    bad = client.post(
+        "/api/assets",
+        files={"file": ("bad.glb", b"not a glb", "model/gltf-binary")},
+        data={"kind": "model-source"},
+    ).json()
+    job = client.post("/api/model-imports", json={"assetId": bad["id"]}).json()
+    for _ in range(100):
+        run_one()
+        found = next(j for j in client.get("/api/model-imports").json() if j["id"] == job["id"])
+        if found["status"] == "failed":
+            break
+    assert found["status"] == "failed" and found["error"]
+    assert client.post("/api/model-imports/" + job["id"] + "/retry").json()["status"] == "queued"
+    run_one()
+
+
+def test_invalid_preferences_do_not_replace_valid_data(client):
+    for preferences in ({"update": "invalid"}, {"language": "invalid"}, {"hexOpacity": 8}):
+        result = client.put(
+            "/api/workspace/settings", json={"preferences": preferences}, headers={"If-Match": "0"}
+        )
+        assert result.status_code == 422, result.text
+    assert client.get("/api/workspace/settings").json()["version"] == 0
+
+
+@pytest.mark.parametrize("format", ["milxlyz", "milxly", "geojson", "kml"])
+def test_exchange_formats_roundtrip(client, format):
+    doc = document()
+    doc["features"][0]["sidc"] = "SFGPUCI----K---"
+    exported = client.post("/api/exchange/export", json={"document": doc, "format": format})
+    assert exported.status_code == 200, exported.text
+    asset = exported.json()["asset"]
+    raw = client.get(asset["url"]).content
+    imported = client.post(
+        "/api/exchange/import", files={"file": ("map." + format, raw, asset["contentType"])}
+    )
+    assert imported.status_code == 200, imported.text
+    assert len(imported.json()["document"]["features"]) == 1
+
+
+def test_chunked_multipart_limit_applies_before_parsing(client, monkeypatch):
+    from backend.app.config import settings
+
+    monkeypatch.setattr(settings(), "max_file_bytes", 16)
+    result = client.post(
+        "/api/assets",
+        content=iter([b"a" * 600000, b"b" * 600000]),
+        headers={"Content-Type": "multipart/form-data; boundary=test"},
+    )
+    assert result.status_code == 413, result.text
+
+
+def test_unlock_and_edit_in_same_save_and_noop(client):
+    doc = document()
+    doc["layers"][0]["locked"] = True
+    project = client.post("/api/projects", json={"document": doc}).json()
+    endpoint = "/api/projects/" + project["id"]
+    unchanged = client.put(endpoint, json={"document": doc}, headers={"If-Match": "1"})
+    assert unchanged.json()["revision"] == 1
+    doc["layers"][0]["locked"] = False
+    doc["features"][0]["name"] = "解锁后编辑"
+    edited = client.put(
+        endpoint, json={"document": doc, "unlockedLayerIds": ["layer-a"]}, headers={"If-Match": "1"}
+    )
+    assert edited.status_code == 200, edited.text
+    restored = client.post(endpoint + "/versions/1/restore", headers={"If-Match": "2"})
+    assert restored.status_code == 200
+    assert restored.json()["document"]["layers"][0]["locked"] is True
+
+
+def test_afsim_source_and_export_diagnostics(client):
+    from pathlib import Path
+
+    files = [
+        {"path": path.name, "content": path.read_text()} for path in Path("e2e/fixtures/afsim").glob("*.txt")
+    ]
+    imported = client.post("/api/exchange/afsim", json={"files": files, "entry": "main.txt"})
+    assert imported.status_code == 200, imported.text
+    doc = imported.json()["document"]
+    assert doc["features"]
+    exported = client.post("/api/exchange/export", json={"document": doc, "format": "afsim"})
+    assert exported.status_code == 200, exported.text
+    assert client.get(exported.json()["asset"]["url"]).content[:2] == b"PK"

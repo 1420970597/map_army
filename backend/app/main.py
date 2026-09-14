@@ -29,13 +29,18 @@ async def limits(request: Request, call_next):
     length = request.headers.get("content-length", "0")
     if not length.isdigit() or int(length) > settings().max_file_bytes + 1024 * 1024:
         return JSONResponse({"error": "请求超过大小限制"}, status_code=413)
-    if request.headers.get("content-type", "").startswith("application/json"):
-        body = bytearray()
-        async for chunk in request.stream():
-            body.extend(chunk)
-            if len(body) > settings().max_document_bytes:
-                return JSONResponse({"error": "文档超过大小限制"}, status_code=413)
-        request._body = bytes(body)
+    maximum = (
+        settings().max_document_bytes
+        if request.headers.get("content-type", "").startswith("application/json")
+        else settings().max_file_bytes + 1024 * 1024
+    )
+    # 在 multipart 解析和临时文件落盘前也限制无 Content-Length 的分块请求。
+    body = bytearray()
+    async for chunk in request.stream():
+        body.extend(chunk)
+        if len(body) > maximum:
+            return JSONResponse({"error": "请求超过大小限制"}, status_code=413)
+    request._body = bytes(body)
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     if "Cache-Control" not in response.headers:

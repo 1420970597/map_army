@@ -1,0 +1,44 @@
+.workspace-dialog {
+  width: min(850px, 96vw);
+}
+.workspace-tabs,
+.workspace-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+.workspace-tabs button[aria-pressed='true'] {
+  background: #235d80;
+  color: white;
+}
+.workspace-list {
+  padding: 0;
+  list-style: none;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.workspace-list li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 4px;
+  border-bottom: 1px solid #cbd5e1;
+}
+.workspace-list li > div,
+.workspace-list li > span,
+.workspace-list li > a {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.workspace-list small {
+  display: block;
+  color: #536477;
+}
+.backend-status {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.backend-status > span:first-child {
+  flex: 1;
+}

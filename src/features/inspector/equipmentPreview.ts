@@ -48,6 +48,8 @@ export function createEquipmentPreview(
     opacity: 0.5,
   });
   const point = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  let radius = 7;
 
   const render = () => {
     if (disposed || lost) return;
@@ -67,8 +69,14 @@ export function createEquipmentPreview(
     );
   };
   const resetCamera = () => {
-    camera.position.set(12, 9, 15);
-    controls.target.set(0, 0.5, 0);
+    const distance =
+      (radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2))) *
+      Math.max(1, 1 / camera.aspect) *
+      1.15;
+    camera.position
+      .copy(center)
+      .add(new THREE.Vector3(12, 9, 15).normalize().multiplyScalar(distance));
+    controls.target.copy(center);
     controls.update();
     render();
   };
@@ -159,6 +167,15 @@ export function createEquipmentPreview(
         templates.set(part.id, wrapper);
       }
       scene.add(aircraft);
+      const sphere = new THREE.Box3().setFromObject(aircraft).getBoundingSphere(new THREE.Sphere());
+      center.copy(sphere.center);
+      radius = Math.max(sphere.radius, 0.001);
+      camera.near = radius / 1000;
+      camera.far = radius * 1000;
+      controls.minDistance = radius * 0.2;
+      controls.maxDistance = radius * 30;
+      camera.updateProjectionMatrix();
+      resetCamera();
       ready = true;
       rebuild();
       onStatus('ready');
@@ -179,8 +196,14 @@ export function createEquipmentPreview(
     },
     resetCamera,
     viewUnderside() {
-      camera.position.set(12, -9, 15);
-      controls.target.set(0, 0, 0);
+      const distance =
+        (radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2))) *
+        Math.max(1, 1 / camera.aspect) *
+        1.15;
+      camera.position
+        .copy(center)
+        .add(new THREE.Vector3(12, -9, 15).normalize().multiplyScalar(distance));
+      controls.target.copy(center);
       controls.update();
       render();
     },

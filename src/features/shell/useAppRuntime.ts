@@ -1,3 +1,5 @@
+import { importMapData } from '@/core/backend/exchange';
+import { initializeBackend, stopBackend, retryBackend } from '@/core/backend/sync';
 /** 应用启动与文件关联：外部分享优先于本地会话，异步取消避免卸载后覆盖文档。 */
 import { useEffect } from 'react';
 import {
@@ -8,9 +10,10 @@ import {
   deserializeMilxly,
   serializeMilxly,
 } from '@/core/io';
-import { parseMapFile, MAX_FILE_BYTES } from '@/core/io/files';
+import { MAX_FILE_BYTES } from '@/core/io/files';
 import { boundsOf, type MapDocument } from '@/core/model';
 import { useDocumentStore } from '@/stores/useDocumentStore';
+import { useBackendStore } from '@/stores/useBackendStore';
 import { useAccessStore } from '@/stores/useAccessStore';
 import { useSessionStore } from '@/stores/useSessionStore';
 import { useViewStore } from '@/stores/useViewStore';
@@ -55,6 +58,7 @@ export function useAppRuntime() {
     };
     const initialize = async () => {
       try {
+        const connected = await initializeBackend(external, abort.signal);
         if (inline) {
           open(inline.document, inline.mode === 'view');
           return;
@@ -93,13 +97,14 @@ export function useAppRuntime() {
           if (!response.ok) throw new Error('在线图层无法读取，请检查地址与 CORS 设置');
           if (Number(response.headers.get('Content-Length')) > MAX_FILE_BYTES)
             throw new Error('在线图层文件过大');
-          const result = parseMapFile(
+          const result = await importMapData(
             new Uint8Array(await response.arrayBuffer()),
             url.pathname.split('/').pop() ?? '在线图层',
           );
           open(result.document, readOnly);
           return;
         }
+        if (abort.signal.aborted || connected || useBackendStore.getState().workspaceId) return;
         useAccessStore.getState().setReadOnly(false);
         const result = sessionLoadIntegration(loadDocumentResult(), `tab-${Date.now()}`);
         useSessionStore.getState().setPendingRestore(result.pendingRestore);
@@ -114,6 +119,8 @@ export function useAppRuntime() {
       }
     };
     void initialize();
+    const onOnline = () => void retryBackend();
+    window.addEventListener('online', onOnline);
     const onStorage = (event: StorageEvent) => {
       if (
         !external &&
@@ -150,7 +157,7 @@ export function useAppRuntime() {
       for (const handle of files) {
         try {
           const file = await handle.getFile();
-          const result = parseMapFile(new Uint8Array(await file.arrayBuffer()), file.name);
+          const result = await importMapData(new Uint8Array(await file.arrayBuffer()), file.name);
           if (!abort.signal.aborted) {
             applyImportedDocument(result.document);
             fitDocument(result.document);
@@ -179,8 +186,10 @@ export function useAppRuntime() {
     return () => {
       abort.abort();
       stopSave();
+      stopBackend();
       window.clearInterval(poll);
       window.removeEventListener('storage', onStorage);
+      window.removeEventListener('online', onOnline);
       launch?.setConsumer(() => {});
     };
   }, []);

@@ -1,5 +1,6 @@
 """兼容旧分享地址和令牌；数据库行锁串行化版本递增。"""
 
+import copy
 import secrets
 
 from fastapi import APIRouter, Depends, Request
@@ -58,8 +59,13 @@ def read(share_id: str, version: int | None = None, db: Session = Depends(sessio
     actual = version if version is not None else share.version
     saved = db.get(ShareVersion, (share.id, actual))
     require(saved is not None, "分享版本不存在", 404)
+    document = copy.deepcopy(saved.document)
+    for layer in document["layers"]:
+        image = layer.get("image")
+        if image and image.get("url", "").startswith("/api/assets/"):
+            image["url"] = image["url"].split("?")[0] + f"?share={share_id}&version={actual}"
     return {
-        "document": saved.document,
+        "document": document,
         "version": actual,
         "latestVersion": share.version,
         "updatedAt": saved.created_at,

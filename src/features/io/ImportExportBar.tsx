@@ -1,3 +1,5 @@
+import { backendAvailable } from '@/core/backend/sync';
+import { importMapData, exportMapData, downloadAsset } from '@/core/backend/exchange';
 /** 文件与分享入口。导入默认追加图层；导出可限制为当前活动图层。 */
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -13,7 +15,7 @@ import {
 } from '@/core/io';
 import type { AfsimExportResult } from '@/core/io';
 import { afsimExportText } from '@/core/io/afsim/exportText';
-import { parseMapFile, exportMilxArchive } from '@/core/io/files';
+import { exportMilxArchive } from '@/core/io/files';
 import { AfsimImportDialog } from './AfsimImportDialog';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { useAccessStore } from '@/stores/useAccessStore';
@@ -51,8 +53,23 @@ export function ImportExportBar() {
   ) => afsimExportText(language, key, values);
 
   /** 导出静态单位为标准 AFSIM 想定目录压缩包。 */
-  const exportAfsim = (layerId = activeLayerId, forceLayer = false): void => {
+  const exportAfsim = async (layerId = activeLayerId, forceLayer = false): Promise<void> => {
     try {
+      if (backendAvailable()) {
+        const result = await exportMapData(doc, 'afsim', {
+          name: doc.name,
+          layerIds: forceLayer || scope === 'active' ? [layerId] : undefined,
+          language,
+        });
+        setAfsimReport({ ...result, archive: new Uint8Array() });
+        if (!result.exported) {
+          setMessage(afsimText('empty'));
+          return;
+        }
+        await downloadAsset(result.asset);
+        setMessage(afsimText('done', { count: result.exported, skipped: result.skipped }));
+        return;
+      }
       const result = documentToAfsim(doc, {
         name: doc.name,
         layerIds: forceLayer || scope === 'active' ? [layerId] : undefined,
@@ -76,9 +93,9 @@ export function ImportExportBar() {
     }
   };
 
-  const exportFile = (layerId = activeLayerId, forceLayer = false) => {
+  const exportFile = async (layerId = activeLayerId, forceLayer = false) => {
     if (format === 'afsim') {
-      exportAfsim(layerId, forceLayer);
+      await exportAfsim(layerId, forceLayer);
       return;
     }
     const output =
@@ -89,6 +106,20 @@ export function ImportExportBar() {
             layers: doc.layers.filter((l) => l.id === layerId),
             features: doc.features.filter((f) => f.layerId === layerId),
           };
+    if (backendAvailable()) {
+      try {
+        const result = await exportMapData(output, format);
+        await downloadAsset(result.asset);
+        setMessage(
+          result.warnings.length
+            ? `文件已导出；${result.warnings.join('；')}`
+            : '文件已导出并保存到资产库',
+        );
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : '导出失败');
+      }
+      return;
+    }
     if (format === 'milxlyz')
       downloadBytes(exportMilxArchive(output), {
         filename: toSafeFilename(doc.name, '.milxlyz'),
@@ -151,7 +182,7 @@ export function ImportExportBar() {
           const file = event.target.files?.[0];
           if (!file) return;
           try {
-            const result = parseMapFile(new Uint8Array(await file.arrayBuffer()), file.name);
+            const result = await importMapData(new Uint8Array(await file.arrayBuffer()), file.name);
             applyImportedDocument(result.document, importMode, targetLayerId);
             setMessage(
               `已导入 ${result.document.features.length} 个要素${result.skipped ? `，跳过 ${result.skipped} 个不支持的要素` : ''}`,

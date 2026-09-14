@@ -55,6 +55,7 @@ def backup(destination):
     if path.exists():
         raise ValueError("备份目标已存在，不覆盖")
     path.parent.mkdir(parents=True, exist_ok=True)
+    path.touch(mode=0o600, exist_ok=False)
     try:
         with engine().connect().execution_options(isolation_level="REPEATABLE READ") as conn, conn.begin():
             rows = {

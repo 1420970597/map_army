@@ -9,6 +9,7 @@ from .auth import COOKIE, credential, digest, workspace
 from .config import settings
 from .db import session
 from .models import AssetReference, CustomSymbol, Favorite, MigrationRecord, Preference, Project, Workspace
+from .preferences import validate_preferences
 from .storage import store_asset
 from .validation import require, sanitize_svg, text
 
@@ -98,7 +99,7 @@ def read_settings(request: Request, db: Session = Depends(session, scope="functi
 def write_settings(db, value, body):
     for scope in ("preferences", "symbol", "view"):
         data = body.get(scope, {})
-        require(isinstance(data, dict), "偏好格式无效")
+        validate_preferences(scope, data)
         require(len(str(data)) <= 100000, "偏好内容过大")
         pref = db.get(Preference, (value.id, scope))
         if pref:
@@ -140,7 +141,7 @@ def write_settings(db, value, body):
             db.execute(
                 delete(AssetReference).where(
                     AssetReference.owner_type == "symbol",
-                    AssetReference.owner_id == value.id + ":" + symbol["id"],
+                    AssetReference.owner_id == digest(value.id + ":" + symbol["id"]),
                 )
             )
             old.asset_id, old.payload = asset.id, payload
@@ -150,7 +151,7 @@ def write_settings(db, value, body):
             AssetReference(
                 asset_id=asset.id,
                 owner_type="symbol",
-                owner_id=value.id + ":" + symbol["id"],
+                owner_id=digest(value.id + ":" + symbol["id"]),
                 version="current",
             )
         )
@@ -158,7 +159,8 @@ def write_settings(db, value, body):
         if old.id not in keep:
             db.execute(
                 delete(AssetReference).where(
-                    AssetReference.owner_type == "symbol", AssetReference.owner_id == value.id + ":" + old.id
+                    AssetReference.owner_type == "symbol",
+                    AssetReference.owner_id == digest(value.id + ":" + old.id),
                 )
             )
             db.delete(old)

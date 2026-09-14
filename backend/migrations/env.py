@@ -1,7 +1,6 @@
 """迁移使用与应用相同的连接配置。"""
 
 from alembic import context
-
 from backend.app.db import engine
 from backend.app.models import Base
 

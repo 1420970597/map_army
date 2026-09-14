@@ -2,7 +2,9 @@
 import { useState } from 'react';
 import { createDocument } from '@/core/model';
 import type { ImageOverlayData } from '@/core/model/types';
-import { parseMapFile } from '@/core/io/files';
+import { importMapData } from '@/core/backend/exchange';
+import { backendAvailable } from '@/core/backend/sync';
+import { uploadAsset } from '@/core/backend/api';
 import { worldFileCorners, overlayWorldFile, transformOverlay } from '@/core/io/overlays';
 import { downloadText } from '@/core/io';
 import { getMap } from '@/features/map/mapInstance';
@@ -43,6 +45,10 @@ export function OverlayDialog({ onClose }: { onClose: () => void }) {
   };
   const importImage = async (source: string, name: string, world?: string, config?: string) => {
     const [width, height] = await imageSize(source);
+    if (source.startsWith('data:') && backendAvailable()) {
+      const image = await fetch(source).then((response) => response.blob());
+      source = (await uploadAsset(image, name, 'image')).url;
+    }
     const bounds = getMap()?.getBounds();
     const west = bounds?.getWest() ?? 8,
       north = bounds?.getNorth() ?? 48;
@@ -86,7 +92,7 @@ export function OverlayDialog({ onClose }: { onClose: () => void }) {
     }
     const response = await fetch(address, { signal: AbortSignal.timeout(15000) });
     if (!response.ok) throw new Error(`在线图层读取失败：${response.status}`);
-    const result = parseMapFile(
+    const result = await importMapData(
       new Uint8Array(await response.arrayBuffer()),
       address.pathname.split('/').pop() ?? '在线图层',
     );

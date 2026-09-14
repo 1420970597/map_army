@@ -219,6 +219,13 @@ export function visibleFeatures(document: MapDocument): MapFeature[] {
 
 /** 手势事务只存在 store 闭包中，绝不写入文档或持久化状态。 */
 let pendingGesture: { snapshot: MapDocument; dirty: boolean } | null = null;
+/** 后端只保存已完成的手势；预览期间保留上一次已提交快照。 */
+export function committedDocument(): MapDocument {
+  return pendingGesture?.snapshot ?? useDocumentStore.getState().document;
+}
+export function gestureInProgress(): boolean {
+  return pendingGesture !== null;
+}
 
 /** 初始文档 */
 const initialDocument = createDocument();

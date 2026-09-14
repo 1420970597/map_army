@@ -6,13 +6,16 @@ import subprocess
 import tempfile
 
 from fastapi import APIRouter, Depends, File, Request, UploadFile
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .assets import accessible
 from .auth import workspace
 from .config import settings
 from .db import session
 from .documents import collect_assets, references
-from .storage import asset_json, store_asset
+from .models import AssetReference, Share
+from .storage import asset_json, read_asset, store_asset
 from .validation import require, validate_document
 
 router = APIRouter(prefix="/api/exchange")
@@ -79,7 +82,33 @@ def export_file(body: dict, request: Request, db: Session = Depends(session, sco
     require(
         body.get("format") in ("milxlyz", "milxly", "milx", "json", "geojson", "kml", "afsim"), "导出格式无效"
     )
-    ids = collect_assets(db, doc, owner.id)
+    sid = request.query_params.get("share")
+    share = db.get(Share, sid) if sid else None
+    permitted = set()
+    if share:
+        version = request.query_params.get("version", str(share.version))
+        permitted = set(
+            db.scalars(
+                select(AssetReference.asset_id).where(
+                    AssetReference.owner_type == "share",
+                    AssetReference.owner_id == sid,
+                    AssetReference.version == version,
+                )
+            )
+        )
+    ids = collect_assets(db, doc, owner.id, permitted)
+    # JSON 与 GeoJSON 导出恢复内嵌图像，另一个工作空间导入时无需原空间凭证。
+    if body["format"] in ("json", "geojson"):
+        for layer in doc["layers"]:
+            image = layer.get("image")
+            if image and image.get("url", "").startswith("/api/assets/"):
+                asset_id = image["url"].split("/")[3]
+                asset = accessible(db, request, asset_id)
+                with read_asset(asset) as stream:
+                    image["url"] = (
+                        "data:" + asset.content_type + ";base64," + base64.b64encode(stream.read()).decode()
+                    )
+
     result = convert({**body, "document": doc, "action": "export"})
     data = base64.b64decode(result.pop("data"))
     asset = store_asset(db, data, doc["name"] + "." + result["extension"], result["mime"], "export", owner.id)
