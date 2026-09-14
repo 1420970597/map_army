@@ -141,6 +141,7 @@ def document_of(db, project):
 
 def save_project(db, project, value, first=False, permitted=None, unlocked=()):
     doc = validate_document(value)
+    normalize_images(db, doc, project.workspace_id)
     if not first:
         previous = document_of(db, project)
         if previous == doc:
@@ -155,7 +156,6 @@ def save_project(db, project, value, first=False, permitted=None, unlocked=()):
             if layer["id"] in unlocked:
                 layer["locked"] = False
         check_locks(previous, doc)
-    normalize_images(db, doc, project.workspace_id)
     ids = collect_assets(db, doc, project.workspace_id, permitted)
     db.execute(delete(Feature).where(Feature.project_id == project.id))
     db.execute(delete(Layer).where(Layer.project_id == project.id))

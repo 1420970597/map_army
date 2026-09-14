@@ -440,3 +440,18 @@ def test_copy_pinned_share_retains_that_versions_assets(client):
         saved = visitor.get("/api/shares/" + copied["id"]).json()
         assert saved["document"]["name"] == doc["name"]
         assert visitor.get(asset["url"] + "?share=" + copied["id"] + "&version=1").content == b"old-file"
+
+
+def test_inline_image_normalization_does_not_create_noop_versions(client):
+    import base64
+
+    doc = document()
+    doc["layers"][0]["image"] = {
+        "url": "data:image/png;base64," + base64.b64encode(b"image-content").decode(),
+        "corners": [{"lon": 0, "lat": 1}, {"lon": 1, "lat": 1}, {"lon": 0, "lat": 0}],
+    }
+    first = client.post("/api/projects", json={"document": doc}).json()
+    assert first["document"]["layers"][0]["image"]["url"].startswith("/api/assets/")
+    again = client.put("/api/projects/" + first["id"], json={"document": doc}, headers={"If-Match": "1"})
+    assert again.status_code == 200, again.text
+    assert again.json()["revision"] == 1
