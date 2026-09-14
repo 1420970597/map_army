@@ -175,3 +175,22 @@ class MigrationRecord(Base):
     workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"))
     source_key: Mapped[str] = mapped_column(String(100))
     result: Mapped[dict] = mapped_column(JSON)
+
+
+class MoverDesign(Base):
+    __tablename__ = "mover_designs"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=uid)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[int] = mapped_column(BigInteger, default=now)
+    updated_at: Mapped[int] = mapped_column(BigInteger, default=now)
+
+
+class MoverVersion(Base):
+    __tablename__ = "mover_versions"
+    design_id: Mapped[str] = mapped_column(ForeignKey("mover_designs.id"), primary_key=True)
+    revision: Mapped[int] = mapped_column(Integer, primary_key=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    source_asset_id: Mapped[str] = mapped_column(ForeignKey("assets.id"))
+    created_at: Mapped[int] = mapped_column(BigInteger, default=now)

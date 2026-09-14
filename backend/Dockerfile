@@ -9,15 +9,22 @@ COPY backend/compat backend/compat
 COPY src src
 RUN node scripts/build-backend-tool.mjs
 
+FROM debian:bookworm-slim AS mover-build
+RUN apt-get update && apt-get install -y --no-install-recommends g++ libglm-dev nlohmann-json3-dev && rm -rf /var/lib/apt/lists/*
+WORKDIR /build
+COPY backend/mover/native native
+RUN g++ -std=c++17 -O2 native/main.cpp native/GeometryObjFile.cpp native/ObjPointCollection.cpp -o mover-kernel
+
 FROM python:3.13-slim-bookworm AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY backend/requirements.txt backend/requirements.txt
-RUN pip install --no-cache-dir -r backend/requirements.txt && useradd --create-home --uid 10001 app
+RUN pip install --no-cache-dir -r backend/requirements.txt && apt-get update && apt-get install -y --no-install-recommends libstdc++6 && rm -rf /var/lib/apt/lists/* && useradd --create-home --uid 10001 app
 COPY --from=tools /usr/local/bin/node /usr/local/bin/node
 COPY --from=tools /build/backend/tool backend/tool
 COPY backend backend
 COPY public/models public/models
+COPY --from=mover-build /build/mover-kernel backend/mover/mover-kernel
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=8s --start-period=15s CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5)"

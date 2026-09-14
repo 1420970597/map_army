@@ -31,6 +31,9 @@ jobs:
       - name: 安装依赖并生成仅本次任务使用的凭证
         run: |
           npm ci
+          sudo apt-get update
+          sudo apt-get install -y libglm-dev nlohmann-json3-dev
+          python scripts/build-mover.py
           python -m venv .venv
           .venv/bin/pip install -r backend/requirements.txt
           python scripts/backend-env.py
