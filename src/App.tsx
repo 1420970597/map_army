@@ -1,3 +1,5 @@
+import { BackendStatus } from '@/features/workspace/WorkspacePanel';
+import { backendAvailable, saveAsProject } from '@/core/backend/sync';
 /**
  * 应用根组件。
  *
@@ -52,12 +54,19 @@ export function App() {
   return (
     <div className="app">
       <Toolbar />
+      <BackendStatus />
       <SessionBanner />
       {readOnly && (
         <div className="session-banner">
           当前为只读视图
           <button
             onClick={() => {
+              if (backendAvailable()) {
+                void saveAsProject().catch((error) =>
+                  useAccessStore.getState().notify(error.message),
+                );
+                return;
+              }
               useAccessStore.getState().setReadOnly(false);
               useAccessStore.getState().setShared(null);
               window.history.replaceState(null, '', window.location.pathname);

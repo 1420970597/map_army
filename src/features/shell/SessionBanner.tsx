@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 
+import { restoreLegacyProject, discardLegacyProject } from '@/core/backend/sync';
 import { clearDocument } from '@/core/io';
 import {
   restoreSummary,
@@ -24,12 +25,14 @@ export function SessionBanner() {
   if (kind === null) return null;
 
   const restore = (): void => {
+    if (restoreLegacyProject()) return;
     const document = useSessionStore.getState().acceptRestore();
     if (document !== null) useDocumentStore.getState().replaceDocument(document);
   };
   const discard = (): void => {
     useSessionStore.getState().discardRestore();
     clearDocument();
+    discardLegacyProject();
   };
 
   if (kind === 'restore' && session.pendingRestore !== null) {

@@ -1,0 +1,35 @@
+{
+  "checkedAt": "2026-09-14T04:30:21.047407+00:00",
+  "pages": [
+    {
+      "url": "https://www.map.army/doc/en/llms.txt",
+      "status": 200,
+      "sha256": "65fc0c3715015b59109cefdc6acf7c404484391e18eb6d7f2f751cb36cc3aa4b",
+      "bytes": 11432
+    },
+    {
+      "url": "https://www.map.army/doc/en/data-exchange/create-a-share/",
+      "status": 200,
+      "sha256": "a7c3dc3b6147974c74987ed5148e9b08826e23603f8660f08d5613f5da5de6a1",
+      "bytes": 58895
+    },
+    {
+      "url": "https://www.map.army/doc/en/layers/import_layer/",
+      "status": 200,
+      "sha256": "f6166f3d2de91a6401d15ea8503403c99ea2d2b0f6827d54a4ca0d80de8f8659",
+      "bytes": 56967
+    },
+    {
+      "url": "https://www.map.army/doc/en/about/milx-format/",
+      "status": 200,
+      "sha256": "cc74e2459e16042a1faacc5f3368ec1780043525bd54c39c9b824b32c13048a8",
+      "bytes": 51039
+    },
+    {
+      "url": "https://www.map.army/doc/en/about/faq/",
+      "status": 200,
+      "sha256": "c265fc09f7d9dc57310c47c4b0170683b806d26bed76f9e2193169be49074c01",
+      "bytes": 69599
+    }
+  ]
+}

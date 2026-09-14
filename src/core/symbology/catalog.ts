@@ -122,21 +122,27 @@ export function normalizeQuery(query: string): string {
   return query.toLowerCase().replace(/[\s\-/.]+/g, '');
 }
 
+let remoteCatalog: readonly CatalogEntry[] | null = null;
+/** 在线目录由后端提供，离线保留应用内置目录。 */
+export function registerCatalog(entries: readonly CatalogEntry[]) {
+  remoteCatalog = entries;
+}
+
 /** 返回全部目录条目的稳定副本。 */
 export function listCatalog(): readonly CatalogEntry[] {
-  return [...CATALOG];
+  return [...(remoteCatalog ?? CATALOG)];
 }
 
 /** 根据目录键查找条目。 */
 export function findCatalogEntry(key: string): CatalogEntry | undefined {
-  return CATALOG.find((entry) => entry.key === key);
+  return (remoteCatalog ?? CATALOG).find((entry) => entry.key === key);
 }
 
 /** 返回指定分区中的条目。收藏分区由上层根据收藏键动态计算，因此固定为空。 */
 export function entriesInCategory(category: SymbolCategory): readonly CatalogEntry[] {
   if (category === SymbolCategory.Favorites) return [];
   if (category === SymbolCategory.Custom) return [];
-  return CATALOG.filter((entry) => entry.category === category);
+  return (remoteCatalog ?? CATALOG).filter((entry) => entry.category === category);
 }
 
 /**
@@ -144,7 +150,7 @@ export function entriesInCategory(category: SymbolCategory): readonly CatalogEnt
  */
 export function catalogSearch(
   query: string,
-  entries: readonly CatalogEntry[] = CATALOG,
+  entries: readonly CatalogEntry[] = remoteCatalog ?? CATALOG,
 ): CatalogEntry[] {
   const normalized = normalizeQuery(query);
   const matched = normalized

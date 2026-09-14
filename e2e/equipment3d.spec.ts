@@ -31,9 +31,18 @@ const fixture = (configured = false, locked = false) => ({
   },
 });
 
+async function backendAircraftUrl(page: Page) {
+  const models = await (await page.request.get('/api/models')).json();
+  const model = models.find((entry: { id: string }) => entry.id === 'demo-aircraft');
+  return '**' + model.url;
+}
+
 async function openDetails(page: Page) {
-  if (!page.url().includes('#map-army='))
-    await page.getByRole('button', { name: '恢复', exact: true }).click();
+  if (!page.url().includes('#map-army=')) {
+    await expect(page.getByRole('status', { name: '工作空间保存状态' })).toContainText('已保存');
+    const restore = page.getByRole('button', { name: '恢复', exact: true });
+    if (await restore.count()) await restore.click();
+  }
   await page.getByRole('button', { name: '图层面板', exact: true }).click();
   await selectFeature(page);
 }
@@ -88,11 +97,11 @@ test('三维挂载可拖放、替换、撤销并刷新恢复', async ({ page }) 
   await expect(mounts).toContainText('机腹：传感器吊舱（示意）');
   await expect
     .poll(() =>
-      page.evaluate(
-        () =>
-          JSON.parse(localStorage.getItem('map-army.session.v1')!).document.features[0].equipment3d
-            ?.attachments.length,
-      ),
+      page.evaluate(async () => {
+        const connection = JSON.parse(localStorage.getItem('map-army.connection')!);
+        const value = await (await fetch('/api/projects/' + connection.projectId)).json();
+        return value.document.features[0]?.equipment3d?.attachments.length;
+      }),
     )
     .toBe(2);
   await page.reload();
@@ -188,16 +197,24 @@ test('锁定图层仍可查看三维与切换页签，只禁止编辑', async ({
 });
 
 test('模型加载失败可重试，未知版本保持原装配', async ({ page }) => {
-  await page.route('**/models/demo-v1/aircraft.glb', (route) => route.abort());
+  const aircraftUrl = await backendAircraftUrl(page);
+  await page.route(aircraftUrl, (route) => route.abort());
   await seed(page, true);
   await expect(page.getByRole('button', { name: '重新加载模型' })).toBeVisible();
-  await page.unroute('**/models/demo-v1/aircraft.glb');
+  await page.unroute(aircraftUrl);
   await page.getByRole('button', { name: '重新加载模型' }).click();
   await expect(page.getByRole('button', { name: '重置视角' })).toBeEnabled();
-  await page.evaluate(() => {
-    const value = JSON.parse(localStorage.getItem('map-army.session.v1')!);
+  await page.evaluate(async () => {
+    const connection = JSON.parse(localStorage.getItem('map-army.connection')!);
+    const endpoint = '/api/projects/' + connection.projectId;
+    const value = await (await fetch(endpoint)).json();
     value.document.features[0].equipment3d.assetVersion = 'unavailable';
-    localStorage.setItem('map-army.session.v1', JSON.stringify(value));
+    const result = await fetch(endpoint, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'If-Match': String(value.revision) },
+      body: JSON.stringify({ document: value.document }),
+    });
+    if (!result.ok) throw new Error('测试数据未能写入后端');
   });
   await page.reload();
   await openDetails(page);
@@ -241,11 +258,12 @@ test('快速切换详情和画布中断后可重新打开', async ({ page }) => 
 });
 
 test('加载期间画布中断不会被加载成功覆盖', async ({ page }) => {
+  const aircraftUrl = await backendAircraftUrl(page);
   let release = () => {};
   const gate = new Promise<void>((resolve) => {
     release = resolve;
   });
-  await page.route('**/models/demo-v1/aircraft.glb', async (route) => {
+  await page.route(aircraftUrl, async (route) => {
     await gate;
     await route.continue();
   });
@@ -255,7 +273,7 @@ test('加载期间画布中断不会被加载成功覆盖', async ({ page }) => 
     canvas.getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext();
   });
   await expect(page.getByRole('button', { name: '重新加载模型' })).toBeVisible();
-  const loaded = page.waitForResponse('**/models/demo-v1/aircraft.glb');
+  const loaded = page.waitForResponse(aircraftUrl);
   release();
   await (await loaded).finished();
   // 等待加载器消费已收到的响应，再检查是否仍保留错误状态。

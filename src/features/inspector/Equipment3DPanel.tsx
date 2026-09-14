@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { useBackendStore } from '@/stores/useBackendStore';
 import {
   AIRCRAFT_MODEL,
-  EQUIPMENT_MODELS,
+  listEquipmentModels,
   createEquipment3D,
   equipment3DProblem,
   findEquipmentModel,
@@ -26,6 +27,7 @@ export default function Equipment3DPanel({
   feature: MapFeature;
   disabled: boolean;
 }) {
+  useBackendStore((state) => state.catalogVersion);
   const update = useDocumentStore((state) => state.updateFeature);
   const language = usePreferencesStore((state) => state.language);
   const t = (text: string) => equipmentText(language, text);
@@ -57,7 +59,7 @@ export default function Equipment3DPanel({
         </div>
       </div>
       <ModelCatalog
-        selectedId={model?.id}
+        selectedId={model ? `${model.id}:${model.version}` : undefined}
         disabled={disabled}
         onSelect={(nextModel) => {
           if (model?.id === nextModel.id && model.version === nextModel.version) return;
@@ -101,11 +103,13 @@ function ModelCatalog({
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState('');
   const [filter, setFilter] = useState('all');
-  const embeddedAfsimModels = EQUIPMENT_MODELS.filter((model) => model.source === 'afsim');
+  useBackendStore((state) => state.catalogVersion);
+  const models = [...new Map(listEquipmentModels().map((model) => [model.id, model])).values()];
+  const embeddedAfsimModels = models.filter((model) => model.source === 'afsim');
   const restrictedAfsimModels = AFSIM_MODEL_CATALOG.filter(
     (entry) => entry.status === 'restricted',
   ).length;
-  const visibleModels = EQUIPMENT_MODELS.filter(
+  const visibleModels = models.filter(
     (model) => filter === 'all' || (model.source === 'afsim' && model.equipmentType === filter),
   );
 
@@ -150,7 +154,7 @@ function ModelCatalog({
       </div>
       <div className="equipment-models">
         {visibleModels.map((model) => {
-          const selected = selectedId === model.id;
+          const selected = selectedId === `${model.id}:${model.version}`;
           return (
             <article className={`equipment-model ${selected ? 'is-selected' : ''}`} key={model.id}>
               <div className="equipment-model-preview" aria-hidden="true">
@@ -465,7 +469,7 @@ function ModelAssembly({
         })}
       </ul>
       <p className="field-hint" role="status">
-        {t(notice || '三维装配示意：机翼支持两类部件，机腹支持传感器。')}
+        {t(notice) || `${model.sockets.length} 个挂点 · ${model.attachments.length} 类兼容部件`}
       </p>
     </>
   );

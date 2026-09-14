@@ -1,66 +1,62 @@
 name: CI
 
-# 触发条件：推送到主干分支、以及所有面向 main 的 PR
+# PR 与主线使用真实 MySQL、S3，避免内存替代服务掩盖事务差异。
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
-  # 允许在 Actions 页面手动触发，便于排查与重跑
   workflow_dispatch:
-
-# 同一分支上的新提交会自动取消旧任务，节省 CI 资源
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   quality:
-    name: 代码质量与测试
+    name: 代码质量与数据集成
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         node-version: [20.x, 22.x]
-
     steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-
-      - name: 安装 Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-
-      - name: 安装依赖
-        run: npm ci
-
-      - name: 代码风格检查
-        run: npm run lint
-
-      - name: 格式检查
-        run: npm run format:check
-
-      - name: 单元测试
-        run: npm run test -- --reporter=verbose
-
-      - name: 三维资产格式与挂点校验
-        run: npm run models:check
-
-      - name: 分享服务测试
-        run: npm run test:server
-
-      - name: 类型检查与构建
-        run: npm run build
-
-      - name: Docker Compose 构建检查
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: 安装依赖并生成仅本次任务使用的凭证
+        run: |
+          npm ci
+          python -m venv .venv
+          .venv/bin/pip install -r backend/requirements.txt
+          python scripts/backend-env.py
+          npm run backend:tool
+      - name: 启动真实数据库与对象存储并初始化
+        run: |
+          docker compose -p map_army_ci -f compose.infra.yml up -d --wait
+          .venv/bin/python -m alembic -c backend/alembic.ini upgrade head
+          .venv/bin/python -m backend.app.seed
+      - name: 前后端完整回归
+        run: npm run ci
+      - name: Compose 构建与重启持久化验收
         if: matrix.node-version == '22.x'
-        run: docker compose build
-
-      - name: 上传构建产物
+        env:
+          APP_PORT: '8088'
+        run: |
+          docker compose -p map_army_ci up --build -d --wait
+          python scripts/backend-smoke.py create --url http://127.0.0.1:8088 --state /tmp/maparmy-smoke.json
+          docker compose -p map_army_ci restart api worker mysql s3
+          docker compose -p map_army_ci up -d --wait
+          python scripts/backend-smoke.py verify --url http://127.0.0.1:8088 --state /tmp/maparmy-smoke.json
+          docker compose -p map_army_ci ps
+          npx playwright install --with-deps chromium
+          E2E_BASE_URL=http://127.0.0.1:8088 npm run test:e2e
+      - uses: actions/upload-artifact@v4
         if: matrix.node-version == '22.x'
-        uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist

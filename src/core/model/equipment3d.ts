@@ -23,6 +23,7 @@ export interface AttachmentDefinition {
 
 /** 页面内置模型目录；新型号只需增加一项并提供对应 GLB。 */
 export interface EquipmentModelDefinition {
+  readOnly?: boolean;
   id: string;
   version: string;
   name: string;
@@ -31,7 +32,8 @@ export interface EquipmentModelDefinition {
   url: string;
   sockets: readonly SocketDefinition[];
   attachments: readonly AttachmentDefinition[];
-  source?: 'project' | 'afsim';
+  source?: 'project' | 'afsim' | 'custom';
+  hasAttachmentAnchor?: boolean;
   sourcePath?: string;
   distributionStatus?: AfsimCatalogEntry['status'];
   attribution?: string;
@@ -105,6 +107,20 @@ function afsimModel(entry: AfsimCatalogEntry): EquipmentModelDefinition {
   };
 }
 
+let remoteModels: readonly EquipmentModelDefinition[] | null = null;
+
+/** 后端目录保留旧版本，装配按完整版本号查找。 */
+export function registerEquipmentModels(models: readonly EquipmentModelDefinition[]) {
+  const previous = new Map(remoteModels?.map((model) => [`${model.id}:${model.version}`, model]));
+  remoteModels = models.map((model) => {
+    const old = previous.get(`${model.id}:${model.version}`);
+    return old && JSON.stringify(old) === JSON.stringify(model) ? old : model;
+  });
+}
+export function listEquipmentModels(): readonly EquipmentModelDefinition[] {
+  return remoteModels ?? EQUIPMENT_MODELS;
+}
+
 /** 兼容现有调用方：默认飞机的部件目录。 */
 export const ATTACHMENTS = AIRCRAFT_ATTACHMENTS;
 
@@ -112,7 +128,7 @@ export function findEquipmentModel(
   modelId: string,
   version?: string,
 ): EquipmentModelDefinition | undefined {
-  return EQUIPMENT_MODELS.find(
+  return listEquipmentModels().find(
     (model) => model.id === modelId && (version === undefined || model.version === version),
   );
 }

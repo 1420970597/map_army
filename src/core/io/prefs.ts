@@ -13,7 +13,7 @@ import { normalizeFavorites } from '../symbology/favorites';
 import type { StorageLike } from './persistence';
 
 /** 符号偏好的 localStorage 键。 */
-export const PREFS_STORAGE_KEY = 'map-army.prefs.v1';
+export const PREFS_STORAGE_KEY = 'map-army.symbol-prefs.v1';
 
 /** 当前偏好数据版本。 */
 export const PREFS_VERSION = 1;
@@ -53,7 +53,8 @@ export function serializePrefs(prefs: unknown): string {
 /** 从可注入存储读取偏好；不可用时回退默认值。 */
 export function loadPrefs(storage?: StorageLike): AppPrefs {
   try {
-    return parsePrefs((storage ?? getBrowserStorage()).getItem(PREFS_STORAGE_KEY));
+    const target = storage ?? getBrowserStorage();
+    return parsePrefs(target.getItem(PREFS_STORAGE_KEY) ?? target.getItem('map-army.prefs.v1'));
   } catch {
     return cloneDefaults();
   }

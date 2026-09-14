@@ -1,0 +1,39 @@
+# 本机开发与集成测试使用真实依赖，端口仅绑定回环地址。
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: map_army
+      MYSQL_USER: map_army
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请运行 scripts/backend-env.py}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请运行 scripts/backend-env.py}
+    ports:
+      - '127.0.0.1:${MYSQL_PORT:-33080}:3306'
+    command: ['--character-set-server=utf8mb4', '--collation-server=utf8mb4_bin', '--max-allowed-packet=128M']
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '--silent']
+      interval: 5s
+      timeout: 5s
+      retries: 40
+  s3:
+    # Docker Hub 不再稳定提供 MinIO 镜像，使用官方 Quay 发布源。
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?请运行 scripts/backend-env.py}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?请运行 scripts/backend-env.py}
+    ports:
+      - '127.0.0.1:${S3_PORT:-39000}:9000'
+      - '127.0.0.1:${S3_CONSOLE_PORT:-39001}:9001'
+    volumes:
+      - s3-data:/data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+volumes:
+  mysql-data:
+  s3-data:

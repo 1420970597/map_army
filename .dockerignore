@@ -9,3 +9,11 @@ coverage
 *.log
 .env*
 skills-lock.json
+
+.venv
+__pycache__
+.pytest_cache
+.ruff_cache
+backend/tool
+backups
+output
