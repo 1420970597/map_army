@@ -395,17 +395,15 @@ export function initializeBackend(external: boolean, signal: AbortSignal): Promi
       } else applySettings(profile);
       const legacy = stored<SavedProject>(legacyKey());
       if (!external && legacy && !documentDirty) {
-        useSessionStore
-          .getState()
-          .setPendingRestore({
-            document: legacy.document,
-            meta: {
-              savedAt: legacy.updatedAt,
-              appVersion: 'map-army',
-              tabId: 'migration',
-              featureCount: legacy.document.features.length,
-            },
-          });
+        useSessionStore.getState().setPendingRestore({
+          document: legacy.document,
+          meta: {
+            savedAt: legacy.updatedAt,
+            appVersion: 'map-army',
+            tabId: 'migration',
+            featureCount: legacy.document.features.length,
+          },
+        });
       } else if (!external) {
         const active = useBackendStore.getState().projectId;
         const project =
@@ -548,7 +546,11 @@ export function stopBackend() {
   clearTimeout(timer);
 }
 export function backendAvailable() {
-  return enabled && useBackendStore.getState().status !== 'offline';
+  return (
+    enabled &&
+    (typeof navigator === 'undefined' || navigator.onLine !== false) &&
+    useBackendStore.getState().status !== 'offline'
+  );
 }
 function leaveExternal() {
   externalDocument = false;

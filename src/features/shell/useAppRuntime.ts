@@ -120,7 +120,13 @@ export function useAppRuntime() {
     };
     void initialize();
     const onOnline = () => void retryBackend();
+    const onOffline = () =>
+      useBackendStore.setState({
+        status: 'offline',
+        message: '当前修改保留在浏览器，恢复网络后同步。',
+      });
     window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
     const onStorage = (event: StorageEvent) => {
       if (
         !external &&
@@ -190,6 +196,7 @@ export function useAppRuntime() {
       window.clearInterval(poll);
       window.removeEventListener('storage', onStorage);
       window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
       launch?.setConsumer(() => {});
     };
   }, []);

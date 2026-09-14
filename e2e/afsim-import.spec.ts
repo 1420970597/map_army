@@ -29,10 +29,7 @@ test('AFSIM 目录解析、绘制、撤销与刷新恢复', async ({ page }) => 
     .poll(() => page.evaluate(() => localStorage.getItem('map-army.session.v1')))
     .toContain('blue-one');
   await page.reload();
-  await page
-    .getByRole('region', { name: '会话恢复提示' })
-    .getByRole('button', { name: '恢复', exact: true })
-    .click();
+  await expect(page.getByRole('status', { name: '工作空间保存状态' })).toContainText('已保存');
   await expect(page.locator('.leaflet-marker-icon')).toHaveCount(2);
   expect(errors).toEqual([]);
 });
@@ -73,5 +70,7 @@ test('手动导入的单位可从文件菜单导出为标准 AFSIM ZIP', async (
     expect.arrayContaining(['main.txt', 'platforms/blue.txt', 'platforms/red.txt', 'README.txt']),
   );
   expect(strFromU8(archive['main.txt'])).toContain('include_once platforms/blue.txt');
-  await expect(page.getByRole('status')).toContainText('AFSIM 已导出：2');
+  await expect(page.getByRole('dialog', { name: '文件交换' }).getByRole('status')).toContainText(
+    'AFSIM 已导出：2',
+  );
 });

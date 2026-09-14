@@ -393,3 +393,28 @@ def test_afsim_source_and_export_diagnostics(client):
     exported = client.post("/api/exchange/export", json={"document": doc, "format": "afsim"})
     assert exported.status_code == 200, exported.text
     assert client.get(exported.json()["asset"]["url"]).content[:2] == b"PK"
+
+
+def test_legacy_final_cutover_appends_new_source_versions(client, tmp_path):
+    import json
+    import secrets
+
+    from backend.app.auth import digest
+    from backend.app.manage import migrate_legacy
+
+    identifier = secrets.token_hex(16)
+    folder = tmp_path / identifier
+    folder.mkdir()
+    meta = {"version": 1, "tokenHash": digest(secrets.token_urlsafe(32))}
+    (folder / "meta.json").write_text(json.dumps(meta))
+    (folder / "1.json").write_text(json.dumps({"document": document(), "updatedAt": 1}))
+    migrate_legacy(tmp_path)
+    newer = document()
+    newer["name"] = "旧服务继续编辑"
+    meta["version"] = 2
+    (folder / "meta.json").write_text(json.dumps(meta))
+    (folder / "2.json").write_text(json.dumps({"document": newer, "updatedAt": 2}))
+    migrate_legacy(tmp_path)
+    saved = client.get("/api/shares/" + identifier).json()
+    assert saved["version"] == 2 and saved["document"]["name"] == newer["name"]
+    assert client.get("/api/shares/" + identifier + "?version=1").json()["document"] == document()

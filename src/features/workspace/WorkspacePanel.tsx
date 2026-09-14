@@ -36,6 +36,7 @@ export function WorkspacePanel({ onClose }: { onClose(): void }) {
   const [jobs, setJobs] = useState<ModelJob[]>([]);
   const [deleting, setDeleting] = useState('');
   const [editing, setEditing] = useState<EquipmentModelDefinition | null>(null);
+  const [historyProjectId, setHistoryProjectId] = useState<string | null>(null);
   const [versions, setVersions] = useState<{ revision: number; name: string; createdAt: number }[]>(
     [],
   );
@@ -182,6 +183,7 @@ export function WorkspacePanel({ onClose }: { onClose(): void }) {
                         void run(async () => {
                           await openProject(project.id);
                           setVersions(await api(`/projects/${project.id}/versions`));
+                          setHistoryProjectId(project.id);
                         })
                       }
                     >
@@ -209,7 +211,7 @@ export function WorkspacePanel({ onClose }: { onClose(): void }) {
                   </li>
                 ))}
               </ul>
-              {versions.length > 0 && (
+              {versions.length > 0 && historyProjectId === state.projectId && (
                 <details open>
                   <summary>当前项目历史</summary>
                   <ul>
@@ -478,7 +480,7 @@ export function BackendStatus() {
     connecting: '正在连接工作空间',
     saved: '已保存到工作空间',
     saving: '正在保存到工作空间',
-    offline: '离线 · 修改待同步',
+    offline: '离线 · 可继续编辑',
     conflict: '保存冲突 · 当前修改已保留',
     error: '保存未完成',
     external: '外部标图 · 通过分享更新或另存项目',

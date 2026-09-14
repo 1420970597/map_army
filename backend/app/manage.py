@@ -32,8 +32,22 @@ def migrate_legacy(directory):
                     raise ValueError("旧分享标识冲突，未覆盖：" + folder.name)
                 for version, data in enumerate(snapshots, 1):
                     saved = db.get(ShareVersion, (folder.name, version))
-                    if not saved or saved.document != data["document"]:
-                        raise ValueError("旧分享历史不一致，未覆盖：" + folder.name)
+                    if version <= old.version:
+                        if not saved or saved.document != data["document"]:
+                            raise ValueError("旧分享历史不一致，未覆盖：" + folder.name)
+                    else:
+                        # 验收期间旧服务可继续写入，最终切换前只追加共同历史之后的新版本。
+                        db.add(
+                            ShareVersion(
+                                share_id=folder.name,
+                                version=version,
+                                document=data["document"],
+                                created_at=data["updatedAt"],
+                            )
+                        )
+                if meta["version"] > old.version:
+                    old.version = meta["version"]
+                    count += 1
                 continue
             db.add(Share(id=folder.name, token_hash=meta["tokenHash"], version=meta["version"]))
             db.flush()

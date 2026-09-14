@@ -53,6 +53,8 @@ jobs:
           docker compose -p map_army_ci up -d --wait
           python scripts/backend-smoke.py verify --url http://127.0.0.1:8088 --state /tmp/maparmy-smoke.json
           docker compose -p map_army_ci ps
+          npx playwright install --with-deps chromium
+          E2E_BASE_URL=http://127.0.0.1:8088 npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: matrix.node-version == '22.x'
         with:
