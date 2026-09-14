@@ -30,6 +30,7 @@ try {
       const extra = { ...mapped.getExtras() };
       delete extra.mapArmyNodeRole; delete extra.socketId; delete extra.mapArmyMount;
       delete extra.instanceId; delete extra.componentId;
+      delete extra.moverSourceNode;
       mapped.setExtras(extra);
     }
     for (const s of source.getRoot().listScenes()) mapping.get(s).dispose();

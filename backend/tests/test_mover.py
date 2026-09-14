@@ -138,7 +138,7 @@ def test_design_versions_cas_permissions_and_export(client):
 
 def test_publish_mounts_and_immutable_asset_versions(client):
     value = bundle()
-    part = {"id": "afsim-amc-TNK-370-1", "version": "amc-2"}
+    part = {"id": "afsim-amc-TNK-370-1", "version": "amc-5"}
     value["mounts"] = [
         {
             "id": "right",
@@ -197,7 +197,7 @@ def test_invalid_imports_and_dependencies_are_recoverable(client):
 
 def test_parent_mount_follows_geometry_and_assembly_export(client):
     value = bundle()
-    part = {"id": "afsim-amc-TNK-370-1", "version": "amc-2"}
+    part = {"id": "afsim-amc-TNK-370-1", "version": "amc-5"}
     value["attachments"] = [part]
     value["mounts"] = [
         {

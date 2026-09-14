@@ -38,7 +38,7 @@ def seed_mover():
                 db.add(CatalogEntry(kind="mover", id=key, payload=payload))
             if entry["kind"] != "vehicle":
                 continue
-            identifier, version = "afsim-amc-" + entry["id"], "amc-4"
+            identifier, version = "afsim-amc-" + entry["id"], "amc-5"
             old_model = db.get(ModelDefinition, (identifier, version))
             if old_model:
                 continue

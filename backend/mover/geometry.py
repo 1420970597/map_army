@@ -477,7 +477,9 @@ def mount_nodes(mounts):
 def with_mounts(data, mounts):
     root, chunks = unpack_glb(data)
     # 旧节点保留索引和子节点，只解除旧挂点语义，避免破坏蒙皮和动画引用。
-    for node in root.get("nodes", []):
+    for source_index, node in enumerate(root.get("nodes", [])):
+        if isinstance(node.get("extras", {}), dict):
+            node.setdefault("extras", {})["moverSourceNode"] = source_index
         extra = node.get("extras", {})
         if isinstance(extra, dict) and extra.get("mapArmyNodeRole") in (
             "attachmentSocket",

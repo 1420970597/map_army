@@ -3,6 +3,12 @@ import { usePreferencesStore } from '@/stores/usePreferencesStore';
 import { useCallback } from 'react';
 
 const rows: Record<string, [string, string, string, string]> = {
+  '父组件变换含剪切，不能无损切换父组件': [
+    'The parent transform contains shear; reparenting would lose data.',
+    'Die übergeordnete Transformation enthält Scherung; Zuordnung wäre verlustbehaftet.',
+    'La transformation parente contient un cisaillement ; le changement entraînerait une perte.',
+    'La trasformazione padre contiene distorsione; il cambio comporterebbe perdita di dati.',
+  ],
   隐藏选中组件: [
     'Hide selected component',
     'Ausgewählte Komponente ausblenden',

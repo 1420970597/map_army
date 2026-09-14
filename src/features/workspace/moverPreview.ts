@@ -24,6 +24,7 @@ export function moverPreview(
   const camera = new T.PerspectiveCamera(40, 1, 0.01, 10000);
   const orbit = new OrbitControls(camera, renderer.domElement);
   const transform = new TransformControls(camera, renderer.domElement);
+  transform.setSpace('local');
   scene.add(transform.getHelper());
   scene.add(new T.HemisphereLight(0xffffff, 0x596573, 2.5));
   const light = new T.DirectionalLight(0xffffff, 3);
@@ -85,18 +86,13 @@ export function moverPreview(
     const object = transform.object;
     const mount = mounts.find((m) => '@' + m.id === selected);
     if (!object || !mount) return;
-    object.updateMatrix();
-    const local = parentMatrix(mount.parent).clone().invert().multiply(object.matrix);
-    const position = new T.Vector3(),
-      rotation = new T.Quaternion(),
-      scale = new T.Vector3();
-    local.decompose(position, rotation, scale);
-    const euler = new T.Euler().setFromQuaternion(rotation);
     changed({
       ...mount,
-      position: position.toArray(),
-      scale: scale.toArray(),
-      rotation: [euler.x, euler.y, euler.z].map(T.MathUtils.radToDeg) as MoverMount['rotation'],
+      position: object.position.toArray(),
+      scale: object.scale.toArray(),
+      rotation: [object.rotation.x, object.rotation.y, object.rotation.z].map(
+        T.MathUtils.radToDeg,
+      ) as MoverMount['rotation'],
     });
   });
   const observer = new ResizeObserver(resize);
@@ -159,8 +155,9 @@ export function moverPreview(
       g.position.fromArray(m.position);
       g.rotation.set(...(m.rotation.map(T.MathUtils.degToRad) as [number, number, number]));
       g.scale.fromArray(m.scale ?? [1, 1, 1]);
-      g.updateMatrix();
-      g.applyMatrix4(parentMatrix(m.parent));
+      const parent = new T.Group();
+      parent.matrixAutoUpdate = false;
+      parent.matrix.copy(parentMatrix(m.parent));
       g.userData.mountId = m.id;
       const ball = new T.Mesh(
         new T.SphereGeometry(Math.max(0.035, radius * 0.012), 12, 8),
@@ -171,7 +168,9 @@ export function moverPreview(
       );
       ball.userData.mountId = m.id;
       g.add(ball, new T.AxesHelper(Math.max(0.15, radius * 0.12)));
-      helpers.add(g);
+      parent.add(g);
+      helpers.add(parent);
+      parent.updateMatrixWorld(true);
       nodes.push(g);
     }
     highlight();
@@ -222,7 +221,11 @@ export function moverPreview(
       transform.detach();
       draw();
     },
-    async load(blob: Blob, signal?: AbortSignal) {
+    async load(
+      blob: Blob,
+      signal?: AbortSignal,
+      rootTransform?: Pick<MoverMount, 'position' | 'rotation' | 'scale'>,
+    ) {
       const current = ++sequence;
       const gltf = await new GLTFLoader().parseAsync(await blob.arrayBuffer(), '');
       if (lost) {
@@ -238,10 +241,29 @@ export function moverPreview(
       content.updateMatrixWorld(true);
       parents = new Map();
       baseTransform = new T.Matrix4();
+      if (rootTransform)
+        baseTransform.compose(
+          new T.Vector3(...rootTransform.position),
+          new T.Quaternion().setFromEuler(
+            new T.Euler(
+              ...(rootTransform.rotation.map(T.MathUtils.degToRad) as [number, number, number]),
+            ),
+          ),
+          new T.Vector3(...(rootTransform.scale ?? [1, 1, 1])),
+        );
       gltf.scene.traverse((node) => {
-        if (node.userData.modelTransform) baseTransform = node.matrixWorld.clone();
-        if (node.userData.mapArmyNodeRole || node.userData.assemblySocket) return;
-        const index = gltf.parser.associations.get(node)?.nodes;
+        let assembled = false;
+        node.traverseAncestors((parent) => {
+          if (parent.userData.assemblySocket) assembled = true;
+        });
+        if (
+          assembled ||
+          node.userData.mapArmyNodeRole ||
+          node.userData.assemblySocket ||
+          node.userData.modelTransform
+        )
+          return;
+        const index = node.userData.moverSourceNode ?? gltf.parser.associations.get(node)?.nodes;
         const id = node.userData.instanceId ?? (index !== undefined ? 'node:' + index : undefined);
         if (id) parents.set(id, node);
       });
@@ -286,7 +308,7 @@ export function moverPreview(
       highlight();
     },
     mounts: updateMounts,
-    reparent(mount: MoverMount, parent: string): MoverMount {
+    reparent(mount: MoverMount, parent: string): MoverMount | null {
       const local = new T.Matrix4().compose(
         new T.Vector3(...mount.position),
         new T.Quaternion().setFromEuler(
@@ -301,6 +323,15 @@ export function moverPreview(
         q = new T.Quaternion(),
         s = new T.Vector3();
       local.decompose(p, q, s);
+      const reconstructed = new T.Matrix4().compose(p, q, s);
+      if (
+        local.elements.some(
+          (value, index) => Math.abs(value - reconstructed.elements[index]) > 1e-6,
+        )
+      ) {
+        failed(new Error('父组件变换含剪切，不能无损切换父组件'));
+        return null;
+      }
       const e = new T.Euler().setFromQuaternion(q);
       return {
         ...mount,

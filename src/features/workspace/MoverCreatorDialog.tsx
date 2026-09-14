@@ -52,7 +52,7 @@ export function MoverCreatorDialog({
     [search, setSearch] = useState('');
   const [status, setStatus] = useState(''),
     [error, setError] = useState(''),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(!!initialModel);
   const [wire, setWire] = useState(false),
     [mode, setMode] = useState<'translate' | 'rotate'>('translate');
   const [job, setJob] = useState<Job | null>(null),
@@ -126,15 +126,6 @@ export function MoverCreatorDialog({
         : h,
     );
 
-  const editModel = async (model: EquipmentModelDefinition) => {
-    const id = /\/api\/assets\/([^/]+)\/content/.exec(model.url)?.[1];
-    if (!id) throw new Error(t('模型需要先入库'));
-    const data = await api<MoverBundle>(
-      `/mover/from-model/${encodeURIComponent(model.id)}/${encodeURIComponent(model.version)}`,
-    );
-    install(data, model.name + t(' 副本'));
-    setCategory(model.category);
-  };
   useEffect(() => {
     let alive = true;
     void Promise.all([api<MoverEntry[]>('/mover/catalog'), api<MoverDesign[]>('/mover/designs')])
@@ -144,7 +135,21 @@ export function MoverCreatorDialog({
         setDesigns(items);
       })
       .catch(fail);
-    if (initialModel) void editModel(initialModel).catch(fail);
+    if (initialModel)
+      void api<MoverBundle>(
+        `/mover/from-model/${encodeURIComponent(initialModel.id)}/${encodeURIComponent(initialModel.version)}`,
+      )
+        .then((data) => {
+          if (!alive) return;
+          install(data, initialModel.name + t(' 副本'));
+          setCategory(initialModel.category);
+        })
+        .catch((e) => {
+          if (alive) fail(e);
+        })
+        .finally(() => {
+          if (alive) setBusy(false);
+        });
     return () => {
       alive = false;
     };
@@ -200,7 +205,7 @@ export function MoverCreatorDialog({
       })
         .then(async (blob) => {
           if (controller.signal.aborted) return;
-          await preview.current?.load(blob, controller.signal);
+          await preview.current?.load(blob, controller.signal, bundle.transform);
           if (!controller.signal.aborted) {
             setStatus(t('三维预览已更新'));
             setError('');
@@ -1263,6 +1268,11 @@ function JsonEditor({ value, onApply }: { value: unknown; onApply(value: JsonVal
   const t = useMoverText();
   const [text, setText] = useState(JSON.stringify(value, null, 2)),
     [error, setError] = useState('');
+  const serialized = JSON.stringify(value, null, 2);
+  useEffect(() => {
+    setText(serialized);
+    setError('');
+  }, [serialized]);
   return (
     <>
       <textarea
