@@ -2,6 +2,8 @@
 
 import copy
 import json
+import subprocess
+import zipfile
 
 from backend.mover import geometry
 from fastapi import APIRouter, Depends, File, Request, Response, UploadFile
@@ -14,6 +16,7 @@ from .db import session
 from .documents import references
 from .model_assets import inspect_glb, job_json
 from .models import Asset, CatalogEntry, Job, ModelDefinition, MoverDesign, MoverVersion, now
+from .mover_render import render_bundle
 from .storage import read_asset, store_asset
 from .validation import require, text
 
@@ -25,13 +28,47 @@ def imported_glb(db, request, asset_id):
     with read_asset(asset) as stream:
         data = stream.read()
     inspect_glb(data)
-    return {"assetId": asset.id, "mounts": check(lambda: geometry.read_mounts(data))}
+    return {"assetId": asset.id, "mounts": check(lambda: geometry.read_mounts(data, preserve_parent=True))}
 
 
 @router.get("/from-asset/{asset_id}")
 def from_asset(asset_id: str, request: Request, db: Session = Depends(session, scope="function")):
     workspace(request, db)
     return imported_glb(db, request, asset_id)
+
+
+@router.post("/assembly-export")
+def assembly_export(body: dict, request: Request, db: Session = Depends(session, scope="function")):
+    require(text(body.get("modelId"), 160) and text(body.get("assetVersion"), 80), "模型引用无效")
+    model = db.get(ModelDefinition, (body["modelId"], body["assetVersion"]))
+    require(model is not None, "模型不存在", 404)
+    bundle = imported_glb(db, request, model.asset_id)
+    for mount in bundle["mounts"]:
+        socket = next((s for s in model.payload["sockets"] if s["id"] == mount["id"]), None)
+        mount["accepts"] = socket["accepts"] if socket else []
+    placements = body.get("attachments", [])
+    require(isinstance(placements, list) and len(placements) <= 100, "装配列表无效")
+    assembly, used = [], set()
+    for placement in placements:
+        require(isinstance(placement, dict), "部件引用无效")
+        part = next(
+            (
+                p
+                for p in model.payload["attachments"]
+                if p["id"] == placement.get("attachmentId") and p["version"] == placement.get("assetVersion")
+            ),
+            None,
+        )
+        mount = next((m for m in bundle["mounts"] if m["id"] == placement.get("socketId")), None)
+        require(
+            part and mount and part["id"] in mount["accepts"] and mount["id"] not in used, "不兼容或重复装配"
+        )
+        used.add(mount["id"])
+        assembly.append({"socketId": mount["id"], "id": part["id"], "version": part["version"]})
+    bundle["assembly"] = assembly
+    return Response(
+        check(lambda: render_bundle(db, model.workspace_id, bundle)), media_type="model/gltf-binary"
+    )
 
 
 @router.get("/from-model/{model_id}/{version}")
@@ -42,6 +79,14 @@ def from_model(
     model = db.get(ModelDefinition, (model_id, version))
     require(model is not None, "模型不存在", 404)
     bundle = imported_glb(db, request, model.asset_id)
+    if model.payload.get("moverTemplateId"):
+        bundle.pop("assetId")
+        bundle["amc"] = geometry.template("vehicle", model.payload["moverTemplateId"])
+        bundle["amc"]["standardTemplate"] = False
+    elif model_id.startswith("mover-") and version.isdigit():
+        saved = db.get(MoverVersion, (model_id.removeprefix("mover-"), int(version)))
+        if saved and model.workspace_id == workspace(request, db).id:
+            bundle = copy.deepcopy(saved.payload)
     bundle["attachments"] = [
         {"id": p["id"], "version": p["version"]} for p in model.payload.get("attachments", [])
     ]
@@ -55,7 +100,15 @@ def from_model(
 def check(action):
     try:
         return action()
-    except (ValueError, KeyError, TypeError, OSError) as exc:
+    except (
+        ValueError,
+        KeyError,
+        TypeError,
+        IndexError,
+        OSError,
+        zipfile.BadZipFile,
+        subprocess.TimeoutExpired,
+    ) as exc:
         require(False, str(exc)[:1000])
 
 
@@ -70,7 +123,60 @@ def prepare(body, request, db):
         with read_asset(asset) as stream:
             check(lambda: inspect_glb(stream.read()))
     check(lambda: geometry.mount_nodes(bundle.get("mounts", [])))
-    require(isinstance(bundle.get("attachments", []), list), "部件列表无效")
+    attachments = bundle.get("attachments", [])
+    require(isinstance(attachments, list) and len(attachments) <= 100, "部件列表无效")
+    part_ids = set()
+    for part in attachments:
+        require(
+            isinstance(part, dict) and text(part.get("id"), 160) and text(part.get("version"), 80),
+            "部件引用无效",
+        )
+        require(part["id"] not in part_ids, "同一部件只能选择一个版本")
+        part_ids.add(part["id"])
+        model = db.get(ModelDefinition, (part["id"], part["version"]))
+        require(
+            model
+            and model.workspace_id in (None, workspace(request, db).id)
+            and model.payload.get("hasAttachmentAnchor"),
+            "部件不可访问或缺少安装锚点",
+        )
+    for mount in bundle.get("mounts", []):
+        require(
+            isinstance(mount.get("accepts", []), list)
+            and all(isinstance(p, str) and p in part_ids for p in mount.get("accepts", [])),
+            "挂点兼容列表无效",
+        )
+    if "transform" in bundle:
+        check(lambda: geometry.mount_nodes([{"id": "transform", "role": "socket", **bundle["transform"]}]))
+    assembly = bundle.get("assembly", [])
+    require(isinstance(assembly, list) and len(assembly) <= 100, "装配列表无效")
+    used = set()
+    for placement in assembly:
+        require(isinstance(placement, dict), "装配引用无效")
+        socket = next(
+            (
+                m
+                for m in bundle.get("mounts", [])
+                if m["id"] == placement.get("socketId") and m["role"] == "socket"
+            ),
+            None,
+        )
+        require(
+            socket and placement.get("id") in socket.get("accepts", []) and socket["id"] not in used,
+            "装配挂点无效、重复或不兼容",
+        )
+        require(
+            {"id": placement.get("id"), "version": placement.get("version")} in bundle.get("attachments", []),
+            "装配部件版本未关联",
+        )
+        used.add(socket["id"])
+        model = db.get(ModelDefinition, (placement["id"], placement["version"]))
+        require(
+            model
+            and model.workspace_id in (None, workspace(request, db).id)
+            and model.payload.get("hasAttachmentAnchor"),
+            "装配部件不可访问",
+        )
     return bundle
 
 
@@ -130,6 +236,8 @@ def snapshot(db, design, bundle):
     ids = {source.id}
     if bundle.get("assetId"):
         ids.add(bundle["assetId"])
+    for part in bundle.get("attachments", []):
+        ids.add(db.get(ModelDefinition, (part["id"], part["version"])).asset_id)
     references(db, ids, "mover", design.id, str(design.revision))
     db.flush()
 
@@ -167,11 +275,7 @@ async def import_amc(
 def preview(body: dict, request: Request, db: Session = Depends(session, scope="function")):
     workspace(request, db)
     bundle = prepare(body, request, db)
-    if "amc" in bundle:
-        data = check(lambda: geometry.glb(bundle))
-    else:
-        with read_asset(accessible(db, request, bundle["assetId"])) as stream:
-            data = check(lambda: geometry.with_mounts(stream.read(), bundle.get("mounts", [])))
+    data = check(lambda: render_bundle(db, workspace(request, db).id, bundle))
     return Response(data, media_type="model/gltf-binary")
 
 

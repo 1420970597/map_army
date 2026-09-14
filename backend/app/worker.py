@@ -6,7 +6,6 @@ import tempfile
 import time
 from pathlib import Path
 
-from backend.mover.geometry import glb, with_mounts
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
@@ -14,6 +13,7 @@ from .db import engine
 from .documents import references
 from .model_assets import inspect_glb, model_metadata
 from .models import Asset, Job, ModelDefinition, now
+from .mover_render import render_bundle
 from .storage import read_asset, store_asset
 
 
@@ -48,12 +48,8 @@ def run_one(job_id=None):
         bundle = None
         if metadata.get("kind") == "mover":
             bundle = json.loads(data)
-            if "amc" in bundle:
-                data = glb(bundle)
-            else:
-                with Session(engine()) as db:
-                    with read_asset(db.get(Asset, bundle["assetId"])) as stream:
-                        data = with_mounts(stream.read(), bundle.get("mounts", []))
+            with Session(engine()) as db:
+                data = render_bundle(db, owner, bundle, assembled=False)
         elif filename.lower().endswith(".obj"):
             with tempfile.TemporaryDirectory(prefix="maparmy-model-") as tmp:
                 path = Path(tmp)
@@ -105,6 +101,13 @@ def run_one(job_id=None):
             }
             asset_ids = {output.id}
             if bundle is not None:
+                payload["equipmentType"] = (
+                    "aircraft"
+                    if bundle.get("amc", {}).get("VehicleType") == "Aircraft"
+                    else "weapon"
+                    if bundle.get("amc", {}).get("VehicleType") == "Weapon"
+                    else "custom"
+                )
                 payload["attachments"] = bundle.get("attachments", [])
                 payload["sockets"] = [
                     {"id": m["id"], "name": m.get("name", m["id"]), "accepts": m.get("accepts", [])}

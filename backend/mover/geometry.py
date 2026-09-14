@@ -62,6 +62,8 @@ def component_kind(g):
 
 
 def number(g, field, default=0):
+    if not isinstance(g, dict):
+        raise ValueError("参数对象无效：" + field)
     value = g.get(field, default)
     if (
         isinstance(value, bool)
@@ -85,6 +87,30 @@ def dependency(bundle, kind, identifier):
     return custom if custom is not None else template(kind, identifier)
 
 
+def validate_dependencies(bundle):
+    if not isinstance(bundle, dict):
+        raise ValueError("设计必须是参数对象")
+    dependencies = bundle.get("dependencies", {})
+    if not isinstance(dependencies, dict) or set(dependencies) - {"engine", "airfoil"}:
+        raise ValueError("依赖需要 engine / airfoil 对象")
+    for kind, items in dependencies.items():
+        if not isinstance(items, dict) or len(items) > 100:
+            raise ValueError("每类依赖最多 100 个")
+        for identifier, value in items.items():
+            if not isinstance(identifier, str) or not identifier or any(c in identifier for c in "/\\"):
+                raise ValueError("依赖名称无效")
+            if kind == "engine":
+                if not isinstance(value, dict) or value.get("engine_type") not in (
+                    "Jet",
+                    "Ramjet",
+                    "LiquidRocket",
+                    "SolidRocket",
+                ):
+                    raise ValueError("发动机依赖参数无效")
+            elif not isinstance(value, str):
+                raise ValueError("翼型依赖须为原始 foil 文本")
+
+
 def resolved_bundle(bundle):
     """版本快照自包含依赖，后续目录更新不会改变历史设计。"""
     result = copy.deepcopy(bundle)
@@ -106,6 +132,7 @@ def rotate_ecs(p, yaw, pitch, roll):
 
 
 def commands(bundle):
+    validate_dependencies(bundle)
     amc = bundle.get("amc")
     if (
         not isinstance(amc, dict)
@@ -181,6 +208,8 @@ def commands(bundle):
             if tip < 0 or abs(sweep) >= 89 or thickness > 1:
                 raise ValueError("翼面弦长、后掠角或厚度无效")
             symmetry = "Horizontal" if kind == "GeometryWing" else g.get("Symmetry Type", "Single")
+            if g.get("Quad Control Fins") and g.get("Quad Control Fins Pattern", symmetry) != symmetry:
+                raise ValueError("四片翼面阵列与对称类型冲突，请统一两项参数")
             surfaces = [(p, dihedral, incidence)]
             if symmetry == "Horizontal":
                 surfaces.append(([p[0], 2 * sy - p[1], p[2]], -180 - dihedral, -incidence))
@@ -263,6 +292,8 @@ def commands(bundle):
         elif kind == "GeometryDish":
             add(name, "dish", [*p, positive(g, "Diameter"), positive(g, "Thickness")])
         elif kind == "GeometryLandingGear":
+            if amc.get("VehicleType") != "Aircraft":
+                raise ValueError("起落架仅适用于 Aircraft 设计")
             length = positive(g, "Uncompressed Length")
             tire = positive(g, "Tire Diam")
             if tire >= length:
@@ -298,13 +329,66 @@ def commands(bundle):
     return result, nonvisual
 
 
-def meshes(bundle):
+def meshes(bundle, instances=False):
     calls, points = commands(bundle)
     binary = os.environ.get("MOVER_KERNEL", str(Path(__file__).with_name("mover-kernel")))
     result = subprocess.run([binary], input=json.dumps(calls).encode(), capture_output=True, timeout=30)
     if result.returncode:
         raise ValueError("几何生成失败：" + result.stderr.decode(errors="replace")[:500])
     raw = json.loads(result.stdout)
+    if instances:
+        counts = {}
+        for mesh, call in zip(raw, calls):
+            name = mesh["name"]
+            counts[name] = counts.get(name, 0) + 1
+            mesh["instanceId"] = name + "::" + str(counts[name])
+            a, kind = call["args"], call["kind"]
+            yaw, pitch, roll = (
+                a[11:14]
+                if kind == "body"
+                else a[13:16]
+                if kind == "nacelle"
+                else a[6:9]
+                if kind == "engine"
+                else [0, 0, 0]
+            )
+            if kind == "surface":
+                roll, pitch = -a[8], a[9]
+            # 参考系按原生 Yaw(-Y)、Pitch(Z)、Roll(X) 顺序转换。
+            y, p, r = map(math.radians, [-yaw, pitch, roll])
+            cy, sy, cp, sp, cr, sr = (
+                math.cos(y),
+                math.sin(y),
+                math.cos(p),
+                math.sin(p),
+                math.cos(r),
+                math.sin(r),
+            )
+            axes = [
+                [cy * cp, sp, -sy * cp],
+                [-cy * sp * cr + sy * sr, cp * cr, sy * sp * cr + cy * sr],
+                [cy * sp * sr + sy * cr, -cp * sr, -sy * sp * sr + cy * cr],
+            ]
+            matrix = [item for v in axes for item in (*v, 0)] + [
+                a[0] * 0.3048,
+                -a[2] * 0.3048,
+                a[1] * 0.3048,
+                1,
+            ]
+            if kind == "surface":
+                # 翼面原生的 roll 绕渲染 X，pitch 绕渲染 Z，使用列向量组合。
+                d, i = math.radians(-a[8]), math.radians(a[9])
+                cd, sd, ci, si = math.cos(d), math.sin(d), math.cos(i), math.sin(i)
+                matrix[:12] = [ci, cd * si, sd * si, 0, -si, cd * ci, sd * ci, 0, 0, -sd, cd, 0]
+            mesh["matrix"] = matrix
+            p = matrix[12:15]
+            # 网格由原生内核输出世界坐标；转回对应实例局部坐标以建立真实父子关系。
+            mesh["positions"] = [
+                sum((mesh["positions"][j + r] - p[r]) * matrix[c * 4 + r] for r in range(3))
+                for j in range(0, len(mesh["positions"]), 3)
+                for c in range(3)
+            ]
+        return raw, points
     merged = {}
     for mesh in raw:
         if not mesh["positions"]:
@@ -344,6 +428,8 @@ def mount_nodes(mounts):
             raise ValueError("挂点标识无效或重复")
         identifiers.add(m["id"])
         role = m.get("role")
+        if not isinstance(m.get("parent", ""), str):
+            raise ValueError("父组件标识无效")
         if role not in ("socket", "anchor"):
             raise ValueError("挂点角色无效")
         anchors += role == "anchor"
@@ -356,6 +442,12 @@ def mount_nodes(mounts):
                 raise ValueError("挂点需要三轴位置和角度")
             values.append([number({"value": x}, "value") for x in v])
         position, rotation = values
+        scale = m.get("scale", [1, 1, 1])
+        if not isinstance(scale, list) or len(scale) != 3:
+            raise ValueError("挂点缩放需要三轴数值")
+        scale = [number({"value": v}, "value") for v in scale]
+        if any(abs(v) < 1e-10 for v in scale):
+            raise ValueError("挂点缩放不能为零")
         # 与 Three.js 的 XYZ Euler 一致，角度为度，位置为 GLB 米制坐标。
         x, y, z = [math.radians(a) / 2 for a in rotation]
         c1, c2, c3 = math.cos(x), math.cos(y), math.cos(z)
@@ -371,6 +463,7 @@ def mount_nodes(mounts):
                 "name": str(m.get("name", m["id"]))[:160],
                 "translation": position,
                 "rotation": quaternion,
+                "scale": scale,
                 "extras": {
                     "mapArmyNodeRole": "attachmentSocket" if role == "socket" else "attachmentAnchor",
                     "socketId": m["id"],
@@ -397,11 +490,39 @@ def with_mounts(data, mounts):
     start = len(nodes)
     nodes.extend(mount_nodes(mounts))
     scenes = root.setdefault("scenes", [{"nodes": list(range(start))}])
-    scenes[root.get("scene", 0)].setdefault("nodes", []).extend(range(start, len(nodes)))
+    for offset, mount in enumerate(mounts):
+        parent = mount.get("parent", "")
+        if parent:
+            index = next(
+                (i for i, n in enumerate(nodes[:start]) if n.get("extras", {}).get("instanceId") == parent),
+                None,
+            )
+            if index is None and parent.startswith("node:"):
+                index = int(parent[5:])
+            if index is None or not 0 <= index < start:
+                raise ValueError("挂点父组件不存在：" + parent)
+            nodes[index].setdefault("children", []).append(start + offset)
+        else:
+            scenes[root.get("scene", 0)].setdefault("nodes", []).append(start + offset)
     return pack_glb(root, chunks)
 
 
-def read_mounts(data):
+def transform_glb(data, transform):
+    if not transform:
+        return data
+    node = mount_nodes([{"id": "transform", "role": "socket", **transform}])[0]
+    node.pop("extras")
+    node["extras"] = {"modelTransform": True}
+    node["name"] = "Model transform"
+    root, chunks = unpack_glb(data)
+    scene = root["scenes"][root.get("scene", 0)]
+    node["children"] = scene.get("nodes", [])
+    scene["nodes"] = [len(root["nodes"])]
+    root["nodes"].append(node)
+    return pack_glb(root, chunks)
+
+
+def read_mounts(data, preserve_parent=False):
     """把嵌套 GLB 安装节点转为编辑器使用的世界位置与 XYZ 欧拉角。"""
     root, _ = unpack_glb(data)
     nodes = root.get("nodes", [])
@@ -411,7 +532,7 @@ def read_mounts(data):
     def multiply(a, b):
         return [sum(a[k * 4 + r] * b[c * 4 + k] for k in range(4)) for c in range(4) for r in range(4)]
 
-    def visit(index, parent, ancestors):
+    def visit(index, parent, ancestors, parent_index=None):
         if index in ancestors:
             raise ValueError("GLB 节点存在循环")
         node = nodes[index]
@@ -443,13 +564,32 @@ def read_mounts(data):
         extra = node.get("extras", {})
         role = extra.get("mapArmyNodeRole") if isinstance(extra, dict) else None
         if role in ("attachmentSocket", "attachmentAnchor"):
+            parent_id = ""
+            if preserve_parent and parent_index is not None:
+                parent_id = (
+                    nodes[parent_index].get("extras", {}).get("instanceId", "node:" + str(parent_index))
+                )
+                world = local
             rotation = world[:]
+            scales = [math.sqrt(sum(world[c * 4 + r] ** 2 for r in range(3))) for c in range(3)]
+            determinant = (
+                world[0] * (world[5] * world[10] - world[6] * world[9])
+                - world[4] * (world[1] * world[10] - world[2] * world[9])
+                + world[8] * (world[1] * world[6] - world[2] * world[5])
+            )
+            if determinant < 0:
+                scales[0] *= -1
             for c in range(3):
-                scale = math.sqrt(sum(world[c * 4 + r] ** 2 for r in range(3)))
-                if scale < 1e-10:
+                scale = scales[c]
+                if abs(scale) < 1e-10:
                     raise ValueError("安装节点缩放不能为零")
                 for r in range(3):
                     rotation[c * 4 + r] /= scale
+            if any(
+                abs(sum(rotation[a * 4 + r] * rotation[b * 4 + r] for r in range(3))) > 1e-5
+                for a, b in [(0, 1), (0, 2), (1, 2)]
+            ):
+                raise ValueError("挂点矩阵包含剪切，请先在建模工具中应用变换")
             y = math.asin(max(-1, min(1, rotation[8])))
             if abs(rotation[8]) < 0.9999999:
                 x, z = math.atan2(-rotation[9], rotation[10]), math.atan2(-rotation[4], rotation[0])
@@ -462,11 +602,13 @@ def read_mounts(data):
                     "role": "socket" if role == "attachmentSocket" else "anchor",
                     "position": world[12:15],
                     "rotation": list(map(math.degrees, [x, y, z])),
+                    "scale": scales,
+                    **({"parent": parent_id} if parent_id else {}),
                     "accepts": [],
                 }
             )
         for child in node.get("children", []):
-            visit(child, world, ancestors | {index})
+            visit(child, multiply(parent, local), ancestors | {index}, index)
 
     for index in root["scenes"][root.get("scene", 0)].get("nodes", []):
         visit(index, identity, set())
@@ -474,7 +616,7 @@ def read_mounts(data):
 
 
 def glb(bundle):
-    parts, points = meshes(bundle)
+    parts, points = meshes(bundle, instances=True)
     binary = bytearray()
     root = {
         "asset": {"version": "2.0", "generator": "map.army AMC native geometry"},
@@ -520,7 +662,14 @@ def glb(bundle):
                 "primitives": [{"attributes": {"POSITION": index}, "material": 0, "mode": 4}],
             }
         )
-        root["nodes"].append({"name": part["name"], "mesh": index, "extras": {"componentId": part["name"]}})
+        root["nodes"].append(
+            {
+                "name": part["instanceId"],
+                "mesh": index,
+                "matrix": part["matrix"],
+                "extras": {"componentId": part["name"], "instanceId": part["instanceId"]},
+            }
+        )
     for point in points:
         root["nodes"].append(
             {
@@ -533,10 +682,11 @@ def glb(bundle):
                 },
             }
         )
-    root["nodes"].extend(mount_nodes(bundle.get("mounts", [])))
     root["scenes"][0]["nodes"] = list(range(len(root["nodes"])))
     root["buffers"] = [{"byteLength": len(binary)}]
-    return pack_glb(root, struct.pack("<II", len(binary), 0x004E4942) + binary)
+    return with_mounts(
+        pack_glb(root, struct.pack("<II", len(binary), 0x004E4942) + binary), bundle.get("mounts", [])
+    )
 
 
 def export_bundle(bundle):

@@ -2,7 +2,9 @@
 
 import copy
 import hashlib
+import io
 import json
+import zipfile
 
 import pytest
 from backend.app.main import app
@@ -41,9 +43,7 @@ def test_complete_catalog_geometry_and_lossless_roundtrip():
         root, _ = geometry.unpack_glb(data)
         names = {n["extras"]["componentId"] for n in root["nodes"]}
         assert names == set(source["amc"]["geometry"]), entry["id"]
-        assert info["meshCount"] == sum(
-            geometry.component_kind(g) not in geometry.NON_VISUAL for g in source["amc"]["geometry"].values()
-        )
+        assert info["meshCount"] == len(geometry.commands(source)[0])
         restored = geometry.import_bundle(geometry.export_bundle(source), "roundtrip.zip")
         assert restored["amc"] == source["amc"]
         assert geometry.glb(restored) == data
@@ -138,7 +138,7 @@ def test_design_versions_cas_permissions_and_export(client):
 
 def test_publish_mounts_and_immutable_asset_versions(client):
     value = bundle()
-    part = {"id": "afsim-amc-TNK-370-1", "version": "amc-1"}
+    part = {"id": "afsim-amc-TNK-370-1", "version": "amc-2"}
     value["mounts"] = [
         {
             "id": "right",
@@ -178,3 +178,124 @@ def test_publish_mounts_and_immutable_asset_versions(client):
     assert derived.status_code == 200, derived.text
     assert derived.json()["mounts"][0]["accepts"] == [part["id"]]
     assert inspect_glb(client.post("/api/mover/preview", json=derived.json()).content)["meshCount"] > 0
+
+
+def test_invalid_imports_and_dependencies_are_recoverable(client):
+    assert client.post("/api/mover/import", files={"file": ("broken.zip", b"broken")}).status_code == 422
+    for invalid in [[], None, {"engine": []}, {"engine": {"bad": 1}}, {"airfoil": {"bad": {}}}]:
+        value = bundle()
+        value["dependencies"] = invalid
+        assert client.post("/api/mover/preview", json=value).status_code == 422
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w") as archive:
+        archive.writestr("maparmy-design.json", "[]")
+    assert (
+        client.post("/api/mover/import", files={"file": ("invalid.zip", output.getvalue())}).status_code
+        == 422
+    )
+
+
+def test_parent_mount_follows_geometry_and_assembly_export(client):
+    value = bundle()
+    part = {"id": "afsim-amc-TNK-370-1", "version": "amc-2"}
+    value["attachments"] = [part]
+    value["mounts"] = [
+        {
+            "id": "right",
+            "name": "右翼",
+            "role": "socket",
+            "parent": "Wing::1",
+            "position": [0, -0.4, 2],
+            "rotation": [0, 0, 0],
+            "scale": [1, 1, 1],
+            "accepts": [part["id"]],
+        }
+    ]
+    before = geometry.glb(value)
+    position = geometry.read_mounts(before)[0]["position"]
+    value["amc"]["geometry"]["Wing"]["Reference Point"]["x"] += 10
+    after = geometry.glb(value)
+    moved = geometry.read_mounts(after)[0]["position"]
+    assert moved[0] - position[0] == pytest.approx(3.048)
+    assert moved[1:] == pytest.approx(position[1:])
+    value["assembly"] = [{"socketId": "right", **part}]
+    response = client.post("/api/mover/preview", json=value)
+    assert response.status_code == 200, response.text
+    assembled = response.content
+    assert inspect_glb(assembled)["meshCount"] > inspect_glb(after)["meshCount"]
+    root, _ = geometry.unpack_glb(assembled)
+    assert any(n.get("extras", {}).get("assemblySocket") == "right" for n in root["nodes"])
+    assert len(geometry.read_mounts(assembled)) == 1
+    exported = geometry.export_bundle(value)
+    restored = geometry.import_bundle(exported, "assembly.zip")
+    assert restored["assembly"] == value["assembly"]
+    assert client.post("/api/mover/preview", json=restored).content == assembled
+    design = client.post("/api/mover/designs", json={"name": "装配导出", "bundle": value}).json()
+    job = client.post(
+        "/api/mover/designs/" + design["id"] + "/publish", json={"revision": 1, "category": "Aircraft"}
+    ).json()
+    run_one(job["id"])
+    completed = next(j for j in client.get("/api/model-imports").json() if j["id"] == job["id"])
+    model = completed["result"]
+    exported_scene = client.post(
+        "/api/mover/assembly-export",
+        json={
+            "modelId": model["id"],
+            "assetVersion": model["version"],
+            "attachments": [
+                {"socketId": "right", "attachmentId": part["id"], "assetVersion": part["version"]}
+            ],
+        },
+    )
+    assert exported_scene.status_code == 200, exported_scene.text
+    assert inspect_glb(exported_scene.content)["meshCount"] == inspect_glb(assembled)["meshCount"]
+
+
+def test_glb_scaled_and_reflected_mount_roundtrip():
+    value = bundle()
+    mount = {
+        "id": "scaled",
+        "name": "缩放",
+        "role": "socket",
+        "position": [1, 2, 3],
+        "rotation": [10, 20, 30],
+        "scale": [-2, 3, 4],
+        "accepts": [],
+    }
+    original = geometry.with_mounts(geometry.glb(value), [mount])
+    restored = geometry.read_mounts(original)
+    assert restored[0]["scale"] == pytest.approx(mount["scale"])
+    assert restored[0]["rotation"] == pytest.approx(mount["rotation"])
+    output = geometry.with_mounts(original, restored)
+    assert geometry.read_mounts(output)[0]["scale"] == pytest.approx(mount["scale"])
+
+
+def test_custom_engines_gear_and_shape_options():
+    for entry in geometry.catalog():
+        if entry["kind"] != "engine":
+            continue
+        engine = geometry.template("engine", entry["id"])
+        value = {
+            "amc": {"geometry": {"Engine": {"EngineType": engine["engine_type"], "EngineModel": entry["id"]}}}
+        }
+        assert geometry.meshes(value)[0][0]["positions"]
+    value = {
+        "amc": {
+            "VehicleType": "Aircraft",
+            "geometry": {
+                "Gear": {
+                    "GeometryObjectType": "GeometryLandingGear",
+                    "Uncompressed Length": 5,
+                    "Strut Diam": 0.25,
+                    "Tire Diam": 1.5,
+                    "Tire Width": 0.6,
+                    "Max Angle": 90,
+                    "Symmetrical": True,
+                }
+            },
+        }
+    }
+    assert len(geometry.meshes(value, instances=True)[0]) == 2
+    value["amc"]["VehicleType"] = "Weapon"
+    with pytest.raises(ValueError, match="Aircraft"):
+        geometry.glb(value)

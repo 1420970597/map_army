@@ -1,9 +1,11 @@
 """备份恢复只创建独立随机数据库；从不清空当前应用数据库或持久卷。"""
 
+import json
 import os
 import secrets
 import subprocess
 import sys
+import tarfile
 
 from backend.app.config import settings
 from backend.app.db import engine
@@ -20,6 +22,8 @@ def test_backup_restore_into_new_database(tmp_path):
     cfg = settings()
     archive = tmp_path / "backup.tar.gz"
     backup(archive)
+    with tarfile.open(archive, "r:gz") as source:
+        expected = json.load(source.extractfile("database.json"))["tables"]
     assert archive.stat().st_mode & 0o777 == 0o600
     root_password = os.environ.get("MYSQL_ROOT_PASSWORD") or dotenv_values(".env")["MYSQL_ROOT_PASSWORD"]
     root_url = make_url(cfg.database_url).set(username="root", password=root_password)
@@ -64,9 +68,10 @@ def test_backup_restore_into_new_database(tmp_path):
             check=True,
             capture_output=True,
         )
-        with engine().connect() as original, target.connect() as restored:
+        # 页面可能继续写入工作库，恢复结果应对比同一份备份快照。
+        with target.connect() as restored:
             for table in Base.metadata.sorted_tables:
-                before = sorted([dict(row) for row in original.execute(select(table)).mappings()], key=str)
+                before = sorted(expected[table.name], key=str)
                 after = sorted([dict(row) for row in restored.execute(select(table)).mappings()], key=str)
                 assert before == after, table.name
         with Session(target) as db:

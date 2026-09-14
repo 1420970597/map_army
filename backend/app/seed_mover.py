@@ -38,7 +38,7 @@ def seed_mover():
                 db.add(CatalogEntry(kind="mover", id=key, payload=payload))
             if entry["kind"] != "vehicle":
                 continue
-            identifier, version = "afsim-amc-" + entry["id"], "amc-1"
+            identifier, version = "afsim-amc-" + entry["id"], "amc-4"
             old_model = db.get(ModelDefinition, (identifier, version))
             if old_model:
                 continue
@@ -74,6 +74,13 @@ def seed_mover():
                 "meshCount": info["meshCount"],
                 "source": "afsim",
                 "moverTemplateId": entry["id"],
+                "equipmentType": "drone"
+                if entry["id"].startswith("D-")
+                else "attachment"
+                if entry["id"].startswith("TNK-")
+                else "weapon"
+                if weapon
+                else "aircraft",
             }
             db.add(
                 ModelDefinition(
