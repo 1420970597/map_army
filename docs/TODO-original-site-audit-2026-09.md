@@ -147,4 +147,8 @@
 
 PR #40 已合并到 `main`（提交 `f9cc4f1`）。合并后重新访问官方索引、分享、导入、MilX 格式和 FAQ 页面，均返回 200；页面字节数与 SHA-256 记录于 `docs/evidence/backend-2026-09/original-site-post-merge.json`。
 
-本轮后端迁移的扩展能力已接入自托管 Python/MySQL/MinIO 服务，但原站差异仍按既有清单推进：真实 MSS 全量覆盖、真实 DEM、3D 图层控制和量测细节、完整原生 MilX 语义、完整符号目录及跨浏览器矩阵未因后端迁移而标记完成。AFSIM Mover Creator 受许可 OSGB 全量转换仍是专项后续 ToDo。
+本轮后端迁移的扩展能力已接入自托管 Python/MySQL/MinIO 服务，但原站差异仍按既有清单推进：真实 MSS 全量覆盖、真实 DEM、3D 图层控制和量测细节、完整原生 MilX 语义、完整符号目录及跨浏览器矩阵未因后端迁移而标记完成。
+
+### Mover Creator 三维扩展（2026-09-14）
+
+用户随后明确不按来源许可筛选本轮模板，要求浏览器创作而非继续扩展静态 OSGB 清单。依据 API ZIP、本机源码与 AMC 的三维几何工作流已完整落地：34 载具、45 发动机、12 翼型资源，组件实例、父挂点、版本保存、完整装配导出与自定义模型。验收见 [QA-mover-creator-2026-09.md](QA-mover-creator-2026-09.md)，后续范围见 [TODO-after-mover-2026-09.md](TODO-after-mover-2026-09.md)。官方 3D、Symbol Editor、Share 文档复核均正常；本项为用户扩展，不改变原站复刻差异判定。

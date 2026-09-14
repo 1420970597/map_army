@@ -24,6 +24,23 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return response.json();
 }
 
+/** 读取后端生成的二进制预览，错误仍沿用统一 API 契约。 */
+export async function apiBlob(path: string, init: RequestInit = {}): Promise<Blob> {
+  const headers = new Headers(init.headers);
+  if (typeof init.body === 'string') headers.set('Content-Type', 'application/json');
+  const response = await fetch(`/api${path}`, {
+    ...init,
+    headers,
+    credentials: 'same-origin',
+    signal: init.signal ?? AbortSignal.timeout(60000),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new ApiError(response.status, data.error ?? `服务请求失败（${response.status}）`);
+  }
+  return response.blob();
+}
+
 export interface AssetRecord {
   id: string;
   name: string;

@@ -1,5 +1,6 @@
 """MySQL 租约队列允许任务在进程中断后重新领取，HTTP 不等待 Blender。"""
 
+import json
 import subprocess
 import tempfile
 import time
@@ -10,16 +11,18 @@ from sqlalchemy.orm import Session
 
 from .db import engine
 from .documents import references
-from .model_assets import inspect_glb
+from .model_assets import inspect_glb, model_metadata
 from .models import Asset, Job, ModelDefinition, now
+from .mover_render import render_bundle
 from .storage import read_asset, store_asset
 
 
-def run_one():
+def run_one(job_id=None):
     with Session(engine()) as db, db.begin():
         job = db.scalar(
             select(Job)
             .where(or_(Job.status == "queued", (Job.status == "running") & (Job.leased_until < now())))
+            .where(Job.id == job_id if job_id else True)
             .order_by(Job.created_at)
             .with_for_update(skip_locked=True)
             .limit(1)
@@ -42,7 +45,12 @@ def run_one():
             with read_asset(asset) as body:
                 data = body.read()
             filename = asset.name
-        if filename.lower().endswith(".obj"):
+        bundle = None
+        if metadata.get("kind") == "mover":
+            bundle = json.loads(data)
+            with Session(engine()) as db:
+                data = render_bundle(db, owner, bundle, assembled=False)
+        elif filename.lower().endswith(".obj"):
             with tempfile.TemporaryDirectory(prefix="maparmy-model-") as tmp:
                 path = Path(tmp)
                 # OBJ 原件只携带几何；材质依赖需要使用自包含 GLB 导入。
@@ -80,7 +88,7 @@ def run_one():
             output = store_asset(db, data, metadata["name"] + ".glb", "model/gltf-binary", "model", owner)
             payload = {
                 "id": metadata["modelId"],
-                "version": "1",
+                "version": metadata.get("version", "1"),
                 "name": metadata["name"],
                 "category": metadata["category"],
                 "description": "自定义三维模型",
@@ -91,12 +99,32 @@ def run_one():
                 "meshCount": info["meshCount"],
                 "source": "custom",
             }
+            asset_ids = {output.id}
+            if bundle is not None:
+                payload["equipmentType"] = (
+                    "aircraft"
+                    if bundle.get("amc", {}).get("VehicleType") == "Aircraft"
+                    else "weapon"
+                    if bundle.get("amc", {}).get("VehicleType") == "Weapon"
+                    else "custom"
+                )
+                payload["attachments"] = bundle.get("attachments", [])
+                payload["sockets"] = [
+                    {"id": m["id"], "name": m.get("name", m["id"]), "accepts": m.get("accepts", [])}
+                    for m in bundle.get("mounts", [])
+                    if m["role"] == "socket"
+                ]
+                payload, asset_ids = model_metadata(db, owner, payload, output)
             db.add(
                 ModelDefinition(
-                    id=payload["id"], version="1", workspace_id=owner, asset_id=output.id, payload=payload
+                    id=payload["id"],
+                    version=payload["version"],
+                    workspace_id=owner,
+                    asset_id=output.id,
+                    payload=payload,
                 )
             )
-            references(db, [output.id], "model", payload["id"], "1")
+            references(db, asset_ids, "model", payload["id"], payload["version"])
             job.status, job.result, job.error, job.leased_until = "complete", payload, None, None
     except Exception as exc:
         with Session(engine()) as db, db.begin():

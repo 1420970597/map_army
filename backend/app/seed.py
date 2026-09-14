@@ -68,6 +68,9 @@ def seed():
             references(db, ids, "model", item["id"], item["version"])
         db.flush()
     print("模型、军标目录与内置资产已入库。")
+    from .seed_mover import seed_mover
+
+    seed_mover()
 
 
 if __name__ == "__main__":

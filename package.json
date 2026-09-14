@@ -47,6 +47,9 @@
     "test:legacy-shares": "node --test server/*.test.mjs"
   },
   "dependencies": {
+    "@gltf-transform/core": "^4.5.0",
+    "@gltf-transform/extensions": "^4.5.0",
+    "@gltf-transform/functions": "^4.5.0",
     "cesium": "^1.145.0",
     "fast-xml-parser": "^5.11.1",
     "fflate": "^0.8.3",
@@ -54,6 +57,7 @@
     "html-to-image": "^1.11.13",
     "jspdf": "^3.0.1",
     "leaflet": "^1.9.4",
+    "lucide-react": "^1.46.0",
     "milsymbol": "^3.0.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

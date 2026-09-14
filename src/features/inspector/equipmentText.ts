@@ -49,11 +49,11 @@ const messages: Record<string, readonly [string, string, string, string]> = {
     'L’assemblage 3D est une extension du projet',
     'L’assemblaggio 3D è un’estensione del progetto',
   ],
-  '内置模型库包含类别示意和已获许可的 AFSIM 模型；受限源文件仅显示索引。': [
-    'The built-in library includes schematic and licensed AFSIM models; restricted sources are indexed only.',
-    'Die Bibliothek enthält schematische und lizenzierte AFSIM-Modelle; eingeschränkte Quellen werden nur indiziert.',
-    'La bibliothèque contient des modèles schématiques et AFSIM autorisés ; les sources restreintes sont indexées uniquement.',
-    'La libreria contiene modelli schematici e AFSIM autorizzati; le sorgenti soggette a restrizioni sono solo indicizzate.',
+  '内置模型库包含类别示意和 AFSIM Mover Creator 参数化模型。': [
+    'The built-in library includes schematic and AFSIM Mover Creator models.',
+    'Die Bibliothek enthält schematische und parametrische Modelle aus AFSIM Mover Creator.',
+    'La bibliothèque contient des modèles schématiques et paramétriques AFSIM Mover Creator.',
+    'La libreria contiene modelli schematici e parametrici AFSIM Mover Creator.',
   ],
   模型版本不可用: [
     'Model version unavailable',

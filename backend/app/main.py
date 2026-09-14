@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
-from . import assets, exchange, model_assets, projects, shares, workspaces
+from . import assets, exchange, model_assets, mover, projects, shares, workspaces
 from .config import settings
 from .db import engine
 from .storage import s3
@@ -20,6 +20,7 @@ for router in (
     assets.router,
     exchange.router,
     model_assets.router,
+    mover.router,
 ):
     app.include_router(router)
 

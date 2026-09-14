@@ -84,7 +84,7 @@ def backup(destination):
                     entry.size, entry.mode = len(content), 0o600
                     archive.addfile(entry, io.BytesIO(content))
 
-                add("database.json", json.dumps({"format": 1, "schema": "0001", "tables": rows}).encode())
+                add("database.json", json.dumps({"format": 1, "schema": "0002", "tables": rows}).encode())
                 for asset in rows["assets"]:
                     body = s3().get_object(Bucket=settings().s3_bucket, Key=asset["object_key"])["Body"]
                     try:
@@ -114,7 +114,7 @@ def restore(source):
             if handle is None:
                 raise ValueError("缺少备份索引")
             document = json.load(handle)
-            if document.get("format") != 1 or document.get("schema") != "0001":
+            if document.get("format") != 1 or document.get("schema") not in ("0001", "0002"):
                 raise ValueError("不支持该备份版本")
             for asset in document["tables"]["assets"]:
                 import hashlib
@@ -144,7 +144,7 @@ def restore(source):
                     finally:
                         existing.close()
             for table in Base.metadata.sorted_tables:
-                rows = document["tables"][table.name]
+                rows = document["tables"].get(table.name, [])
                 if rows:
                     db.execute(table.insert(), rows)
     print("数据库与 S3 对象恢复完成。")

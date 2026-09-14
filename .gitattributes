@@ -14,3 +14,6 @@
 # 语言统计：将锁定文件与资源排除在语言统计之外
 package-lock.json linguist-generated=true
 public/** linguist-documentation=false
+
+# 上游 AMC 与翼型以原始字节入库，保留来源哈希与行尾。
+backend/mover/data/** -text -diff

@@ -1,0 +1,15 @@
+{
+  "source": "/root/afsim/swdev/src/mover_creator/source",
+  "files": {
+    "GeometryObjFile.cpp": "504590a1ecee14dee1224c78a1bb07a1b0e0c393f5868fbf03f73350a66d55f7",
+    "GeometryObjFile.hpp": "f5f076759e90f0bfbca3d4a58fd0436fa0730a56801eb5278fbbbd4e7ad5a1b5",
+    "GeometryGLWidget.cpp": "7af04185264ebb74687288e452edfb7398c2f3492bfdde9cbaab5f5f597fdc25",
+    "ObjPointCollection.cpp": "a59d5ee0ba335bffb978ef1ae6ffa1fff68a7bd180edfef406868c4b2a0e6e55",
+    "ObjPointCollection.hpp": "2c30042c414e980a2b9b55320d16e318d2e56300f7941522c58c62a26e3bd683"
+  },
+  "adaptations": [
+    "OpenGL-compatible matrix stack",
+    "GUI speed brake and flat-sided nacelle",
+    "meter mesh output"
+  ]
+}

@@ -1,0 +1,346 @@
+{
+  "vehicles": 34,
+  "resources": 91,
+  "models": [
+    {
+      "id": "F-H4-21C-1",
+      "sourceSha256": "b1e0a9b2ee4dd252064bf0cf33d6ff94f17aa4dd6c9c748beb688c793298f838",
+      "glbSha256": "8586e3ec65764fe9ecee70be427a590e319c5f805709d8e41d9035c879d446aa",
+      "components": 17,
+      "meshInstances": 18,
+      "triangles": 5524,
+      "maxWorldPositionErrorMeters": 2.264775735838498e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "F-H4-22A-1",
+      "sourceSha256": "428c0bd7d290faa1765c72d5e6dc1c7c91f6f04dd15aea9fbdc2079b6482cde7",
+      "glbSha256": "390c4a1dd3cd32ffddfcc1ab2b54e6596a7ca6b8b0f2ae76be50a0f75872c3b6",
+      "components": 15,
+      "meshInstances": 18,
+      "triangles": 3888,
+      "maxWorldPositionErrorMeters": 2.3524579439992976e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "F-H4-22B-1",
+      "sourceSha256": "f8d78c98ffb910da213b72c403913a21a3752df286086e2596caed0e7ae7d234",
+      "glbSha256": "920f00f54cb3d1bffaa26057d37b46e40d16e3b99f200fb29e27d86f410dc8a7",
+      "components": 16,
+      "meshInstances": 20,
+      "triangles": 3976,
+      "maxWorldPositionErrorMeters": 2.3524579439992976e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "F-L4-11A-1",
+      "sourceSha256": "0f0715d54bbea40772c6b571ee93e7a7d705e30aaae431c51fddbc2ca35e0bc5",
+      "glbSha256": "9df6b2e184a9f8edc940f394532afc01ec3a33b1ca9812c933bf9a1243ce29af",
+      "components": 22,
+      "meshInstances": 21,
+      "triangles": 4846,
+      "maxWorldPositionErrorMeters": 2.3193359321993512e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "F-L4-11C-1",
+      "sourceSha256": "43e7f800f3a351ec4eb15277ff87831c2d92aafa2d251bb1a52f13fceefd28e2",
+      "glbSha256": "06f3123b27ca3c7c7759d19e54debd77ffd810fc61794ac7e4baaabde931f74d",
+      "components": 16,
+      "meshInstances": 17,
+      "triangles": 3778,
+      "maxWorldPositionErrorMeters": 1.7410278374541122e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "F-M5-12A-1",
+      "sourceSha256": "e72e0fd721a498ef2d266b2029f961f4f17fdf9d4af144aecd5ab8c0a7942fe7",
+      "glbSha256": "0dc4ce31497cfcc8f7cfab2192e50afb829d99e98e196ab4a7725b2ff8375a30",
+      "components": 12,
+      "meshInstances": 13,
+      "triangles": 1766,
+      "maxWorldPositionErrorMeters": 2.2384643472150856e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "A-M4-22A-1",
+      "sourceSha256": "bb0c6af042e4661f127621b2d3cc1233488b6fb6d87b12233bbbc86e1bc9ce35",
+      "glbSha256": "610be0c43b5b4cd1b75751cdece605cb400c5439566d6e14bcf2bf3d75b53835",
+      "components": 25,
+      "meshInstances": 35,
+      "triangles": 8126,
+      "maxWorldPositionErrorMeters": 4.6525430974497795e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "B-H1-80W-1",
+      "sourceSha256": "bea667828be803a672c8eef6ebca8cd1e7d11c9510ee80290dd3ece99d0c1317",
+      "glbSha256": "bf65d8fe738982c131334dec43b4d35079d796bb11826ed504005438f7c5c572",
+      "components": 13,
+      "meshInstances": 19,
+      "triangles": 2376,
+      "maxWorldPositionErrorMeters": 9.277343764324542e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "B-H3-81A-1",
+      "sourceSha256": "025a3c79e30e5b132f46ca959e7547d6e7f1d6168a20b2a3b8eb20b5c2f11643",
+      "glbSha256": "6aed415a0a9b830f155983809f4029d1da05fbdc6be351830ada5eabf657f463",
+      "components": 23,
+      "meshInstances": 30,
+      "triangles": 6730,
+      "maxWorldPositionErrorMeters": 8.959960950960522e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "B-H4-40W-1",
+      "sourceSha256": "a60b77366a9c739866230ccd7e232ff9421c49ca090eec946a65d0f61973de2b",
+      "glbSha256": "9875ceb9d0b1924eedd2561aa8d11072b25c66f49f9ec89c03e36635ad287655",
+      "components": 9,
+      "meshInstances": 11,
+      "triangles": 1840,
+      "maxWorldPositionErrorMeters": 9.277343764324542e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "R-MJ-11A-1",
+      "sourceSha256": "681773da8cb07a5e9770a2b259f6d5a9277b2a3fe23dd4f0d7c7d41787c7abd8",
+      "glbSha256": "299d888d79023eea74dfc339728e2ef83a477bb7675f3baece900cf3215b8beb",
+      "components": 20,
+      "meshInstances": 21,
+      "triangles": 9458,
+      "maxWorldPositionErrorMeters": 3.314208996130219e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "E-HJ-41A-1",
+      "sourceSha256": "93466ae59009b7239bae14fce7e6ca3545eebb8fcc7ee1b839622f90e42b6049",
+      "glbSha256": "fe1e8d3b831cac2e72762a6138077c994af169615470aefce44acdfe57f32eb7",
+      "components": 18,
+      "meshInstances": 21,
+      "triangles": 4130,
+      "maxWorldPositionErrorMeters": 8.300781253467449e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "K-MJ-21A-1",
+      "sourceSha256": "0b7521d102bf5fcbee72d37ffe4fc4f9717f7e5023dde7b7f76362f1107203aa",
+      "glbSha256": "77201af99df30932ef6b4bccf0a4b465377a156c8283c4dcc931716d16994d50",
+      "components": 16,
+      "meshInstances": 19,
+      "triangles": 5622,
+      "maxWorldPositionErrorMeters": 7.781982418464395e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "C-HJ-41A-1",
+      "sourceSha256": "8e4b8d06c6cb77c29aef2505e6c30a9a49624b23b2b4921f3fec1b04c05a2851",
+      "glbSha256": "d2b1781c09e4873f0cfc744dc95cd6275060676659c424fe5a68f28dd27002e2",
+      "components": 17,
+      "meshInstances": 20,
+      "triangles": 3268,
+      "maxWorldPositionErrorMeters": 9.459673364631271e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "P-MJ-21A-1",
+      "sourceSha256": "c80d134a121bff7cac730088a1edc5cc977bff784cb2efe25ad9f840578df684",
+      "glbSha256": "c60499420975d4eabf0d236750ccc4653d8c5d85cbace4b346409254af2e6e34",
+      "components": 15,
+      "meshInstances": 18,
+      "triangles": 4076,
+      "maxWorldPositionErrorMeters": 4.638671882162271e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "D-L4-11V-1",
+      "sourceSha256": "401252f9bd30e2fd21dc98796a725e79ec638f8fea1e080e4a9b6c2727e66562",
+      "glbSha256": "08cb1e2ec2346f692a4241cb4a4adad34ba1098039921d97292d021b32e27d6f",
+      "components": 11,
+      "meshInstances": 7,
+      "triangles": 1140,
+      "maxWorldPositionErrorMeters": 1.075744631151565e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "D-L4-11Z-1",
+      "sourceSha256": "74532e20b59026b86df5307656dd935807d3c2fdc840b9211f6e772aa5682ffe",
+      "glbSha256": "243af812ed866286dfc24e962c3149b0cdb85597769c91a0c9ecee60e88f0d6b",
+      "components": 11,
+      "meshInstances": 8,
+      "triangles": 1456,
+      "maxWorldPositionErrorMeters": 1.480102547191109e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "AIM-MR-1",
+      "sourceSha256": "231509ad1c76caa5f4ec3e5e03af5910d9fbabe72e7b5bb7e3ac66e24a2faf7a",
+      "glbSha256": "6088f935fdb078b48307232de450e67245c2e7650a7c8d55d869644411eb6214",
+      "components": 10,
+      "meshInstances": 14,
+      "triangles": 1042,
+      "maxWorldPositionErrorMeters": 3.700256367977772e-08,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "AIM-SR-1",
+      "sourceSha256": "ab113e42caa4e9a1f75993bea3026a94a17ee462925bb9e321a1511332ab9ab2",
+      "glbSha256": "f4177c5630a393ffaec4b9b4b578bd6c181c115e595379096562f8b93adc76bb",
+      "components": 10,
+      "meshInstances": 14,
+      "triangles": 1202,
+      "maxWorldPositionErrorMeters": 5.8135986247265237e-08,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "MIM-MR-1",
+      "sourceSha256": "cfa0e28d2233e349ce2a6c4501e83841a38269c3fe47f422239eb90f8b4e6ea8",
+      "glbSha256": "0d15f45a800ed9ba70386f2fd1cc28feec4a7ce3af39e6b1f63f0d2df9ed5193",
+      "components": 8,
+      "meshInstances": 10,
+      "triangles": 866,
+      "maxWorldPositionErrorMeters": 1.1375427177995334e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "RIM-MR-1",
+      "sourceSha256": "cc02a96eabcfa0c4dd304a19299f954f193154bb68d9477f3547afacf4dc0a17",
+      "glbSha256": "0d15f45a800ed9ba70386f2fd1cc28feec4a7ce3af39e6b1f63f0d2df9ed5193",
+      "components": 8,
+      "meshInstances": 10,
+      "triangles": 866,
+      "maxWorldPositionErrorMeters": 1.1375427177995334e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "FIM-SR-1",
+      "sourceSha256": "6adf21f0f98136f43918b6031a27739a0a121172956f21dc7dbab73ebccf042c",
+      "glbSha256": "1f6bef2b616328d612df729deada42625c769e3eee546aec8cddb51f19b8ab26",
+      "components": 9,
+      "meshInstances": 10,
+      "triangles": 1026,
+      "maxWorldPositionErrorMeters": 2.463912951444769e-08,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "AGM-CM-1",
+      "sourceSha256": "17b0b836d1bc0759675d44e95a16717fb10fdc283922bf519467502563b54bf9",
+      "glbSha256": "537e183d2d0dad1a80e64b506cb70bfa31a8de1cfa05043654b9c67c88117a0f",
+      "components": 14,
+      "meshInstances": 13,
+      "triangles": 4706,
+      "maxWorldPositionErrorMeters": 1.0629272484408148e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "AGM-SR-1",
+      "sourceSha256": "2bf02250072f4d7eaca156a9180414481e9c0347f4c58fc896140a97dab25bb7",
+      "glbSha256": "e26c9e6128604fade5df718ad369edfe0dd29b6d5c5dd9eb79fa5d3d0a9c6215",
+      "components": 8,
+      "meshInstances": 10,
+      "triangles": 1026,
+      "maxWorldPositionErrorMeters": 3.9329528744858067e-08,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "BGM-CM-1",
+      "sourceSha256": "a6b71a4e04c3a6d82b4a45a5f08fe3bb879d4df9d43d1543d27090dbeb4eaa73",
+      "glbSha256": "537e183d2d0dad1a80e64b506cb70bfa31a8de1cfa05043654b9c67c88117a0f",
+      "components": 14,
+      "meshInstances": 13,
+      "triangles": 4706,
+      "maxWorldPositionErrorMeters": 1.0629272484408148e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "RGM-CM-1",
+      "sourceSha256": "f2a261b8a7785505365916d20320fb91cd4cd24ed2cc4c33914915fa70ef86d0",
+      "glbSha256": "537e183d2d0dad1a80e64b506cb70bfa31a8de1cfa05043654b9c67c88117a0f",
+      "components": 14,
+      "meshInstances": 13,
+      "triangles": 4706,
+      "maxWorldPositionErrorMeters": 1.0629272484408148e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "UGM-CM-1",
+      "sourceSha256": "5794be28474b0b0fba55fb7edb749a0801b212e0b1352e5ccc3a013bd004a479",
+      "glbSha256": "537e183d2d0dad1a80e64b506cb70bfa31a8de1cfa05043654b9c67c88117a0f",
+      "components": 14,
+      "meshInstances": 13,
+      "triangles": 4706,
+      "maxWorldPositionErrorMeters": 1.0629272484408148e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "ADM-MR-1",
+      "sourceSha256": "3e9f6b1a6808a609ca4a5e47b57f210f662d707fdb8d689230883eace90589e4",
+      "glbSha256": "ba42b8e6ec46a481e42b9affd10f00cba0251da1298d90a5705d2bbc458657f2",
+      "components": 9,
+      "meshInstances": 8,
+      "triangles": 1142,
+      "maxWorldPositionErrorMeters": 4.7721862905802936e-08,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "AQM-MR-1",
+      "sourceSha256": "6dc41af09dc76043042ab655d5fefb5e6bdbc33bcc05ac65ffc885d2b100e396",
+      "glbSha256": "9904fb7706aca4dcd2aa2da9c94427a8793e5a7fb99e6a694f66da9d6c9417a2",
+      "components": 13,
+      "meshInstances": 14,
+      "triangles": 2124,
+      "maxWorldPositionErrorMeters": 1.1405944810860547e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "BQM-MR-1",
+      "sourceSha256": "b6e94b6096aa41ec058d1ceb320f950b6f83f50dec9c6ddcc43757085b6b74ba",
+      "glbSha256": "9904fb7706aca4dcd2aa2da9c94427a8793e5a7fb99e6a694f66da9d6c9417a2",
+      "components": 13,
+      "meshInstances": 14,
+      "triangles": 2124,
+      "maxWorldPositionErrorMeters": 1.1405944810860547e-07,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "GBU-S-1",
+      "sourceSha256": "6f262507095097b46b479fbaeccbf0015205680a8b4ce4fa4374b33c253ef10b",
+      "glbSha256": "68e705dd175480032a00f518a4b6c3beb19a0fc8b3596982303265e0a5637d5a",
+      "components": 6,
+      "meshInstances": 9,
+      "triangles": 870,
+      "maxWorldPositionErrorMeters": 5.7983398527028385e-08,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "MUN-B-1",
+      "sourceSha256": "eb7a18cc30fc9b6c2439ab5e15c8ccd0d6d2eefb60e717873b284c99aab2dd6e",
+      "glbSha256": "12bfe35d332340643f6a4b62fbe62b834f2f48bfebf4f0a9c0235a646cb63bfa",
+      "components": 5,
+      "meshInstances": 5,
+      "triangles": 854,
+      "maxWorldPositionErrorMeters": 5.198059072064609e-08,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "MUN-R-1",
+      "sourceSha256": "7907b21e495796b8ed643b5822f8b75cd7865dad8cacd5ad7a2f038ffe11eff8",
+      "glbSha256": "4b7eb47e0b8f936377d6c75266eee2479120f04484db00f3a44670daf4a47617",
+      "components": 6,
+      "meshInstances": 6,
+      "triangles": 690,
+      "maxWorldPositionErrorMeters": 2.5337219267118627e-08,
+      "roundtrip": "identical"
+    },
+    {
+      "id": "TNK-370-1",
+      "sourceSha256": "34e40dc68a7fb6ea26d58e9211eede231a192abb49e6967b1472c5590dadfd9f",
+      "glbSha256": "446bfba61c9fc0a35c715cf8997e159a1817c765b0ff54e3439afd9b9a28fe2a",
+      "components": 4,
+      "meshInstances": 3,
+      "triangles": 606,
+      "maxWorldPositionErrorMeters": 8.270263718301862e-08,
+      "roundtrip": "identical"
+    }
+  ]
+}

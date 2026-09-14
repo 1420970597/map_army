@@ -60,6 +60,9 @@ tmp/
 # 三维引擎构建时复制的资源
 public/cesium/
 data/
+!backend/mover/data/
+!backend/mover/data/**
+backend/mover/mover-kernel
 playwright-report/
 test-results/
 
@@ -69,6 +72,7 @@ skills-lock.json
 
 # Python 与本机后端运行数据
 .venv/
+/.venv
 __pycache__/
 .pytest_cache/
 .ruff_cache/

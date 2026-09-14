@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { apiBlob } from '@/core/backend/api';
+import { moverText } from '@/features/workspace/moverText';
 import { useBackendStore } from '@/stores/useBackendStore';
 import {
   AIRCRAFT_MODEL,
@@ -10,7 +12,6 @@ import {
   canMountAttachment,
 } from '@/core/model/equipment3d';
 import type { Equipment3D, EquipmentModelDefinition } from '@/core/model/equipment3d';
-import { AFSIM_MODEL_CATALOG } from '@/core/model/afsimCatalog';
 import type { MapFeature } from '@/core/model';
 import { useDocumentStore } from '@/stores/useDocumentStore';
 import { createEquipmentPreview } from './equipmentPreview';
@@ -42,7 +43,7 @@ export default function Equipment3DPanel({
           onSelect={(model) => update(feature.id, { equipment3d: createEquipment3D(model) })}
         />
         <p className="field-hint">
-          {t('内置模型库包含类别示意和已获许可的 AFSIM 模型；受限源文件仅显示索引。')}
+          {t('内置模型库包含类别示意和 AFSIM Mover Creator 参数化模型。')}
         </p>
       </div>
     );
@@ -106,11 +107,8 @@ function ModelCatalog({
   useBackendStore((state) => state.catalogVersion);
   const models = [...new Map(listEquipmentModels().map((model) => [model.id, model])).values()];
   const embeddedAfsimModels = models.filter((model) => model.source === 'afsim');
-  const restrictedAfsimModels = AFSIM_MODEL_CATALOG.filter(
-    (entry) => entry.status === 'restricted',
-  ).length;
   const visibleModels = models.filter(
-    (model) => filter === 'all' || (model.source === 'afsim' && model.equipmentType === filter),
+    (model) => filter === 'all' || (model.equipmentType ?? 'custom') === filter,
   );
 
   const choose = async (model: EquipmentModelDefinition) => {
@@ -138,9 +136,7 @@ function ModelCatalog({
           {t('类型')}
           <select value={filter} onChange={(event) => setFilter(event.target.value)}>
             <option value="all">{t('全部')}</option>
-            {[
-              ...new Set(embeddedAfsimModels.map((model) => model.equipmentType).filter(Boolean)),
-            ].map((type) => (
+            {[...new Set(models.map((model) => model.equipmentType ?? 'custom'))].map((type) => (
               <option key={type} value={type}>
                 {t(typeLabel(type!))}
               </option>
@@ -148,8 +144,7 @@ function ModelCatalog({
           </select>
         </label>
         <span className="field-hint">
-          {t('AFSIM 模型索引')}：{AFSIM_MODEL_CATALOG.length} · {t('可嵌入')}：
-          {embeddedAfsimModels.length} · {t('受限')}：{restrictedAfsimModels}
+          AFSIM：{embeddedAfsimModels.length} · {t('全部')}：{models.length}
         </span>
       </div>
       <div className="equipment-models">
@@ -208,6 +203,8 @@ function typeLabel(type: string): string {
       space: '航天器',
       ground: '地面装备',
       unknown: '未分类',
+      attachment: '外挂部件',
+      custom: '自定义',
     }[type] ?? type
   );
 }
@@ -411,6 +408,28 @@ function ModelAssembly({
           ? t('当前只读，可自由查看模型。')
           : t('拖动部件到绿色挂点，或选择部件后点击挂点安装；Esc 取消拖动。')}
       </p>
+      <button
+        type="button"
+        className="tb-button"
+        disabled={status !== 'ready'}
+        onClick={() => {
+          void apiBlob('/mover/assembly-export' + new URL(model.url, location.origin).search, {
+            method: 'POST',
+            body: JSON.stringify(value),
+          })
+            .then((blob) => {
+              const url = URL.createObjectURL(blob),
+                link = document.createElement('a');
+              link.href = url;
+              link.download = model.name + '-assembly.glb';
+              link.click();
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+            })
+            .catch((error) => setNotice(error instanceof Error ? error.message : String(error)));
+        }}
+      >
+        {moverText(language, '下载装配 GLB')}
+      </button>
       <div className="equipment-parts" aria-label={t('可挂载部件')}>
         {model.attachments.map((part) => (
           <button
