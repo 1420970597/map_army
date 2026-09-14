@@ -1,0 +1,829 @@
+{
+  "assessedOn": "2026-09-14",
+  "installedRoot": "/root/afsim/afsim2.9-data/resources/data/mover_creator",
+  "sourceRoot": "/root/afsim/swdev/src/mover_creator/data",
+  "scope": "Mover Creator built-in visual templates and referenced definitions; not the separate resources/models OSGB library",
+  "vehicleCount": 34,
+  "vehicleTypes": {
+    "Aircraft": 17,
+    "Weapon": 17
+  },
+  "engineDefinitionCount": 45,
+  "airfoilDefinitionCount": 12,
+  "sourceCopiesIdentical": true,
+  "missingEngineOrAirfoilReferences": [],
+  "conversionVerified": false,
+  "vehicles": [
+    {
+      "path": "Vehicles/Aircraft/01 - Fighter Aircraft/F-H4-21C-1.amc",
+      "name": "F-H4-21C-1",
+      "bytes": 17890,
+      "sha256": "b1e0a9b2ee4dd252064bf0cf33d6ff94f17aa4dd6c9c748beb688c793298f838",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "01 - Fighter Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["F-H4-21C-1-TF"],
+      "airfoilDependencies": ["NACA-64012", "NACA-64206"]
+    },
+    {
+      "path": "Vehicles/Aircraft/01 - Fighter Aircraft/F-H4-22A-1.amc",
+      "name": "F-H4-22A-1",
+      "bytes": 17030,
+      "sha256": "428c0bd7d290faa1765c72d5e6dc1c7c91f6f04dd15aea9fbdc2079b6482cde7",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "01 - Fighter Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["F-H4-22A-1-TF"],
+      "airfoilDependencies": ["NACA-64012", "NACA-64206"]
+    },
+    {
+      "path": "Vehicles/Aircraft/01 - Fighter Aircraft/F-H4-22B-1.amc",
+      "name": "F-H4-22B-1",
+      "bytes": 18542,
+      "sha256": "f8d78c98ffb910da213b72c403913a21a3752df286086e2596caed0e7ae7d234",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "01 - Fighter Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["F-H4-22B-1-TF"],
+      "airfoilDependencies": ["NACA-64012", "NACA-64206"]
+    },
+    {
+      "path": "Vehicles/Aircraft/01 - Fighter Aircraft/F-L4-11A-1.amc",
+      "name": "F-L4-11A-1",
+      "bytes": 20927,
+      "sha256": "0f0715d54bbea40772c6b571ee93e7a7d705e30aaae431c51fddbc2ca35e0bc5",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "01 - Fighter Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["F-L4-11A-1-TF"],
+      "airfoilDependencies": ["NACA-64012", "NACA-64206"]
+    },
+    {
+      "path": "Vehicles/Aircraft/01 - Fighter Aircraft/F-L4-11C-1.amc",
+      "name": "F-L4-11C-1",
+      "bytes": 17870,
+      "sha256": "43e7f800f3a351ec4eb15277ff87831c2d92aafa2d251bb1a52f13fceefd28e2",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "01 - Fighter Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["F-L4-11C-1-TF"],
+      "airfoilDependencies": ["NACA-64012", "NACA-64206"]
+    },
+    {
+      "path": "Vehicles/Aircraft/01 - Fighter Aircraft/F-M5-12A-1.amc",
+      "name": "F-M5-12A-1",
+      "bytes": 14884,
+      "sha256": "e72e0fd721a498ef2d266b2029f961f4f17fdf9d4af144aecd5ab8c0a7942fe7",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "01 - Fighter Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["F-M5-12A-1-TF"],
+      "airfoilDependencies": ["NACA-64012", "NACA-64206"]
+    },
+    {
+      "path": "Vehicles/Aircraft/02 - Attack Aircraft/A-M4-22A-1.amc",
+      "name": "A-M4-22A-1",
+      "bytes": 27277,
+      "sha256": "bb0c6af042e4661f127621b2d3cc1233488b6fb6d87b12233bbbc86e1bc9ce35",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "02 - Attack Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["A-M4-22A-1-TF"],
+      "airfoilDependencies": ["NACA-64012", "NACA-6716"]
+    },
+    {
+      "path": "Vehicles/Aircraft/03 - Bomber Aircraft/B-H1-80W-1.amc",
+      "name": "B-H1-80W-1",
+      "bytes": 15379,
+      "sha256": "bea667828be803a672c8eef6ebca8cd1e7d11c9510ee80290dd3ece99d0c1317",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "03 - Bomber Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["B-H1-80W-1-TJ"],
+      "airfoilDependencies": ["NACA-64012", "NACA-653018"]
+    },
+    {
+      "path": "Vehicles/Aircraft/03 - Bomber Aircraft/B-H3-81A-1.amc",
+      "name": "B-H3-81A-1",
+      "bytes": 22836,
+      "sha256": "025a3c79e30e5b132f46ca959e7547d6e7f1d6168a20b2a3b8eb20b5c2f11643",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "03 - Bomber Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["B-H3-81A-1-TF"],
+      "airfoilDependencies": ["NACA-633218", "NACA-64012"]
+    },
+    {
+      "path": "Vehicles/Aircraft/03 - Bomber Aircraft/B-H4-40W-1.amc",
+      "name": "B-H4-40W-1",
+      "bytes": 12501,
+      "sha256": "a60b77366a9c739866230ccd7e232ff9421c49ca090eec946a65d0f61973de2b",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "03 - Bomber Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["B-H4-40W-1-TF"],
+      "airfoilDependencies": ["NACA-653018"]
+    },
+    {
+      "path": "Vehicles/Aircraft/04 - ISR Aircraft/R-MJ-11A-1.amc",
+      "name": "R-MJ-11A-1",
+      "bytes": 19834,
+      "sha256": "681773da8cb07a5e9770a2b259f6d5a9277b2a3fe23dd4f0d7c7d41787c7abd8",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "04 - ISR Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["R-MJ-11A-1-TF"],
+      "airfoilDependencies": ["NACA-63409", "NACA-64012"]
+    },
+    {
+      "path": "Vehicles/Aircraft/05 - AEW Aircraft/E-HJ-41A-1.amc",
+      "name": "E-HJ-41A-1",
+      "bytes": 19124,
+      "sha256": "93466ae59009b7239bae14fce7e6ca3545eebb8fcc7ee1b839622f90e42b6049",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "05 - AEW Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["E-HJ-41A-1-TF"],
+      "airfoilDependencies": ["BAC-3XX", "NACA-64012"]
+    },
+    {
+      "path": "Vehicles/Aircraft/06 - Tanker Aircraft/K-MJ-21A-1.amc",
+      "name": "K-MJ-21A-1",
+      "bytes": 18623,
+      "sha256": "0b7521d102bf5fcbee72d37ffe4fc4f9717f7e5023dde7b7f76362f1107203aa",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "06 - Tanker Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["K-MJ-21A-1-TF"],
+      "airfoilDependencies": ["NACA-64012", "NASA-SC20412"]
+    },
+    {
+      "path": "Vehicles/Aircraft/07 - Cargo and Transport Aircraft/C-HJ-41A-1.amc",
+      "name": "C-HJ-41A-1",
+      "bytes": 19082,
+      "sha256": "8e4b8d06c6cb77c29aef2505e6c30a9a49624b23b2b4921f3fec1b04c05a2851",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "07 - Cargo and Transport Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["C-HJ-41A-1-TF"],
+      "airfoilDependencies": ["NACA-64012", "NASA-SC20412"]
+    },
+    {
+      "path": "Vehicles/Aircraft/08 - Maritime Patrol Aircraft/P-MJ-21A-1.amc",
+      "name": "P-MJ-21A-1",
+      "bytes": 18142,
+      "sha256": "c80d134a121bff7cac730088a1edc5cc977bff784cb2efe25ad9f840578df684",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "08 - Maritime Patrol Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["P-MJ-21A-1-TF"],
+      "airfoilDependencies": ["BAC-4XX", "NACA-64012"]
+    },
+    {
+      "path": "Vehicles/Aircraft/09 - Drone Aircraft/D-L4-11V-1.amc",
+      "name": "D-L4-11V-1",
+      "bytes": 12650,
+      "sha256": "401252f9bd30e2fd21dc98796a725e79ec638f8fea1e080e4a9b6c2727e66562",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "09 - Drone Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["D-L4-11V-1-TF"],
+      "airfoilDependencies": ["NACA-64012", "NACA-64206"]
+    },
+    {
+      "path": "Vehicles/Aircraft/09 - Drone Aircraft/D-L4-11Z-1.amc",
+      "name": "D-L4-11Z-1",
+      "bytes": 12905,
+      "sha256": "74532e20b59026b86df5307656dd935807d3c2fdc840b9211f6e772aa5682ffe",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Aircraft",
+      "category": "09 - Drone Aircraft",
+      "standardTemplate": true,
+      "engineDependencies": ["D-L4-11Z-1-TJ"],
+      "airfoilDependencies": ["NACA-64012", "NACA-64206"]
+    },
+    {
+      "path": "Vehicles/Weapons/01 - AIM (Air-Launched Intercept-Air Missiles)/AIM-MR-1.amc",
+      "name": "AIM-MR-1",
+      "bytes": 9634,
+      "sha256": "231509ad1c76caa5f4ec3e5e03af5910d9fbabe72e7b5bb7e3ac66e24a2faf7a",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "01 - AIM (Air-Launched Intercept-Air Missiles)",
+      "standardTemplate": true,
+      "engineDependencies": ["AIM-MR-1-RKT"],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/01 - AIM (Air-Launched Intercept-Air Missiles)/AIM-SR-1.amc",
+      "name": "AIM-SR-1",
+      "bytes": 9479,
+      "sha256": "ab113e42caa4e9a1f75993bea3026a94a17ee462925bb9e321a1511332ab9ab2",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "01 - AIM (Air-Launched Intercept-Air Missiles)",
+      "standardTemplate": true,
+      "engineDependencies": ["AIM-SR-1-RKT"],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/02 - MIM (Gnd-Launched Intercept-Air Missiles)/MIM-MR-1.amc",
+      "name": "MIM-MR-1",
+      "bytes": 8298,
+      "sha256": "cfa0e28d2233e349ce2a6c4501e83841a38269c3fe47f422239eb90f8b4e6ea8",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "02 - MIM (Gnd-Launched Intercept-Air Missiles)",
+      "standardTemplate": true,
+      "engineDependencies": ["MIM-MR-1-RKT"],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/03 - RIM (Ship-Launched Intercept-Air Missiles)/RIM-MR-1.amc",
+      "name": "RIM-MR-1",
+      "bytes": 8301,
+      "sha256": "cc02a96eabcfa0c4dd304a19299f954f193154bb68d9477f3547afacf4dc0a17",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "03 - RIM (Ship-Launched Intercept-Air Missiles)",
+      "standardTemplate": true,
+      "engineDependencies": ["RIM-MR-1-RKT"],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/04 - FIM (Infantry-Launched Intercept-Air Missiles)/FIM-SR-1.amc",
+      "name": "FIM-SR-1",
+      "bytes": 9130,
+      "sha256": "6adf21f0f98136f43918b6031a27739a0a121172956f21dc7dbab73ebccf042c",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "04 - FIM (Infantry-Launched Intercept-Air Missiles)",
+      "standardTemplate": true,
+      "engineDependencies": ["FIM-SR-1-RKT"],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/05 - AGM (Air-Launched Surface Attack Missiles)/AGM-CM-1.amc",
+      "name": "AGM-CM-1",
+      "bytes": 17144,
+      "sha256": "17b0b836d1bc0759675d44e95a16717fb10fdc283922bf519467502563b54bf9",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "05 - AGM (Air-Launched Surface Attack Missiles)",
+      "standardTemplate": true,
+      "engineDependencies": ["GENERIC-CM-1-TF"],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/05 - AGM (Air-Launched Surface Attack Missiles)/AGM-SR-1.amc",
+      "name": "AGM-SR-1",
+      "bytes": 8157,
+      "sha256": "2bf02250072f4d7eaca156a9180414481e9c0347f4c58fc896140a97dab25bb7",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "05 - AGM (Air-Launched Surface Attack Missiles)",
+      "standardTemplate": true,
+      "engineDependencies": ["AGM-SR-1-RKT"],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/06 - BGM (Gnd-Launched Surface Attack Missiles)/BGM-CM-1.amc",
+      "name": "BGM-CM-1",
+      "bytes": 17144,
+      "sha256": "a6b71a4e04c3a6d82b4a45a5f08fe3bb879d4df9d43d1543d27090dbeb4eaa73",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "06 - BGM (Gnd-Launched Surface Attack Missiles)",
+      "standardTemplate": true,
+      "engineDependencies": ["GENERIC-CM-1-TF"],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/07 - RGM (Ship-Launched Surface Attack Missiles)/RGM-CM-1.amc",
+      "name": "RGM-CM-1",
+      "bytes": 17144,
+      "sha256": "f2a261b8a7785505365916d20320fb91cd4cd24ed2cc4c33914915fa70ef86d0",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "07 - RGM (Ship-Launched Surface Attack Missiles)",
+      "standardTemplate": true,
+      "engineDependencies": ["GENERIC-CM-1-TF"],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/08 - UGM (Sub-Launched Surface Attack Missiles)/UGM-CM-1.amc",
+      "name": "UGM-CM-1",
+      "bytes": 17144,
+      "sha256": "5794be28474b0b0fba55fb7edb749a0801b212e0b1352e5ccc3a013bd004a479",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "08 - UGM (Sub-Launched Surface Attack Missiles)",
+      "standardTemplate": true,
+      "engineDependencies": ["GENERIC-CM-1-TF"],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/09 - ADM (Air-Launched Decoy Missiles)/ADM-MR-1.amc",
+      "name": "ADM-MR-1",
+      "bytes": 13052,
+      "sha256": "3e9f6b1a6808a609ca4a5e47b57f210f662d707fdb8d689230883eace90589e4",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "09 - ADM (Air-Launched Decoy Missiles)",
+      "standardTemplate": true,
+      "engineDependencies": ["ADM-MR-1-TJ"],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/10 - AQM (Air-Launched Drone Missiles)/AQM-MR-1.amc",
+      "name": "AQM-MR-1",
+      "bytes": 17312,
+      "sha256": "6dc41af09dc76043042ab655d5fefb5e6bdbc33bcc05ac65ffc885d2b100e396",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "10 - AQM (Air-Launched Drone Missiles)",
+      "standardTemplate": true,
+      "engineDependencies": ["AQM-MR-1-TJ"],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/11 - BQM (Ground-Launched Drone Missiles)/BQM-MR-1.amc",
+      "name": "BQM-MR-1",
+      "bytes": 17312,
+      "sha256": "b6e94b6096aa41ec058d1ceb320f950b6f83f50dec9c6ddcc43757085b6b74ba",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "11 - BQM (Ground-Launched Drone Missiles)",
+      "standardTemplate": true,
+      "engineDependencies": ["BQM-MR-1-TJ"],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/12 - GBU (Guided Bomb Unit)/GBU-S-1.amc",
+      "name": "GBU-S-1",
+      "bytes": 7206,
+      "sha256": "6f262507095097b46b479fbaeccbf0015205680a8b4ce4fa4374b33c253ef10b",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "12 - GBU (Guided Bomb Unit)",
+      "standardTemplate": true,
+      "engineDependencies": [],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/13 - MUN (Unguided Munitions - BombsRockets)/MUN-B-1.amc",
+      "name": "MUN-B-1",
+      "bytes": 5590,
+      "sha256": "eb7a18cc30fc9b6c2439ab5e15c8ccd0d6d2eefb60e717873b284c99aab2dd6e",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "13 - MUN (Unguided Munitions - BombsRockets)",
+      "standardTemplate": true,
+      "engineDependencies": [],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/13 - MUN (Unguided Munitions - BombsRockets)/MUN-R-1.amc",
+      "name": "MUN-R-1",
+      "bytes": 6287,
+      "sha256": "7907b21e495796b8ed643b5822f8b75cd7865dad8cacd5ad7a2f038ffe11eff8",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "13 - MUN (Unguided Munitions - BombsRockets)",
+      "standardTemplate": true,
+      "engineDependencies": ["MUN-R-1-RKT"],
+      "airfoilDependencies": ["NACA-0012"]
+    },
+    {
+      "path": "Vehicles/Weapons/14 - TNK (External Fuel Tanks)/TNK-370-1.amc",
+      "name": "TNK-370-1",
+      "bytes": 5269,
+      "sha256": "34e40dc68a7fb6ea26d58e9211eede231a192abb49e6967b1472c5590dadfd9f",
+      "sourceCopyIdentical": true,
+      "vehicleType": "Weapon",
+      "category": "14 - TNK (External Fuel Tanks)",
+      "standardTemplate": true,
+      "engineDependencies": [],
+      "airfoilDependencies": ["NACA-0012"]
+    }
+  ],
+  "engines": [
+    {
+      "path": "Engines/Jet/A-M4-22A-1-TF.amc",
+      "name": "A-M4-22A-1-TF",
+      "bytes": 4737,
+      "sha256": "06469b3736ced6ee264edc4323bedcc5b4545f35eb7ff8cd687dca05f5c1b60f",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/ADM-MR-1-TJ.amc",
+      "name": "ADM-MR-1-TJ",
+      "bytes": 5265,
+      "sha256": "d01b79c45fcba281d66c9a534d025257772f7f2b46b1a11424ee336980f41611",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/AQM-MR-1-TJ.amc",
+      "name": "AQM-MR-1-TJ",
+      "bytes": 5264,
+      "sha256": "48a7837b2e6a70e0981f2999e90ddb2ef1688bed6c5344f3f0d6dc110ed5623d",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/B-H1-80W-1-TJ.amc",
+      "name": "B-H1-80W-1-TJ",
+      "bytes": 5288,
+      "sha256": "a611c48ec7bfb184b862080ec09914c6f005ec15b8a3e82d89318d10f7c1e106",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/B-H3-81A-1-TF.amc",
+      "name": "B-H3-81A-1-TF",
+      "bytes": 5290,
+      "sha256": "7075e954ab20f252c53f3e2928e0d15cdd35b743258645ebc2b7d45e4893be1a",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/B-H4-40W-1-TF.amc",
+      "name": "B-H4-40W-1-TF",
+      "bytes": 4728,
+      "sha256": "e3d947f2c28a62b671196d42782580ada3c15e4ed5ceab399f31c0c2d65c3368",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/BQM-MR-1-TJ.amc",
+      "name": "BQM-MR-1-TJ",
+      "bytes": 5264,
+      "sha256": "9ee2ff055a66e82f75a5dfd11043e899fae283b1e39daa7f1d36ce63709923d9",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/C-HJ-41A-1-TF.amc",
+      "name": "C-HJ-41A-1-TF",
+      "bytes": 4740,
+      "sha256": "760a997a176204ab54e4454985bf2a1e42f3c5b38cbe60098a30881f8aa5516a",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/D-L4-11V-1-TF.amc",
+      "name": "D-L4-11V-1-TF",
+      "bytes": 5297,
+      "sha256": "c1b20007e191b1a4c05b6c95177c17da4698be2b339ecb327faa9addfff6d598",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/D-L4-11V-1.amc",
+      "name": "D-L4-11V-1",
+      "bytes": 5295,
+      "sha256": "c1be08010559c9cb4bdfb2bbca3417134cb2c293f038397826a759b4cdd2270b",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/D-L4-11Z-1-TJ.amc",
+      "name": "D-L4-11Z-1-TJ",
+      "bytes": 5276,
+      "sha256": "07e12b7e68abb2c61c3112c75706fde8fc86fc4957d44a7c54499592504a7515",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/E-HJ-41A-1-TF.amc",
+      "name": "E-HJ-41A-1-TF",
+      "bytes": 5290,
+      "sha256": "fb2ab9c593966a4a9e9a5ea378302dbf765a58246e07d456dc30f9e31eaa569d",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/F-H4-21C-1-TF.amc",
+      "name": "F-H4-21C-1-TF",
+      "bytes": 8106,
+      "sha256": "3aff707409784003399c456aab55af1a3bd85ab8b00e897c35f7630e59e437b9",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/F-H4-22A-1-TF.amc",
+      "name": "F-H4-22A-1-TF",
+      "bytes": 8101,
+      "sha256": "45a6ef412204edc71056602cbeaf04bd998dc06b07a3c0097c91ea2072c6a17c",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/F-H4-22B-1-TF.amc",
+      "name": "F-H4-22B-1-TF",
+      "bytes": 8101,
+      "sha256": "c6f6de6e70cb520c706535fe241ae99f7c4d7c1b0a63a40e43b1db3a245642a8",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/F-L4-11A-1-TF.amc",
+      "name": "F-L4-11A-1-TF",
+      "bytes": 8108,
+      "sha256": "82823dc50a0afa518ae34f6633f9ad6b46023500319c91466f319ae82c6515e8",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/F-L4-11C-1-TF.amc",
+      "name": "F-L4-11C-1-TF",
+      "bytes": 8105,
+      "sha256": "3aae113e86f5c1a9631b90cb58443dae9baff1cecb829011b78f946be9d1262c",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/F-M5-12A-1-TF.amc",
+      "name": "F-M5-12A-1-TF",
+      "bytes": 9036,
+      "sha256": "75959c2e288df4959cc53188fe75e20582f1b2e3f5a0103b04a608dd7653672e",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/GENERIC-CM-1-TF.amc",
+      "name": "GENERIC-CM-1-TF",
+      "bytes": 5285,
+      "sha256": "1d3ba39cd8892e0670fcad91d3547d2569a62da29597f8fec3ad0314baa0942f",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/K-MJ-21A-1-TF.amc",
+      "name": "K-MJ-21A-1-TF",
+      "bytes": 4734,
+      "sha256": "9e0fe6d43939a693c167ea721d3b2eeaa809147d4a98b90db147dd91fac9a1b2",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/NOMINAL_TURBOFAN_AB.amc",
+      "name": "NOMINAL_TURBOFAN_AB",
+      "bytes": 8263,
+      "sha256": "adb94c0046a8cad969c94593426b491d2b730e26d2a9812a9f09da68b8ea2231",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/NOMINAL_TURBOFAN_BPR10.amc",
+      "name": "NOMINAL_TURBOFAN_BPR10",
+      "bytes": 4734,
+      "sha256": "dfd264622bc888b1faaffc7ec0b7b046300b910222a81c1c74f9f07ad4b58183",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/NOMINAL_TURBOFAN_BPR3.amc",
+      "name": "NOMINAL_TURBOFAN_BPR3",
+      "bytes": 4826,
+      "sha256": "adf602cab47e8e1d17a004f6a87e08c30e36bd3282e2980441ba16e2db7cd345",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/NOMINAL_TURBOFAN_BPR5.amc",
+      "name": "NOMINAL_TURBOFAN_BPR5",
+      "bytes": 4826,
+      "sha256": "7fc0aa7f96775521b2f22daff84f54adde5cbbbad7e68fd77dcff44ceef7137d",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/NOMINAL_TURBOFAN_BPR8.amc",
+      "name": "NOMINAL_TURBOFAN_BPR8",
+      "bytes": 4826,
+      "sha256": "a1f8bd5727b5e316d7c0c9641719ba3ff028bb41deb2b0be43756b4983e4e615",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/NOMINAL_TURBOFAN_LBR.amc",
+      "name": "NOMINAL_TURBOFAN_LBR",
+      "bytes": 5386,
+      "sha256": "896c875f1a0cb18faaade6ec82100f0942b8167dbdef1eadb636eecdf611c238",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/NOMINAL_TURBOJET.amc",
+      "name": "NOMINAL_TURBOJET",
+      "bytes": 5379,
+      "sha256": "798102fe8a6799865bfea46e45a47959c7d36aaa55a5f9ea0a101272ec60aa31",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/NOMINAL_TURBOJET_AB.amc",
+      "name": "NOMINAL_TURBOJET_AB",
+      "bytes": 8258,
+      "sha256": "6d80aa14028d86fc5dca4e34ac8bf98ddc9910ba5ec6d8bf69ed57cfbac8df17",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/P-MJ-21A-1-TF.amc",
+      "name": "P-MJ-21A-1-TF",
+      "bytes": 4737,
+      "sha256": "281d1ce43357fffd9612c6345c8234136563c1e721511f729c9aba1852eae852",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Jet/R-MJ-11A-1-TF.amc",
+      "name": "R-MJ-11A-1-TF",
+      "bytes": 5288,
+      "sha256": "d40ff99bb0deda7b8167facfa385f7301dfd6126220a5ef99ad2d014f86d537e",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/LiquidRocket/NOMINAL_LIQUID_RKT.amc",
+      "name": "NOMINAL_LIQUID_RKT",
+      "bytes": 5861,
+      "sha256": "052c9df1a4ed2168be9816806082614bfeeb545f6a229ada7b72b2d7867917c0",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Ramjet/NOMINAL_RAMJET_MACH2_0.amc",
+      "name": "NOMINAL_RAMJET_MACH2_0",
+      "bytes": 2624,
+      "sha256": "61608342c01a273d4965418d6af48da276d48ac9e5c9835ce0f393e6cf7ac06f",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Ramjet/NOMINAL_RAMJET_MACH2_5.amc",
+      "name": "NOMINAL_RAMJET_MACH2_5",
+      "bytes": 2720,
+      "sha256": "de2cfd63f21b1b18dd6a9839a2d24b28528c652a67eb414f134b14dba1e9b364",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Ramjet/NOMINAL_RAMJET_MACH3_0.amc",
+      "name": "NOMINAL_RAMJET_MACH3_0",
+      "bytes": 2712,
+      "sha256": "dfdb8b3b773ef66968fc94ed95673a99ef4e357637a158900934c5f2078d5a5a",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Ramjet/NOMINAL_RAMJET_MACH3_5.amc",
+      "name": "NOMINAL_RAMJET_MACH3_5",
+      "bytes": 2722,
+      "sha256": "c958df021a1c88f86915d8651b74c0b90489d2f532bd4edcdd25d47afac1d373",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Ramjet/NOMINAL_RAMJET_MACH4_0.amc",
+      "name": "NOMINAL_RAMJET_MACH4_0",
+      "bytes": 2715,
+      "sha256": "9c9c37d01e6aff4109fcd6d2859de4715d1887f2c63e7b27cfa1f9962e4da271",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/Ramjet/NOMINAL_RAMJET_MACH4_5.amc",
+      "name": "NOMINAL_RAMJET_MACH4_5",
+      "bytes": 2768,
+      "sha256": "fc0458ed67e7ca6e954738267512c69f4829709a6f0c6755c4ede9266ce23fb4",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/SolidRocket/AGM-SR-1-RKT.amc",
+      "name": "AGM-SR-1-RKT",
+      "bytes": 3453,
+      "sha256": "4a534b3aefa8f3691b52eda82e1ea42a59af688cda96ef5c39ed7739767a7bcb",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/SolidRocket/AIM-MR-1-RKT.amc",
+      "name": "AIM-MR-1-RKT",
+      "bytes": 3461,
+      "sha256": "d0cc5dd254786fe85560ecd72cddcf4a7733346874f34beb3d1b53b4ad90219a",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/SolidRocket/AIM-SR-1-RKT.amc",
+      "name": "AIM-SR-1-RKT",
+      "bytes": 3464,
+      "sha256": "eb193a3a932b0e4ef32436c8f651d1c91bac4e5e72cfdc1682f97e42ccac2030",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/SolidRocket/FIM-SR-1-RKT.amc",
+      "name": "FIM-SR-1-RKT",
+      "bytes": 3461,
+      "sha256": "c814f073480fa7f1f3bd1978af7215ad007ed79871cdcfae18575de610d0b363",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/SolidRocket/MIM-MR-1-RKT.amc",
+      "name": "MIM-MR-1-RKT",
+      "bytes": 3464,
+      "sha256": "3aac022e472f985a458ae210d6a6889474c9009fca4e7e93f88592a77e5a5e4d",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/SolidRocket/MUN-R-1-RKT.amc",
+      "name": "MUN-R-1-RKT",
+      "bytes": 3461,
+      "sha256": "457758f2903193fc927e8c2720a1f226a577aec293cd6162affa64b444babd33",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/SolidRocket/NOMINAL_SOLID_RKT.amc",
+      "name": "NOMINAL_SOLID_RKT",
+      "bytes": 3467,
+      "sha256": "61d2aec5597637bc2216ac88ea7cd27b4c33aef5fd1c301b90d949d466e74e26",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Engines/SolidRocket/RIM-MR-1-RKT.amc",
+      "name": "RIM-MR-1-RKT",
+      "bytes": 3464,
+      "sha256": "61764a0b9206c4c3942bb03fb45d7f2ef15a55280d83ec2aa95e4c2aac144168",
+      "sourceCopyIdentical": true
+    }
+  ],
+  "airfoils": [
+    {
+      "path": "Airfoils/BAC-3XX.foil",
+      "name": "BAC-3XX",
+      "bytes": 5319,
+      "sha256": "e2d8c9ddee848df0eff0f6d8bd09cf658950486e3787ba21d6f3bba69dabe1bc",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Airfoils/BAC-4XX.foil",
+      "name": "BAC-4XX",
+      "bytes": 7918,
+      "sha256": "04faf219a013f982ea39d66420fd89a33e631cd1f8c7619ffb81911681c30ed9",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Airfoils/NACA-0008.foil",
+      "name": "NACA-0008",
+      "bytes": 2510,
+      "sha256": "a353ab55da17a72bcf3d0710271da1e365558cf1a6a6f0c1e9b1c191adb4ed45",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Airfoils/NACA-0012.foil",
+      "name": "NACA-0012",
+      "bytes": 4103,
+      "sha256": "173bb7c7b8b45e6273928ab541eed587c7bd2760e189ecc4bea31a5097a2e917",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Airfoils/NACA-633218.foil",
+      "name": "NACA-633218",
+      "bytes": 4463,
+      "sha256": "8bde5cf719e8e50fb90da6867abcafad081bbefd277a8b7d2928daedffc52234",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Airfoils/NACA-63409.foil",
+      "name": "NACA-63409",
+      "bytes": 5167,
+      "sha256": "b273e9ed5d3a71e655cfdd09a744ae972f496a64124dcb1ed4dbafe213036be8",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Airfoils/NACA-64012.foil",
+      "name": "NACA-64012",
+      "bytes": 3109,
+      "sha256": "06a0e36d0ef7485eabf74d8213929981cc82ae4f2784e2fc3da555a5a3b5708a",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Airfoils/NACA-64206.foil",
+      "name": "NACA-64206",
+      "bytes": 3481,
+      "sha256": "1ff6ec42e8119352aeabe0807ca9c435b0ccce27ffb88a10f9aa59e10ad5ed6e",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Airfoils/NACA-653018.foil",
+      "name": "NACA-653018",
+      "bytes": 3972,
+      "sha256": "a29f7d3c7e07e4cd8e61f5602a08e667a2940ababecf06edb7b3f6aeaa590764",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Airfoils/NACA-6716.foil",
+      "name": "NACA-6716",
+      "bytes": 4338,
+      "sha256": "1c98e18b162042fd7c02f5837bfc54c092a2cadbcafa52ee06af7e4d4c686588",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Airfoils/NASA-SC20412.foil",
+      "name": "NASA-SC20412",
+      "bytes": 8571,
+      "sha256": "37d5f9c8d7ab1a89200acfe0051ab6ddf357199069ba1f77884936e66c4493a1",
+      "sourceCopyIdentical": true
+    },
+    {
+      "path": "Airfoils/airfoil_default.foil",
+      "name": "airfoil_default",
+      "bytes": 6560,
+      "sha256": "feb60235b0bacdbdd9ba000cdbfa533e909fd1bd40bf45644f022b7b2d0760f8",
+      "sourceCopyIdentical": true
+    }
+  ]
+}
