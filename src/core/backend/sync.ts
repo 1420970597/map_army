@@ -16,6 +16,7 @@ import { normalizeSymbolDefaults } from '@/core/symbology/defaults';
 import { registerEquipmentModels, type EquipmentModelDefinition } from '@/core/model/equipment3d';
 import { registerCatalog, type CatalogEntry } from '@/core/symbology/catalog';
 import { createDocument, type MapDocument } from '@/core/model';
+import { createRandomId } from '@/core/randomId';
 
 interface SavedProject {
   id: string;
@@ -94,7 +95,7 @@ const pendingKey = (id = scope()) => `map-army.pending.${id}`;
 const settingsKey = (id = scope()) => `map-army.settings-pending.${id}`;
 const cacheKey = (id = scope()) => `map-army.project-cache.${id}`;
 const legacyKey = () => `map-army.legacy-restore.${scope()}`;
-const newId = () => crypto.randomUUID().replaceAll('-', '');
+const newId = () => createRandomId().replaceAll('-', '');
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 function rememberConnection() {
   const { workspaceId, workspaceName, projectId, revision, settingsVersion } =

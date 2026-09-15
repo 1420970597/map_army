@@ -1,5 +1,7 @@
+import { createRandomId } from '../randomId';
+
 /** 每个页面保留独立恢复快照；持久草稿只清理本次页面保存过的内容。 */
-const writer = crypto.randomUUID();
+const writer = createRandomId();
 const inherited = new Map<string, { backup: string; raw: string }>();
 const journal = (key: string) => `${key}.tab.${writer}`;
 const isDraft = (key: string) => /map-army\.(pending|settings-pending)\./.test(key);
