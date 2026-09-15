@@ -14,6 +14,9 @@ import {
   createLineGeometry,
   createPointGeometry,
   GeometryKind,
+  SymbolKind,
+  TacticalGraphicType,
+  type GraphicParams,
   type MapDocument,
   type MapFeature,
 } from '../model';
@@ -45,6 +48,9 @@ const PROP_KEYS = {
   staffComments: 'staffComments',
   direction: 'direction',
   layer: 'layer',
+  symbolKind: 'symbolKind',
+  graphicType: 'graphicType',
+  graphicParams: 'graphicParams',
 } as const;
 
 /**
@@ -94,6 +100,13 @@ function toGeoJsonFeature(feature: MapFeature, layerNames: Map<string, string>):
         ? { [PROP_KEYS.staffComments]: feature.textFields.staffComments }
         : {}),
       ...(feature.direction !== undefined ? { [PROP_KEYS.direction]: feature.direction } : {}),
+      ...(feature.symbolKind !== undefined ? { [PROP_KEYS.symbolKind]: feature.symbolKind } : {}),
+      ...(feature.graphicType !== undefined
+        ? { [PROP_KEYS.graphicType]: feature.graphicType }
+        : {}),
+      ...(feature.graphicParams !== undefined
+        ? { [PROP_KEYS.graphicParams]: { ...feature.graphicParams } }
+        : {}),
     },
   };
 }
@@ -193,7 +206,54 @@ function fromGeoJsonFeature(item: GeoJsonFeature, defaultLayerId: string): MapFe
       typeof props[PROP_KEYS.direction] === 'number'
         ? (props[PROP_KEYS.direction] as number)
         : undefined,
+    ...graphicFieldsOf(props),
   });
+}
+
+const GRAPHIC_PARAM_KEYS = [
+  'widthRatio',
+  'headRatio',
+  'toothRatio',
+  'toothSpacingRatio',
+  'tickRatio',
+  'tickSpacingRatio',
+  'hatchSpacingRatio',
+  'corridorWidthMeters',
+  'phaseWingRatio',
+  'smooth',
+] as const;
+
+/** 从外部 GeoJSON 属性宽容恢复战术图形字段。 */
+function graphicFieldsOf(
+  properties: Record<string, unknown>,
+): Pick<MapFeature, 'symbolKind' | 'graphicType' | 'graphicParams'> {
+  const symbolKind =
+    properties[PROP_KEYS.symbolKind] === SymbolKind.Single ||
+    properties[PROP_KEYS.symbolKind] === SymbolKind.MultiPoint
+      ? (properties[PROP_KEYS.symbolKind] as MapFeature['symbolKind'])
+      : undefined;
+  const rawType = properties[PROP_KEYS.graphicType];
+  const graphicType = Object.values(TacticalGraphicType).includes(rawType as TacticalGraphicType)
+    ? (rawType as MapFeature['graphicType'])
+    : undefined;
+  const graphicParams = graphicParamsOf(properties[PROP_KEYS.graphicParams]);
+  return { symbolKind, graphicType, graphicParams };
+}
+
+/** 仅保留已知且有限的图形参数。 */
+function graphicParamsOf(value: unknown): GraphicParams | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined;
+  const source = value as Record<string, unknown>;
+  const result: GraphicParams = {};
+  for (const key of GRAPHIC_PARAM_KEYS) {
+    const item = source[key];
+    if (key === 'smooth') {
+      if (typeof item === 'boolean') result.smooth = item;
+    } else if (typeof item === 'number' && Number.isFinite(item)) {
+      result[key] = item;
+    }
+  }
+  return Object.keys(result).length === 0 ? undefined : result;
 }
 
 /** 读取坐标序列，跳过非法项 */

@@ -21,6 +21,8 @@ interface IconKeyParts {
   direction?: number;
   higherFormation?: string;
   uniqueDesignation?: string;
+  fontSize?: number;
+  fontFamily?: string;
 }
 
 /**
@@ -67,7 +69,7 @@ export function symbolSvg(sidc: string, size = DEFAULT_SYMBOL_SIZE, direction?: 
 
 /** 构造实际的图标实例 */
 function buildIcon(parts: IconKeyParts): L.DivIcon {
-  const { size, direction, higherFormation, uniqueDesignation } = parts;
+  const { size, direction, higherFormation, uniqueDesignation, fontSize, fontFamily } = parts;
   let parsed: Sidc;
 
   try {
@@ -82,6 +84,8 @@ function buildIcon(parts: IconKeyParts): L.DivIcon {
     direction,
     higherFormation,
     uniqueDesignation,
+    fontSize,
+    fontFamily,
   });
 
   return L.divIcon({
@@ -101,6 +105,8 @@ function iconKey(parts: IconKeyParts): string {
     parts.direction ?? '',
     parts.higherFormation ?? '',
     parts.uniqueDesignation ?? '',
+    parts.fontSize ?? '',
+    parts.fontFamily ?? '',
   ].join('|');
 }
 
@@ -144,6 +150,8 @@ export function iconPartsOf(
   text: { higherFormation?: string; uniqueDesignation?: string } = {},
   size = DEFAULT_SYMBOL_SIZE,
   direction?: number,
+  fontSize?: number,
+  fontFamily?: string,
 ): IconKeyParts {
   return {
     sidc,
@@ -151,6 +159,8 @@ export function iconPartsOf(
     direction,
     higherFormation: text.higherFormation,
     uniqueDesignation: text.uniqueDesignation,
+    fontSize,
+    fontFamily,
   };
 }
 

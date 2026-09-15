@@ -13,7 +13,15 @@
  */
 
 import { createDocument } from '../model/factory';
-import { LayerKind, LayerStatus, type MapDocument, type MapFeature } from '../model/types';
+import {
+  LayerKind,
+  LayerStatus,
+  SymbolKind,
+  TacticalGraphicType,
+  type GraphicParams,
+  type MapDocument,
+  type MapFeature,
+} from '../model/types';
 
 /** 文件格式标识 */
 export const MILXLY_FORMAT = 'milxly';
@@ -159,6 +167,7 @@ function reviveFeature(item: unknown): MapFeature | null {
       style: isRecord(item.style) ? (item.style as MapFeature['style']) : undefined,
       direction: typeof item.direction === 'number' ? item.direction : undefined,
       vertexBearings: reviveVertexBearings(item.vertexBearings),
+      ...reviveGraphicFields(item),
       createdAt: typeof item.createdAt === 'number' ? item.createdAt : now,
       updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : now,
     };
@@ -184,9 +193,55 @@ function reviveFeature(item: unknown): MapFeature | null {
     style: isRecord(item.style) ? (item.style as MapFeature['style']) : undefined,
     direction: typeof item.direction === 'number' ? item.direction : undefined,
     vertexBearings: reviveVertexBearings(item.vertexBearings),
+    ...reviveGraphicFields(item),
     createdAt: typeof item.createdAt === 'number' ? item.createdAt : now,
     updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : now,
   };
+}
+
+const GRAPHIC_PARAM_KEYS = [
+  'widthRatio',
+  'headRatio',
+  'toothRatio',
+  'toothSpacingRatio',
+  'tickRatio',
+  'tickSpacingRatio',
+  'hatchSpacingRatio',
+  'corridorWidthMeters',
+  'phaseWingRatio',
+  'smooth',
+] as const;
+
+/** 恢复战术图形字段，忽略未知类型与非法参数。 */
+function reviveGraphicFields(
+  item: Record<string, unknown>,
+): Pick<MapFeature, 'symbolKind' | 'graphicType' | 'graphicParams'> {
+  const symbolKind =
+    item.symbolKind === SymbolKind.Single || item.symbolKind === SymbolKind.MultiPoint
+      ? item.symbolKind
+      : undefined;
+  const graphicType = Object.values(TacticalGraphicType).includes(
+    item.graphicType as TacticalGraphicType,
+  )
+    ? (item.graphicType as MapFeature['graphicType'])
+    : undefined;
+  const graphicParams = reviveGraphicParams(item.graphicParams);
+  return { symbolKind, graphicType, graphicParams };
+}
+
+/** 仅恢复声明过的有限参数，避免外部数据污染模型。 */
+function reviveGraphicParams(value: unknown): GraphicParams | undefined {
+  if (!isRecord(value)) return undefined;
+  const result: GraphicParams = {};
+  for (const key of GRAPHIC_PARAM_KEYS) {
+    const item = value[key];
+    if (key === 'smooth') {
+      if (typeof item === 'boolean') result.smooth = item;
+    } else if (typeof item === 'number' && Number.isFinite(item)) {
+      result[key] = item;
+    }
+  }
+  return Object.keys(result).length === 0 ? undefined : result;
 }
 
 /** 判断值是否为已知图层种类。 */

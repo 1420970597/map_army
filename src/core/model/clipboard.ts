@@ -6,7 +6,15 @@
 
 import type { LonLat, Pixel, Projection } from '../geo';
 import { createId } from './factory';
-import type { FeatureGeometry, FeatureStyle, FeatureTextFields, MapFeature } from './types';
+import {
+  SymbolKind,
+  TacticalGraphicType,
+  type FeatureGeometry,
+  type FeatureStyle,
+  type FeatureTextFields,
+  type GraphicParams,
+  type MapFeature,
+} from './types';
 
 /** 剪贴板载荷类型标识 */
 export const CLIPBOARD_KIND = 'map-army/clipboard';
@@ -77,6 +85,7 @@ function cloneFeature(feature: MapFeature): MapFeature {
     textFields: { ...feature.textFields },
     style: feature.style === undefined ? undefined : { ...feature.style },
     vertexBearings: feature.vertexBearings === undefined ? undefined : [...feature.vertexBearings],
+    graphicParams: feature.graphicParams === undefined ? undefined : { ...feature.graphicParams },
   };
 }
 
@@ -126,6 +135,40 @@ function isGeometry(value: unknown): value is FeatureGeometry {
 }
 
 /** 判断逐顶点方向数组是否只含合法手动方向或自动方向占位。 */
+const GRAPHIC_PARAM_KEYS = [
+  'widthRatio',
+  'headRatio',
+  'toothRatio',
+  'toothSpacingRatio',
+  'tickRatio',
+  'tickSpacingRatio',
+  'hatchSpacingRatio',
+  'corridorWidthMeters',
+  'phaseWingRatio',
+  'smooth',
+] as const;
+
+/** 判断图形参数是否为可安全复制的有限数值与布尔值。 */
+function isGraphicParams(value: unknown): value is GraphicParams {
+  if (!isRecord(value)) return false;
+  return GRAPHIC_PARAM_KEYS.every((key) => {
+    const item = value[key];
+    return (
+      item === undefined || (key === 'smooth' ? typeof item === 'boolean' : isFiniteNumber(item))
+    );
+  });
+}
+
+/** 判断值是否为已知符号形态。 */
+function isSymbolKind(value: unknown): value is MapFeature['symbolKind'] {
+  return value === SymbolKind.Single || value === SymbolKind.MultiPoint;
+}
+
+/** 判断值是否为已知战术图形种类。 */
+function isGraphicType(value: unknown): value is MapFeature['graphicType'] {
+  return Object.values(TacticalGraphicType).includes(value as TacticalGraphicType);
+}
+
 function isVertexBearings(value: unknown): value is unknown[] {
   return (
     Array.isArray(value) &&
@@ -159,6 +202,9 @@ function isMapFeature(value: unknown): value is ParsedMapFeature {
     (value.style === undefined || isStyle(value.style)) &&
     (value.direction === undefined || isFiniteNumber(value.direction)) &&
     (value.vertexBearings === undefined || isVertexBearings(value.vertexBearings)) &&
+    (value.symbolKind === undefined || isSymbolKind(value.symbolKind)) &&
+    (value.graphicType === undefined || isGraphicType(value.graphicType)) &&
+    (value.graphicParams === undefined || isGraphicParams(value.graphicParams)) &&
     isFiniteNumber(value.createdAt) &&
     isFiniteNumber(value.updatedAt)
   );
@@ -167,9 +213,14 @@ function isMapFeature(value: unknown): value is ParsedMapFeature {
 /** 规范化已经过结构校验的要素可选数组字段。 */
 function normalizeMapFeature(feature: ParsedMapFeature): MapFeature {
   const { vertexBearings, ...baseFeature } = feature;
-  if (vertexBearings === undefined) return baseFeature;
-  return {
+  const normalized = {
     ...baseFeature,
+    graphicParams:
+      baseFeature.graphicParams === undefined ? undefined : { ...baseFeature.graphicParams },
+  };
+  if (vertexBearings === undefined) return normalized;
+  return {
+    ...normalized,
     vertexBearings: normalizeVertexBearings(vertexBearings),
   };
 }

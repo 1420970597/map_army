@@ -13,3 +13,4 @@ export * from './mgrs';
 export * from './bng';
 export * from './grid';
 export * from './snap';
+export * from './planar';

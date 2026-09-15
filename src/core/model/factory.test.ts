@@ -16,7 +16,7 @@ import {
   createLineGeometry,
   createPointGeometry,
 } from './factory';
-import { LayerKind, LayerStatus } from './types';
+import { LayerKind, LayerStatus, SymbolKind, TacticalGraphicType } from './types';
 
 describe('文档工厂', () => {
   it('新建文档从第一刻起使用当前 schema', () => {
@@ -110,6 +110,27 @@ describe('文档工厂', () => {
     copy.geometry.points[2].lat = 88;
 
     expect(source.geometry.points[2].lat).toBe(2);
+  });
+
+  it('复制战术图形字段并深拷贝参数', () => {
+    const document = createDocument();
+    const source = createFeature({
+      layerId: document.layers[0].id,
+      sidc: '10062500001101000000',
+      geometry: createLineGeometry([
+        { lon: 1, lat: 2 },
+        { lon: 3, lat: 4 },
+      ]),
+      symbolKind: SymbolKind.MultiPoint,
+      graphicType: TacticalGraphicType.AxisOfAdvance,
+      graphicParams: { headRatio: 0.2, smooth: true },
+    });
+    const copy = cloneFeature(source);
+
+    copy.graphicParams!.headRatio = 0.4;
+    expect(copy.symbolKind).toBe(SymbolKind.MultiPoint);
+    expect(copy.graphicType).toBe(TacticalGraphicType.AxisOfAdvance);
+    expect(source.graphicParams).toEqual({ headRatio: 0.2, smooth: true });
   });
 
   it('覆盖字段仍生效且复制结果总是换用新标识', () => {

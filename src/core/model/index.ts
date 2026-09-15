@@ -2,13 +2,21 @@
  * 标图文档模型统一出口。
  */
 
-export { BaseMapType, GeometryKind, LayerStatus, Tool } from './types';
+export {
+  BaseMapType,
+  GeometryKind,
+  LayerStatus,
+  SymbolKind,
+  TacticalGraphicType,
+  Tool,
+} from './types';
 export type { GridType } from '../geo';
 export type {
   AreaGeometry,
   FeatureGeometry,
   FeatureStyle,
   FeatureTextFields,
+  GraphicParams,
   Layer,
   LineGeometry,
   MapDocument,
@@ -27,6 +35,9 @@ export {
   createPointGeometry,
 } from './factory';
 export type { CreateFeatureParams, CreateLayerParams } from './factory';
+
+export { mergeStyleWithDefaults, styleFromSymbolDefaults } from './style';
+export type { SymbolStyleDefaults } from './style';
 
 export { reorderLayers, sortLayersByDisplay } from './layerOrder';
 
