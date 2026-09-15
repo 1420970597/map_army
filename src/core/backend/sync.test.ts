@@ -17,6 +17,7 @@ let writes: { revision: string | null; document: MapDocument }[];
 let hold: (() => Promise<void>) | undefined;
 const cache = new Map<string, string>();
 const tabCache = new Map<string, string>();
+const getRandomValues = globalThis.crypto.getRandomValues.bind(globalThis.crypto);
 const tabStorage = {
   getItem: (key: string) => tabCache.get(key) ?? null,
   setItem: (key: string, value: string) => tabCache.set(key, value),
@@ -47,6 +48,8 @@ beforeEach(async () => {
   online = true;
   writes = [];
   hold = undefined;
+  // 普通 HTTP 页面保留 getRandomValues，但没有仅安全上下文提供的 randomUUID。
+  vi.stubGlobal('crypto', { getRandomValues });
   vi.stubGlobal('localStorage', storage);
   vi.stubGlobal('sessionStorage', tabStorage);
   vi.stubGlobal('window', {

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Copy, Download, Eye, Plus, Redo2, Save, Trash2, Undo2, Upload, X } from 'lucide-react';
 import { api, apiBlob, uploadAsset } from '@/core/backend/api';
 import { refreshCatalog } from '@/core/backend/sync';
+import { createRandomId } from '@/core/randomId';
 import { listEquipmentModels, type EquipmentModelDefinition } from '@/core/model/equipment3d';
 import { useBackendStore } from '@/stores/useBackendStore';
 import { useMoverText } from './moverText';
@@ -372,7 +373,7 @@ export function MoverCreatorDialog({
     }
   };
   const addMount = (role: 'socket' | 'anchor') => {
-    const id = crypto.randomUUID();
+    const id = createRandomId();
     change({
       ...bundle,
       mounts: [
